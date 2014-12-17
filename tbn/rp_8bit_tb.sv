@@ -28,9 +28,10 @@ logic     [8-1:0] io_di;
 logic [BI_IW-1:0] irq;
 logic [BI_IW-1:0] irq_ack;
 
-softusb_navre #(
-  BI_AW,
-  BD_AW
+rp_8bit #(
+  .BI_IW (BI_IW),
+  .BI_AW (BI_AW),
+  .BD_AW (BD_AW)
 ) UUT (
   // system signals
   .clk     (clk),
@@ -52,8 +53,7 @@ softusb_navre #(
   .io_di   (io_di  ),
   // interrupt
   .irq     (irq    ),
-  .irq_ack (irq_ack),
-  .dbg_pc  ()
+  .irq_ack (irq_ack)
 );
 
 integer cycles;
@@ -111,8 +111,9 @@ begin
   if (dmem_we) begin
     $display("+LOG+ %t DW @%x   %x", $time, dmem_a, dmem_do);
     dmem[dmem_a] <= dmem_do;
+  end else begin
+    dmem_di <= dmem[dmem_a];
   end
-  dmem_di <= dmem[dmem_a];
 end
 
 ////////////////////////////////////////////////////////////////////////////////
