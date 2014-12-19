@@ -96,10 +96,14 @@ if (pmem_ce) begin
   pmem_d <= pmem[pmem_a];
 end
 
-string asm;
+string str;
+bit [0:32-1] [8-1:0] asm;
 
 always_comb begin
-  asm = rp_8bit_disasm::disasm(pmem_d);
+  str = rp_8bit_disasm::disasm(pmem_d);
+  for (int i=0; i<str.len(); i++) begin
+    asm [i] = (8)'(str[i]);
+  end
 end
 
 ////////////////////////////////////////////////////////////////////////////////
