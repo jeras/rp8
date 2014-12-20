@@ -3,7 +3,6 @@ package rp_8bit_disasm;
 // TODO check proper syntax for constants and displacements
 
 function string disasm (bit [16-1:0] code, bit deep=1'b0);
-//function bit [32-1:0] [8-1:0] disasm (bit [16-1:0] code);
   // local variables
   bit unsigned [5-1:0] Rd, Rr;  // destination and source registers
   bit unsigned [8-1:0] K;       // 8-bit constant
@@ -121,12 +120,16 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
     16'b1001_0100_????_1000: begin
       const bit [8-1:0] [8-1:0] sreg = "ithsvnzc";
       b = code [6:4];
-      if (code[7]) str = $sformatf ("bclr r%0d", b);  // Bit Clear in SREG
-      else         str = $sformatf ("bset r%0d", b);  // Bit Set in SREG
+      case (code[7])
+        1'b0: str = $sformatf ("bset r%0d", b);  // Bit Set in SREG
+        1'b1: str = $sformatf ("bclr r%0d", b);  // Bit Clear in SREG
+      endcase
       // Flafs: Global Interrupt/T/Half Carry/Signed/Overflow/Negative/Zero/Carry
       if (deep) begin
-        if (code[7]) str = $sformatf ("cl%s", sreg[b]);  // Clear * Flag
-        else         str = $sformatf ("se%s", sreg[b]);  // Set * Flag
+        case (code[7])
+          1'b0: str = $sformatf ("se%s", sreg[b]);  // Set   * Flag
+          1'b1: str = $sformatf ("cl%s", sreg[b]);  // Clear * Flag
+        endcase
       end
     end
     16'b1001_0101_????_1000: begin
@@ -211,7 +214,55 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
         1'b1: str = $sformatf ("out  0x%02x,r%0d", A, Rd);  // Store Register to I/O Location
       endcase
     end
-    
+    16'b110?_????_????_????: begin
+      bit signed [12-1:0] k;
+      k = code[11:0];
+      case (code[12])
+        1'b0: str = $sformatf ("rjmp  0x%03x", k);  // Relative Jump
+        1'b1: str = $sformatf ("rcall 0x%03x", k);  // Relative Call to Subroutine
+      endcase
+    end
+    16'b1110_????_????_????: begin
+      Rd[4:0] = {1'b1, code [7:4]};
+      K = {code[11:8], code [3:0]};
+      str = $sformatf ("ldi  r%0d,0x%02x", Rd, K);  // Load Immediate
+    end
+    16'b1111_0???_????_????: begin
+      const bit [8-1:0] [8-1:0] sreg = "ithsvnzc";
+      bit signed [7-1:0] k;
+      k = code[9:3];
+      b = code[2:0];
+      case (code[10])
+        1'b0: str = $sformatf ("brbs %0d,0x%02d", b, k);  // Branch if Bit in SREG is Set
+        1'b1: str = $sformatf ("brbc %0d,0x%02d", b, k);  // Branch if Bit in SREG is Cleared
+      endcase
+      // Flafs: Global Interrupt/T/Half Carry/Signed/Overflow/Negative/Zero/Carry
+      if (deep) begin
+        case (code[10])
+          1'b0: str = $sformatf ("br%ss 0x%02d", sreg[b], k);  // Branch if * Set
+          1'b1: str = $sformatf ("br%sc 0x%02d", sreg[b], k);  // Branch if * Cleared
+        endcase
+      end
+    end
+    16'b1111_10??_????_0???: begin
+      Rd[4:0] = code[8:4];
+      b = code[2:0];
+      case (code[9])
+        1'b0: str = $sformatf ("bld r%0d,%0d", Rd, b);  // Bit Load from the T Flag in SREG to a Bit in Register
+        1'b1: str = $sformatf ("bst r%0d,%0d", Rd, b);  // Bit Store from Bit in Register to T Flag in SREG
+      endcase
+    end
+    16'b1111_11??_????_0???: begin
+      Rd[4:0] = code[8:4];
+      b = code[2:0];
+      case (code[9])
+        1'b0: str = $sformatf ("sbrc r%0d,%0d", Rd, b);  // Skip if Bit in Register is Cleared
+        1'b1: str = $sformatf ("sbrs r%0d,%0d", Rd, b);  // Skip if Bit in Register is Set
+      endcase
+    end
+    default: begin
+      str = $sformatf ("undefined");  // TODO check
+    end
   endcase
       
   return (str);
