@@ -2,12 +2,13 @@ package rp_8bit_disasm;
 
 // TODO check proper syntax for constants and displacements
 
-function string disasm (bit [16-1:0] code);
+function string disasm (bit [16-1:0] code, bit deep=1'b0);
 //function bit [32-1:0] [8-1:0] disasm (bit [16-1:0] code);
   // local variables
   bit unsigned [5-1:0] Rd, Rr;  // destination and source registers
   bit unsigned [8-1:0] K;       // 8-bit constant
   bit unsigned [6-1:0] q;       // 6-bit displacement
+  bit unsigned [3-1:0] b;       // 3-bit bit index
   string index;
   string str;
 
@@ -39,22 +40,26 @@ function string disasm (bit [16-1:0] code);
     16'b0010_????_????_????: begin
       {Rr[4], Rd[4:0], Rr[3:0]} = code [9:0];
       case (code[13:10])
-        4'b0001:             str = $sformatf ("cpc  r%0d,r%0d", Rd, Rr);  // Compare with Carry
-        4'b0010:             str = $sformatf ("sbc  r%0d,r%0d", Rd, Rr);  // Subtract with Carry
-        4'b0011: if (Rd!=Rr) str = $sformatf ("add  r%0d,r%0d", Rd, Rr);  // Add without Carry
-                 else        str = $sformatf ("lsl  r%0d"     , Rd    );  // Logical Shift Left
-        4'b0100:             str = $sformatf ("cpse r%0d,r%0d", Rd, Rr);  // Compare Skip if Equal
-        4'b0101:             str = $sformatf ("cp   r%0d,r%0d", Rd, Rr);  // Compare
-        4'b0110:             str = $sformatf ("sub  r%0d,r%0d", Rd, Rr);  // Subtract without Carry
-        4'b0111: if (Rd!=Rr) str = $sformatf ("adc  r%0d,r%0d", Rd, Rr);  // Add with Carry
-                 else        str = $sformatf ("rol  r%0d"     , Rd    );  // Rotate Left trough Carry
-        4'b1000: if (Rd!=Rr) str = $sformatf ("and  r%0d,r%0d", Rd, Rr);  // Logical AND
-                 else        str = $sformatf ("tst  r%0d"     , Rd    );  // Test for Zero or Minus
-        4'b1001: if (Rd!=Rr) str = $sformatf ("eor  r%0d,r%0d", Rd, Rr);  // Exclusive OR
-                 else        str = $sformatf ("clr  r%0d"     , Rd    );  // Clear Register
-        4'b1010:             str = $sformatf ("or   r%0d,r%0d", Rd, Rr);  // Logical OR
-        4'b1011:             str = $sformatf ("mov  r%0d,r%0d", Rd, Rr);  // Copy Register
+        4'b0001: str = $sformatf ("cpc  r%0d,r%0d", Rd, Rr);  // Compare with Carry
+        4'b0010: str = $sformatf ("sbc  r%0d,r%0d", Rd, Rr);  // Subtract with Carry
+        4'b0011: str = $sformatf ("add  r%0d,r%0d", Rd, Rr);  // Add without Carry
+        4'b0100: str = $sformatf ("cpse r%0d,r%0d", Rd, Rr);  // Compare Skip if Equal
+        4'b0101: str = $sformatf ("cp   r%0d,r%0d", Rd, Rr);  // Compare
+        4'b0110: str = $sformatf ("sub  r%0d,r%0d", Rd, Rr);  // Subtract without Carry
+        4'b0111: str = $sformatf ("adc  r%0d,r%0d", Rd, Rr);  // Add with Carry
+        4'b1000: str = $sformatf ("and  r%0d,r%0d", Rd, Rr);  // Logical AND
+        4'b1001: str = $sformatf ("eor  r%0d,r%0d", Rd, Rr);  // Exclusive OR
+        4'b1010: str = $sformatf ("or   r%0d,r%0d", Rd, Rr);  // Logical OR
+        4'b1011: str = $sformatf ("mov  r%0d,r%0d", Rd, Rr);  // Copy Register
       endcase
+      if (deep && ((Rd==Rr))) begin
+        case (code[13:10])
+          4'b0011: str = $sformatf ("lsl  r%0d", Rd);  // Logical Shift Left
+          4'b0111: str = $sformatf ("rol  r%0d", Rd);  // Rotate Left trough Carry
+          4'b1000: str = $sformatf ("tst  r%0d", Rd);  // Test for Zero or Minus
+          4'b1001: str = $sformatf ("clr  r%0d", Rd);  // Clear Register
+        endcase
+      end
     end
     16'b0011_????_????_????,
     16'b01??_????_????_????: begin
@@ -112,7 +117,64 @@ function string disasm (bit [16-1:0] code);
         3'b111: str = $sformatf ("ror  r%0d", Rd);  // Rotate Right through Carry
       endcase
     end
-
+    16'b1001_0100_????_1000: begin
+      const bit [8-1:0] [8-1:0] sreg = "ithsvnzc";
+      b = code [6:4];
+      if (code[7]) str = $sformatf ("bclr r%0d", b);  // Bit Clear in SREG
+      else         str = $sformatf ("bset r%0d", b);  // Bit Set in SREG
+      // Flafs: Global Interrupt/T/Half Carry/Signed/Overflow/Negative/Zero/Carry
+      if (deep) begin
+        if (code[7]) str = $sformatf ("cl%s", sreg[b]);  // Clear * Flag
+        else         str = $sformatf ("se%s", sreg[b]);  // Set * Flag
+      end
+    end
+    16'b1001_0101_????_1000: begin
+      case (code[7:4])
+        4'b0000: str = $sformatf ("ret"   );  // Return from Subroutine
+        4'b0001: str = $sformatf ("reti"  );  // Return from Interrupt
+        4'b0010: str = $sformatf ("undefined");  // TODO check
+        4'b0011: str = $sformatf ("undefined");  // TODO check
+        4'b0100: str = $sformatf ("undefined");  // TODO check
+        4'b0101: str = $sformatf ("undefined");  // TODO check
+        4'b0110: str = $sformatf ("undefined");  // TODO check
+        4'b0111: str = $sformatf ("undefined");  // TODO check
+        4'b1000: str = $sformatf ("sleep" );  // Sleep
+        4'b1001: str = $sformatf ("break" );  // Break
+        4'b1010: str = $sformatf ("wdr"   );  // Watchdog Reset
+        4'b1011: str = $sformatf ("undefined");  // TODO check
+        4'b1100: str = $sformatf ("lpm"   );  // Load Program Memory
+        4'b1101: str = $sformatf ("elpm"  );  // Extended Load Program Memory
+        4'b1110: str = $sformatf ("spm"   );  // Store Program Memory
+        4'b1111: str = $sformatf ("spm Z+");  // Store Program Memory #2 (Z post incremented)
+      endcase
+    end
+    16'b1001_010?_000?_1001: begin
+      case (code[8])
+        1'b0: case (code[4])
+          1'b0: str = $sformatf ("ijmp"  );  //          Indirect Jump
+          1'b1: str = $sformatf ("eijmp" );  // Extended Indirect Jump
+        endcase
+        1'b1: case (code[4])
+          1'b0: str = $sformatf ("icall" );  //          Indirect Call to Subroutine
+          1'b1: str = $sformatf ("eicall");  // Extended Indirect Call to Subroutine
+        endcase
+      endcase
+    end
+    16'b1001_010?_????_1010: begin
+      Rd[4:0] = {1'b1, code[7:4]};
+      str = $sformatf ("dec %0d", Rd);  // Decrement
+    end
+    16'b1001_0100_????_1011: begin
+      K = {4'b0000, code[7:4]};
+      str = $sformatf ("des 0x%01x", K[3:0]);  // Data Encryption Standard
+    end
+    16'b1001_010?_????_10??: begin
+      K = {4'b00, code[8:4], code[0]};
+      case (code[1])
+        1'b0: str = $sformatf ("jmp  0x%02x????", K[5:0]);  // Jump
+        1'b1: str = $sformatf ("call 0x%02x????", K[5:0]);  // Long Call to a Subroutine
+      endcase
+    end
 
 
     16'b1001_11??_????_????: begin
