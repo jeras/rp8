@@ -9,6 +9,7 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
   bit unsigned [8-1:0] K;       // 8-bit constant
   bit unsigned [6-1:0] q;       // 6-bit displacement
   bit unsigned [3-1:0] b;       // 3-bit bit index
+  bit unsigned [6-1:0] A;       // 6-bit IO address
   string index;
   string str;
 
@@ -161,7 +162,7 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
       endcase
     end
     16'b1001_010?_????_1010: begin
-      Rd[4:0] = {1'b1, code[7:4]};
+      Rd[4:0] = code[8:4];
       str = $sformatf ("dec %0d", Rd);  // Decrement
     end
     16'b1001_0100_????_1011: begin
@@ -169,17 +170,46 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
       str = $sformatf ("des 0x%01x", K[3:0]);  // Data Encryption Standard
     end
     16'b1001_010?_????_10??: begin
-      K = {4'b00, code[8:4], code[0]};
+      K = {2'b00, code[8:4], code[0]};
       case (code[1])
         1'b0: str = $sformatf ("jmp  0x%02x????", K[5:0]);  // Jump
         1'b1: str = $sformatf ("call 0x%02x????", K[5:0]);  // Long Call to a Subroutine
       endcase
     end
-
-
+    16'b1001_011?_????_????: begin
+      Rd[4:0] = {2'b11, code[5:4], 1'b0};
+      K = {2'b00, code[7:6], code[3:0]};
+      // TODO: X/Y/Z registers could be named
+      case (code[8])
+        1'b0: str = $sformatf ("adiw r%0d:%0d,0x%02x", Rd+1, Rd, K);  // Add Immediate to Word
+        1'b1: str = $sformatf ("movw r%0d:%0d,0x%02x", Rd+1, Rd, K);  // Subtract Immediate from Word
+      endcase
+    end
+    16'b1001_10??_????_????: begin
+      b = code[2:0];
+      A = {1'b0, code[7:3]};
+      case (code[8])
+        1'b0: case (code[9])
+          1'b0: str = $sformatf ("cbi 0x%02x,%0d", A, b);  // Clear Bit in I/O Register
+          1'b1: str = $sformatf ("sbi 0x%02x,%0d", A, b);  // Set Bit in I/O Register
+        endcase
+        1'b1: case (code[9])
+          1'b0: str = $sformatf ("sbic 0x%02x,%0d", A, b);  // Skip if Bit in I/O Register is Cleared
+          1'b1: str = $sformatf ("sbis 0x%02x,%0d", A, b);  // Skip if Bit in I/O Register is Set
+        endcase
+      endcase
+    end
     16'b1001_11??_????_????: begin
-      {Rr[4], Rd[4:0], Rr[3:0]} = code [9:0];
-      str = $sformatf ("mul   r%0d,r%0d", Rd, Rr);
+      {Rr[4], Rd[4:0], Rr[3:0]} = code[9:0];
+      str = $sformatf ("mul   r%0d,r%0d", Rd, Rr);  // Multiply Unsigned
+    end
+    16'b1011_????_????_????: begin
+      Rd[4:0] = code[8:4];
+      A = {code[10:9], code[3:0]};
+      case (code[11])
+        1'b0: str = $sformatf ("in   r%0d,0x%02x", Rd, A);  // Load an I/O Location to Register
+        1'b1: str = $sformatf ("out  0x%02x,r%0d", A, Rd);  // Store Register to I/O Location
+      endcase
     end
     
   endcase
