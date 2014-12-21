@@ -2,7 +2,7 @@ package rp_8bit_disasm;
 
 // TODO check proper syntax for constants and displacements
 
-function string disasm (bit [16-1:0] code, bit deep=1'b0);
+function automatic string disasm (bit [16-1:0] code, bit deep=1'b0);
   // local variables
   bit unsigned [5-1:0] Rd, Rr;  // destination and source registers
   bit unsigned [8-1:0] K;       // 8-bit constant
@@ -12,6 +12,7 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
   string index;
   string str;
 
+  str = "";
   // decoder
   casez (code)
     16'b0000_0000_0000_0000: begin
@@ -174,6 +175,7 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
     end
     16'b1001_010?_????_10??: begin
       K = {2'b00, code[8:4], code[0]};
+      // TODO: 2*K
       case (code[1])
         1'b0: str = $sformatf ("jmp  0x%02x????", K[5:0]);  // Jump
         1'b1: str = $sformatf ("call 0x%02x????", K[5:0]);  // Long Call to a Subroutine
@@ -218,8 +220,8 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
       bit signed [12-1:0] k;
       k = code[11:0];
       case (code[12])
-        1'b0: str = $sformatf ("rjmp  0x%03x", k);  // Relative Jump
-        1'b1: str = $sformatf ("rcall 0x%03x", k);  // Relative Call to Subroutine
+        1'b0: str = $sformatf ("rjmp  0x%03x", 2*k);  // Relative Jump
+        1'b1: str = $sformatf ("rcall 0x%03x", 2*k);  // Relative Call to Subroutine
       endcase
     end
     16'b1110_????_????_????: begin
@@ -233,14 +235,14 @@ function string disasm (bit [16-1:0] code, bit deep=1'b0);
       k = code[9:3];
       b = code[2:0];
       case (code[10])
-        1'b0: str = $sformatf ("brbs %0d,0x%02d", b, k);  // Branch if Bit in SREG is Set
-        1'b1: str = $sformatf ("brbc %0d,0x%02d", b, k);  // Branch if Bit in SREG is Cleared
+        1'b0: str = $sformatf ("brbs %0d,0x%02d", b, 2*k);  // Branch if Bit in SREG is Set
+        1'b1: str = $sformatf ("brbc %0d,0x%02d", b, 2*k);  // Branch if Bit in SREG is Cleared
       endcase
       // Flafs: Global Interrupt/T/Half Carry/Signed/Overflow/Negative/Zero/Carry
       if (deep) begin
         case (code[10])
-          1'b0: str = $sformatf ("br%ss 0x%02d", sreg[b], k);  // Branch if * Set
-          1'b1: str = $sformatf ("br%sc 0x%02d", sreg[b], k);  // Branch if * Cleared
+          1'b0: str = $sformatf ("br%ss 0x%02d", sreg[b], 2*k);  // Branch if * Set
+          1'b1: str = $sformatf ("br%sc 0x%02d", sreg[b], 2*k);  // Branch if * Cleared
         endcase
       end
     end

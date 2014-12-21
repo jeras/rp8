@@ -88,6 +88,7 @@ logic [16-1:0] pmem [0:2**BI_AW-1];
 initial begin
   for (int i=0; i<2**BI_AW; i++)  pmem[i] = 0;
   $readmemh ("tbn/sieve.hex", pmem);
+//  $readmemh ("src/square_wave/square_wave.vmem", pmem);
 end
 
 always @(posedge clk)
@@ -101,6 +102,7 @@ bit [0:32-1] [8-1:0] asm;
 
 always_comb begin
   str = rp_8bit_disasm::disasm(pmem_d);
+  asm = '0;
   for (int i=0; i<str.len(); i++) begin
     asm [i] = (8)'(str[i]);
   end
