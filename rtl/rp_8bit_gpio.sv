@@ -66,12 +66,9 @@ gpio_meta <= gpio_latch;
 // read access
 always_comb
 case (io_re)
-//  3'b001:  io_dr = PDW'(gpio_meta);
-//  3'b010:  io_dr = PDW'(gpio_ddr );
-//  3'b100:  io_dr = PDW'(gpio_port);
-  3'b001:  io_dr = gpio_meta;
-  3'b010:  io_dr = gpio_ddr ;
-  3'b100:  io_dr = gpio_port;
+  3'b001:  io_dr = (PDW)'(gpio_meta);
+  3'b010:  io_dr = (PDW)'(gpio_ddr );
+  3'b100:  io_dr = (PDW)'(gpio_port);
   default: io_dr = 'x;
 endcase
 
