@@ -21,23 +21,23 @@ function automatic string disasm (
   // decoder
   casez (code)
     16'b0000_0000_0000_0000: begin
-      str = $sformatf ("nop");
+      str = $sformatf ("nop");  // No Operation
     end
     16'b0000_0001_????_????: begin
       {Rd[4:0], Rr[4:0]} = {code[7:4], 1'b0, code[3:0], 1'b0};
-      str = $sformatf ("movw r%0d:%0d,r%0d,%0d", Rd+1, Rd, Rr+1, Rr);
+      str = $sformatf ("movw r%0d:%0d,r%0d,%0d", Rd+1, Rd, Rr+1, Rr);  // Copy Register Word
     end
     16'b0000_0010_????_????: begin
       {Rd[4:0], Rr[4:0]} = {2'b1, code[7:4], 2'b1, code[3:0]};
-      str = $sformatf ("muls  r%0d,r%0d", Rd, Rr);
+      str = $sformatf ("muls  r%0d,r%0d", Rd, Rr);  // Multiply Signed
     end
     16'b0000_001?_????_????: begin
       {Rd[4:0], Rr[4:0]} = {2'b10, code[6:4], 2'b10, code[2:0]};
       case ({code[7], code[3]})
-        2'b00: str = $sformatf ("mulsu  r%0d,r%0d", Rd, Rr);
-        2'b01: str = $sformatf ("fmul   r%0d,r%0d", Rd, Rr);
-        2'b10: str = $sformatf ("fmuls  r%0d,r%0d", Rd, Rr);
-        2'b11: str = $sformatf ("fmulsu r%0d,r%0d", Rd, Rr);
+        2'b00: str = $sformatf ("mulsu  r%0d,r%0d", Rd, Rr);  // Multiply Signed with Unsigned
+        2'b01: str = $sformatf ("fmul   r%0d,r%0d", Rd, Rr);  // Fractional Multiply Unsigned
+        2'b10: str = $sformatf ("fmuls  r%0d,r%0d", Rd, Rr);  // Fractional Multiply Signed
+        2'b11: str = $sformatf ("fmulsu r%0d,r%0d", Rd, Rr);  // Fractional Multiply Signed with Unsigned
       endcase
     end
     16'b0000_01??_????_????,
