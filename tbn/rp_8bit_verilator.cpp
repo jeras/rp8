@@ -31,9 +31,10 @@ int main(int argc, char **argv, char **env) {
   avr_t *avr = NULL;
   // load firmware
   elf_firmware_t fw;
-  elf_read_firmware ("atmega1280_i2ctest.axf", &fw);
+  elf_read_firmware ("test_ldi.elf", &fw);
   // initialize structure and load firmware
-  avr = avr_make_mcu_by_name (fw.mmcu);
+  avr = avr_make_mcu_by_name ("atmega128");
+  //avr = avr_make_mcu_by_name (fw.mmcu);
   avr_init (avr);
   avr_load_firmware (avr, &fw);
   //
