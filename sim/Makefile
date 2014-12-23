@@ -1,7 +1,7 @@
 MODELSIM_BIN=$(HOME)/altera/14.0/modelsim_ase/bin
 
-RTL=rtl/rp_8bit.sv rtl/rp_8bit_gpio.sv
-TBN=tbn/rp_8bit_disasm.sv tbn/rp_8bit_tb.sv
+RTL=../rtl/rp_8bit.sv ../rtl/rp_8bit_gpio.sv
+TBN=../tbn/rp_8bit_disasm.sv ../tbn/rp_8bit_tb.sv
 
 all: modelsim
 
@@ -10,9 +10,10 @@ iverilog:
 	vvp rp_8bit.out
 
 verilator:
-	verilator -Wall --cc --trace --exe tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
+	#--debug --gdbbt
+	verilator -Wall --cc --trace --exe ../tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
 	-Wno-fatal \
-	--debug --gdbbt \
+	../tbn/rp_8bit_verilator.sv \
 	$(RTL)
 	# build C++ project
 	make -j -C obj_dir/ -f Vrp_8bit_verilator.mk Vrp_8bit_verilator
