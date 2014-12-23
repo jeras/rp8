@@ -10,6 +10,10 @@ iverilog:
 	vvp rp_8bit.out
 
 verilator:
+	# TODO generalize this
+	cp ../sim/test_ldi.elf .
+	cp ../sim/test_ldi.vmem .
+	# compile SystemVerilog sources
 	verilator -Wall --cc --trace --exe ../tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
 	-Wno-fatal \
         -y ../tbn/ \
