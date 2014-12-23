@@ -192,7 +192,7 @@ function automatic string disasm (
       // TODO: X/Y/Z registers could be named
       case (code[8])
         1'b0: str = $sformatf ("adiw r%0d:%0d,0x%02x", Rd+1, Rd, K);  // Add Immediate to Word
-        1'b1: str = $sformatf ("movw r%0d:%0d,0x%02x", Rd+1, Rd, K);  // Subtract Immediate from Word
+        1'b1: str = $sformatf ("sbiw r%0d:%0d,0x%02x", Rd+1, Rd, K);  // Subtract Immediate from Word
       endcase
     end
     16'b1001_10??_????_????: begin
