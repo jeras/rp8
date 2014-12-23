@@ -10,15 +10,18 @@ iverilog:
 	vvp rp_8bit.out
 
 verilator:
-	#--debug --gdbbt
 	verilator -Wall --cc --trace --exe ../tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
 	-Wno-fatal \
+        -y ../tbn/ \
+        -y /home/izi/Workplace/rp_8bit/tbn \
+	-CFLAGS -I/usr/local/include/simavr/ \
+	-LDFLAGS -lsimavr \
 	../tbn/rp_8bit_verilator.sv \
 	$(RTL)
 	# build C++ project
 	make -j -C obj_dir/ -f Vrp_8bit_verilator.mk Vrp_8bit_verilator
 	# run executable simulation
-	obj_dir/Vrp_8bit_verilator
+	LD_LIBRARY_PATH=/usr/local/lib/ obj_dir/Vrp_8bit_verilator
 
 modelsim:
 	$(MODELSIM_BIN)/vlib work
