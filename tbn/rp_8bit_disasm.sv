@@ -2,7 +2,12 @@ package rp_8bit_disasm;
 
 // TODO check proper syntax for constants and displacements
 
-function automatic string disasm (bit [16-1:0] code, bit deep=1'b0);
+function automatic string disasm (
+  bit [16-1:0] code,        // instruction code
+  bit          deep = 1'b0  // enable alternative mnemonics
+//  bit [22-1:0] addr = 0,    // instruction address
+//  bit          abs  = 1'b0  // calculate absolute address
+);
   // local variables
   bit unsigned [5-1:0] Rd, Rr;  // destination and source registers
   bit unsigned [8-1:0] K;       // 8-bit constant
