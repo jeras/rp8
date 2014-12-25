@@ -47,7 +47,7 @@ module rp_8bit #(
 logic [BI_AW-1:0] PC;
 
 // Register file
-union {
+union packed {
   logic [32-1:0] [8-1:0] idx;
   struct packed {
     logic             [16-1:0] z, y, x;
@@ -184,15 +184,15 @@ logic [$clog2(BI_IW)-1:0] PC_ex;
 
 always @(*)
 casex(irq)
-  8'bxxxx_xxx1: PC_ex = 4'h0;
-  8'bxxxx_xx10: PC_ex = 4'h1;
-  8'bxxxx_x100: PC_ex = 4'h2;
-  8'bxxxx_1000: PC_ex = 4'h3;
-  8'bxxx1_0000: PC_ex = 4'h4;
-  8'bxx10_0000: PC_ex = 4'h5;
-  8'bx100_0000: PC_ex = 4'h6;
-  8'b1000_0000: PC_ex = 4'h7;
-  default:      PC_ex = 4'h0;
+  8'bxxxx_xxx1: PC_ex = 3'h0;
+  8'bxxxx_xx10: PC_ex = 3'h1;
+  8'bxxxx_x100: PC_ex = 3'h2;
+  8'bxxxx_1000: PC_ex = 3'h3;
+  8'bxxx1_0000: PC_ex = 3'h4;
+  8'bxx10_0000: PC_ex = 3'h5;
+  8'bx100_0000: PC_ex = 3'h6;
+  8'b1000_0000: PC_ex = 3'h7;
+  default:      PC_ex = 3'h0;
 endcase
 
 /* AVR cores always execute at least one instruction after an IRET.
@@ -211,18 +211,18 @@ wire irq_request = sreg.i & I_r & irq_asserted;
 ////////////////////////////////////////////////////////////////////////////////
 
 always @(posedge clk, posedge rst)
-if (rst)        PC <= 0;
+if (rst)        PC            <= '0;
 else case (pc_sel)
   PC_SEL_NOP  :;
-  PC_SEL_INC  : PC <= PC + 1;
+  PC_SEL_INC  : PC            <= PC + 1;
   // !!! WARNING !!! replace with PC <= PC + {{BI_AW-12{Kl[11]}}, Kl}; if BI_AW>12
-  PC_SEL_KL   : PC <= PC + Kl;
-  PC_SEL_KS   : PC <= PC + {{BI_AW-7{Ks[6]}}, Ks};
-  PC_SEL_DMEML: PC[7:0] <= dmem_di;
-  PC_SEL_DMEMH: PC[BI_AW-1:8] <= dmem_di;
-  PC_SEL_DEC  : PC <= PC - 1;
-  PC_SEL_Z    : PC <= gpr.nam.z - 1;
-  PC_SEL_EX   : PC <= PC_ex;
+  PC_SEL_KL   : PC            <= PC + Kl;
+  PC_SEL_KS   : PC            <= PC + {{BI_AW-7{Ks[6]}}, Ks};
+  PC_SEL_DMEML: PC[7:0]       <= dmem_di;
+  PC_SEL_DMEMH: PC[BI_AW-1:8] <= dmem_di[BI_AW-8-1:0];
+  PC_SEL_DEC  : PC            <= PC - 1;
+  PC_SEL_Z    : PC            <= gpr.nam.z - 1;
+  PC_SEL_EX   : PC            <= PC_ex;
 endcase
 
 reg pmem_selz;
@@ -912,6 +912,13 @@ initial begin
 	SP = {SPR[9], SPR[10]};
 	PC = {SPR[11], SPR[12]}/2;
 end
+`endif
+
+`ifdef verilator
+function shortint state_public();
+/*verilator public*/
+return (gpr.idx[18]);
+endfunction: state_public
 `endif
 
 endmodule: rp_8bit

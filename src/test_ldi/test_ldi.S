@@ -1,7 +1,6 @@
 #include <avr/io.h>
 
 .section .text
-
 .global main
 main:
 ;  ldi r0 ,0x00
@@ -36,6 +35,23 @@ main:
   ldi r29,0x1d
   ldi r30,0x1e
   ldi r31,0x1f
+
+  out 0x00,r16
+  out 0x01,r17
+  out 0x02,r18
+  out 0x03,r19
+  out 0x04,r20
+  out 0x05,r21
+  out 0x06,r22
+  out 0x07,r23
+  out 0x08,r24
+  out 0x09,r25
+  out 0x0a,r26
+  out 0x0b,r27
+  out 0x0c,r28
+  out 0x0d,r29
+  out 0x0e,r30
+  out 0x0f,r31
 loop:
   rjmp loop
 .end
