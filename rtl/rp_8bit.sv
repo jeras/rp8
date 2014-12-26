@@ -503,7 +503,7 @@ always @(posedge clk) begin
 		if(writeback) begin
 			if(mode16) begin
 				// $display("REG WRITE(16): %d < %d", Rd16, R16);
-				//gpr.idx [{2'b11,Rd16,1'b0}+:2] <= R16;
+				//gpr.idx [{2'b11,Rd16,1'b0}+:2] <= R16;  // TODO
 				{gpr.idx [{2'b11,Rd16,1'b1}], gpr.idx [{2'b11,Rd16,1'b0}]} <= R16;
 			end else begin
 				// $display("REG WRITE: %d < %d", Rd, R);
@@ -882,6 +882,9 @@ always @(*) begin
 	endcase
 end
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 `ifdef REGRESS
 integer i;
 integer cycles;
@@ -914,11 +917,31 @@ initial begin
 end
 `endif
 
+////////////////////////////////////////////////////////////////////////////////
+// __verilator__ specific bench code
+////////////////////////////////////////////////////////////////////////////////
+
 `ifdef verilator
+
 function shortint state_public();
 /*verilator public*/
 return (gpr.idx[18]);
 endfunction: state_public
+
+//function byte dump_gpr [31:0] ();
+function void dump_state_core (
+  output bit [32-1:0] [8-1:0] dump_gpr ,
+  output bit  [2-1:0] [8-1:0] dump_pc  ,
+  output bit  [2-1:0] [8-1:0] dump_sp  ,
+  output bit          [8-1:0] dump_sreg
+);
+/*verilator public*/
+  dump_gpr  = gpr.idx;
+  dump_pc   = PC;
+  dump_pc   = SP;
+  dump_sreg = sreg;
+endfunction: dump_state_core
+
 `endif
 
 endmodule: rp_8bit
