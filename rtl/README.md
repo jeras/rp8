@@ -53,15 +53,16 @@ There are some aspects of the CPU core that change depending on `PAW`.
 
 3. Instructions for reading/writing data from/to program memory
 
+   Instructions `LPM`, `ELPM` and `SPM` are used to load/store from/to program memory. All this instructions use the `Z` register for indirec addressing with byte granularity. Load operations transfer a single byte, the `Z` register LSB bit selects between the instruction word bytes (`0`-lower, `1`-higher). Store operations transfer an entire instruction word, the `Z` register LSB bit should be cleared. If there is more then 64kB of program memory the `Z` pointer must be extended by the `RAMPZ` register. The `ELPM` instructin used to access locations above 64kB. There is no dedicated extended instruction for stores, `RAMPZ` is used if available.
+
+   With RP_8bit read access is compatible with Atmel AVR definitions while write access is symplified to offer word writes to memory, without protection or a Flash memory controller, but this can be added as additional peripherals by the user.
 
 
-
-| size     | PAW     | instructions                         | program counter | extended indirect register | 
-| -------- | ------- | ------------------------------------ | --------------- | -------------------------- |
-| size     | PAW     | instructions                         | program counter | extended indirect register | 
-| -------- | ------- | ------------------------------------ | --------------- | -------------------------- |
-| <=  512B |  0 -  8 | RCALL/RJMP                           | PC[PAW-1:0]     |                            |
-| <=   8kB |  8 - 12 | RCALL/RJMP                           | PC[PAW-1:0]     |                            |
-| <= 128kB | 13 - 16 | RCALL/RJMP, ICALL/IJMP               | PC[PAW-1:0]     |                            |
-| <=   8MB | 17 - 22 | RCALL/RJMP, ICALL/IJMP, EICALL/EIJMP | PC[PAW-1:0]     | EIND [PAW-16-1:0], RAMPZ   |
+| size  | PAW   | program fetch      | program ld/st | PC | EIND   | RAMPZ | 
+| -----:|:-----:| ------------------ | ------------- | --:| ------ | ----- |
+|  512B |  0-8  | rel, ind           | ind           | 1B | /      | /     |
+|   8kB |  8-11 | rel, ind           | ind           | 2B | /      | /     |
+|  64kB | 12    | rel, ind, dir      | ind,          | 2B | /      | /     |
+| 128kB | 13-16 | rel, ind, dir      | ind, ext      | 2B | /      | 8 bit |
+|   8MB | 17-22 | rel, ind, dir, ext | ind, ext      | 3B | PAW-16 | 8 bit |
 
