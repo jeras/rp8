@@ -55,7 +55,7 @@ union packed {
   } nam;
 } gpr;
 
-// special purpose registers
+// status register
 struct packed {logic i, t, h, s, v, n, z, c;} sreg;
 
 /* Stack */
