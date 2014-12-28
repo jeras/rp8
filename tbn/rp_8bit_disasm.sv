@@ -93,20 +93,45 @@ function automatic string disasm (
       endcase
     end
     16'b1001_00??_????_????: begin
-      Rd[4:0] = {1'b1, code [7:4]};
-      index = code[3] ? "Y" : "Z";
+      Rd[4:0] = code[8:4];
       case (code[9])
         1'b0:  // Load Indirect from Data Space to Register using Index Y/Z
-          case (q)
-            3'b001: str = $sformatf ("ld  r%0d,%s+", Rd, index);  // Y/Z: Post incremented
-            3'b010: str = $sformatf ("ld  r%0d,-%s", Rd, index);  // Y/Z: Pre decremented
-            default:str = $sformatf ("undefined");
+          case (code[3:0])
+            4'b0000: str = $sformatf ("lds  r%0d,0x????", Rd);  // Load Direct from Data Space
+            4'b0001: str = $sformatf ("ld   r%0d,Z+", Rd);  // Y/Z: Post incremented
+            4'b0010: str = $sformatf ("ld   r%0d,-Z", Rd);  // Y/Z: Pre decremented
+            4'b0011: str = $sformatf ("undefined");  // TODO: check
+            4'b0100: str = $sformatf ("lpm  r%0d,Z" , Rd);  //          Load Program Memory
+            4'b0101: str = $sformatf ("lpm  r%0d,Z+", Rd);  //          Load Program Memory, Post incremented
+            4'b0110: str = $sformatf ("elpm r%0d,Z" , Rd);  // Extended Load Program Memory
+            4'b0111: str = $sformatf ("elpm r%0d,Z+", Rd);  // Extended Load Program Memory, Post incremented
+            4'b1000: str = $sformatf ("undefined");  // TODO: check
+            4'b1001: str = $sformatf ("ld   r%0d,Y+", Rd);  // Load Indirect from Data Space to Register using Index Y: Post incremented
+            4'b1010: str = $sformatf ("ld   r%0d,-Y", Rd);  // Load Indirect from Data Space to Register using Index Y: Pre decremented
+            4'b1011: str = $sformatf ("undefined");  // TODO: check
+            4'b1100: str = $sformatf ("undefined");  // TODO: check
+            4'b1101: str = $sformatf ("undefined");  // TODO: check
+            4'b1110: str = $sformatf ("undefined");  // TODO: check
+            4'b1111: str = $sformatf ("pop  r%0d"   , Rd);  // Pop Register from Stack
           endcase
-        1'b1:  // Store Indirect From Register to Data Space using Index Y/Z
-          case (q)
-            3'b001: str = $sformatf ("st  r%0d,%s+", Rd, index);  // Y/Z: Post incremented
-            3'b010: str = $sformatf ("st  r%0d,-%s", Rd, index);  // Y/Z: Pre decremented
-            default:str = $sformatf ("undefined");
+        1'b1:
+          case (code[3:0])
+            4'b0000: str = $sformatf ("sts  0x????,r%0d", Rd);  // Store Direct to Data Space
+            4'b0001: str = $sformatf ("st   Z+,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Z: Post incremented
+            4'b0010: str = $sformatf ("st   -Z,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Z: Pre decremented
+            4'b0011: str = $sformatf ("undefined");  // TODO: check
+            4'b0100: str = $sformatf ("xch  Z,r%0d" , Rd);  // Exchange
+            4'b0101: str = $sformatf ("las  Z,r%0d" , Rd);  // Load and Set
+            4'b0110: str = $sformatf ("lac  Z,r%0d" , Rd);  // Load and Clear
+            4'b0111: str = $sformatf ("lat  Z,r%0d" , Rd);  // Load and Toggle
+            4'b1000: str = $sformatf ("undefined");  // TODO: check
+            4'b1001: str = $sformatf ("st   Y+,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Y: Post incremented
+            4'b1010: str = $sformatf ("st   -Y,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Y: Pre decremented
+            4'b1011: str = $sformatf ("undefined");  // TODO: check
+            4'b1100: str = $sformatf ("st   X,r%0d" , Rd);  // Store Indirect From Register to Data Space using Index X: Unchanged
+            4'b1101: str = $sformatf ("st   X+,r%0d", Rd);  // Store Indirect From Register to Data Space using Index X: Post incremented
+            4'b1110: str = $sformatf ("st   -X,r%0d", Rd);  // Store Indirect From Register to Data Space using Index X: Pre decremented
+            4'b1111: str = $sformatf ("push r%0d"   , Rd);  // Push Register on Stack
           endcase
       endcase
     end
@@ -178,7 +203,7 @@ function automatic string disasm (
       K = {4'b0000, code[7:4]};
       str = $sformatf ("des 0x%01x", K[3:0]);  // Data Encryption Standard
     end
-    16'b1001_010?_????_10??: begin
+    16'b1001_010?_????_11??: begin
       K = {2'b00, code[8:4], code[0]};
       // TODO: 2*K
       case (code[1])
