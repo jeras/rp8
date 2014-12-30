@@ -85,9 +85,34 @@
 | `1001_010d_dddd_0101` | `ASR    Rd`             | `RCEX` ||
 | `1001_010d_dddd_0110` | `LSR    Rd`             | `RCEX` ||
 | `1001_010d_dddd_0111` | `ROR    Rd`             | `RCEX` ||
-| `1001_0100_0bbb_1000` | `BSET   b`              | `RCEX` | also `SE`[`ITHSVNZC`] |
-| `1001_0100_1bbb_1000` | `BCLR   b`              | `RCEX` | also `CL`[`ITHSVNZC`] |
-
+| `1001_0100_0bbb_1000` | `BSET   b`              | `RCEX` | also `SE[ITHSVNZC]` |
+| `1001_0100_1bbb_1000` | `BCLR   b`              | `RCEX` | also `CL[ITHSVNZC]` |
+| `1001_0101_0000_1000` | `RET`                   | `RCEX` ||
+| `1001_0101_0001_1000` | `RETI`                  | `RCEX` ||
+| `1001_0101_0010_1000` | undefined               | `....` ||
+| `1001_0101_0011_1000` | undefined               | `....` ||
+| `1001_0101_0100_1000` | undefined               | `....` ||
+| `1001_0101_0101_1000` | undefined               | `....` ||
+| `1001_0101_0110_1000` | undefined               | `....` ||
+| `1001_0101_0111_1000` | undefined               | `....` ||
+| `1001_0101_1000_1000` | `SLEEP`                 | `RCEX` ||
+| `1001_0101_1001_1000` | `BREAK`                 | `R?EX` ||
+| `1001_0101_1010_1000` | `WDR`                   | `RCEX` ||
+| `1001_0101_1011_1000` | undefined               | `....` ||
+| `1001_0101_1100_1000` | `LPM`                   | `.CEX` ||
+| `1001_0101_1101_1000` | `ELPM`                  | `.?EX` | depends program memory size |
+| `1001_0101_1110_1000` | `SPM `                  | `.?EX` ||
+| `1001_0101_1111_1000` | `SPM Z+`                | `.?EX` ||
+| `1001_0100_0000_1001` | `IJMP`                  | `RCEX` ||
+| `1001_0100_0001_1001` | `EIJMP`                 | `.CEX` | depends program memory size |
+| `1001_0101_0000_1001` | `ICALL`                 | `RCEX` ||
+| `1001_0101_0001_1001` | `EICALL`                | `.CEX` | depends program memory size |
+| `1001_010d_dddd_1010` | `DEC    Rd`             | `RCEX` ||
+| `1001_0100_KKKK_1011` | `DES    K`              | `...X` ||
+| `1001_010K_KKKK_110K` | `JMP  0xK????`          | `.CEX` | TODO, depends program memory size |
+| `1001_010K_KKKK_111K` | `CALL 0xK????`          | `.CEX` | TODO, depends program memory size |
+| `1001_0110_KKdd_KKKK` | `ADIW Rd+1:Rd,K`        | `..EX` ||
+| `1001_0111_KKdd_KKKK` | `SBIW Rd+1:Rd,K`        | `..EX` ||
 
 ### Program address space size options
 
