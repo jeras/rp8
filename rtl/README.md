@@ -1,15 +1,25 @@
+NOTE, TODO: most of the listed configuration options are not yet implemented, for now this is used as documentation for a test plan.
+
 ## Core configurations:
 
-### Instruction set options
-- enable ADIW, SBIW
-- enable \*MUL\* and MOVW
+The rp_8bit core can be configured to support some standard subsets of the full instruction set, program and data address space sizes can also be configured.
 
-| core     |    |    |
-| -------- | -- | -- |
-| reduced  |    |    |
-| classic  |    |    |
-| enhanced |    |    |
-| xmega    |    |    |
+The next table specifies configuration options supported by the `gcc-avr` compiler.
+
+TODO
+
+### Instruction set options
+
+A subset of core types provided by Atmel is available, the visibly missing is the minimal core, instead the reduced core should be used.
+
+| core type |     |
+| --------- | --- |
+| reduced   | `R` |
+| classic   | `C` |
+| enhanced  | `E` |
+| xmega     | `X` |
+
+The next table provides a list of all instructions and specifies which instruction is supported by which core.
 
 | OPCODE                | mnemonic                |  core  | notes |
 | --------------------- | ----------------------- | ------ | ----- |
@@ -109,10 +119,26 @@
 | `1001_0101_0001_1001` | `EICALL`                | `.CEX` | depends program memory size |
 | `1001_010d_dddd_1010` | `DEC    Rd`             | `RCEX` ||
 | `1001_0100_KKKK_1011` | `DES    K`              | `...X` ||
-| `1001_010K_KKKK_110K` | `JMP  0xK????`          | `.CEX` | TODO, depends program memory size |
-| `1001_010K_KKKK_111K` | `CALL 0xK????`          | `.CEX` | TODO, depends program memory size |
-| `1001_0110_KKdd_KKKK` | `ADIW Rd+1:Rd,K`        | `..EX` ||
-| `1001_0111_KKdd_KKKK` | `SBIW Rd+1:Rd,K`        | `..EX` ||
+| `1001_010K_KKKK_110K` | `JMP    0xK????`        | `.CEX` | TODO, depends program memory size |
+| `1001_010K_KKKK_111K` | `CALL   0xK????`        | `.CEX` | TODO, depends program memory size |
+| `1001_0110_KKdd_KKKK` | `ADIW   Rd+1:Rd,K`      | `..EX` ||
+| `1001_0111_KKdd_KKKK` | `SBIW   Rd+1:Rd,K`      | `..EX` ||
+| `1001_1000_AAAA_?bbb` | `CBI    A,b`            | `RCEX` ||
+| `1001_1001_AAAA_?bbb` | `SBIC   A,b`            | `RCEX` ||
+| `1001_1010_AAAA_?bbb` | `SBI    A,b`            | `RCEX` ||
+| `1001_1011_AAAA_?bbb` | `SBIS   A,b`            | `RCEX` ||
+| `1001_11rd_dddd_rrrr` | `MUL    Rd,Rr`          | `..EX` ||
+| `1011_0AAd_dddd_AAAA` | `IN     Rd,A`           | `RCEX` ||
+| `1011_1AAd_dddd_AAAA` | `OUT    A,Rd`           | `RCEX` ||
+| `1100_kkkk_kkkk_kkkk` | `rjmp   k`              | `RCEX` ||
+| `1101_kkkk_kkkk_kkkk` | `rcall  k`              | `RCEX` ||
+| `1110_KKKK_dddd_KKKK` | `ldi    Rd,K`           | `RCEX` ||
+| `1111_00kk_kkkk_kbbb` | `brbs   b,k`            | `RCEX` | also `BR[ITHSVNZC]S` |
+| `1111_01kk_kkkk_kbbb` | `brbc   b,k`            | `RCEX` | also `BR[ITHSVNZC]C` |
+| `1111_100d_dddd_0bbb` | `bld    Rd,b`           | `RCEX` ||
+| `1111_101d_dddd_0bbb` | `bst    Rd,b`           | `RCEX` ||
+| `1111_110d_dddd_0bbb` | `sbrc   Rd,b`           | `RCEX` ||
+| `1111_111d_dddd_0bbb` | `sbrs   Rd,b`           | `RCEX` ||
 
 ### Program address space size options
 
