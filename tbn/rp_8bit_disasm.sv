@@ -20,8 +20,11 @@ function automatic string disasm (
   str = "";
   // decoder
   casez (code)
-    16'b0000_0000_0000_0000: begin
-      str = $sformatf ("nop");  // No Operation
+    16'b0000_0000_????_????: begin
+      case (code[7:0])
+        8'h0000: str = $sformatf ("nop");  // No Operation
+        default: str = $sformatf ("undefined");  // TODO: check
+      endcase
     end
     16'b0000_0001_????_????: begin
       {Rd[4:0], Rr[4:0]} = {code[7:4], 1'b0, code[3:0], 1'b0};
@@ -31,7 +34,7 @@ function automatic string disasm (
       {Rd[4:0], Rr[4:0]} = {2'b1, code[7:4], 2'b1, code[3:0]};
       str = $sformatf ("muls  r%0d,r%0d", Rd, Rr);  // Multiply Signed
     end
-    16'b0000_001?_????_????: begin
+    16'b0000_0011_????_????: begin
       {Rd[4:0], Rr[4:0]} = {2'b10, code[6:4], 2'b10, code[2:0]};
       case ({code[7], code[3]})
         2'b00: str = $sformatf ("mulsu  r%0d,r%0d", Rd, Rr);  // Multiply Signed with Unsigned
@@ -71,7 +74,7 @@ function automatic string disasm (
     16'b01??_????_????_????: begin
       Rd[4:0] = {1'b1, code [7:4]};
       K = {code[11:8], code [3:0]};
-      case (code[14:12])
+      case (code[15:12])
         4'b0001: str = $sformatf ("cpi  r%0d,0x%02x", Rd, K);  // Compare with Immediate
         4'b0100: str = $sformatf ("sbci r%0d,0x%02x", Rd, K);  // Subtract Immediate with Carry
         4'b0101: str = $sformatf ("subi r%0d,0x%02x", Rd, K);  // Subtract Immediate
@@ -93,50 +96,51 @@ function automatic string disasm (
       endcase
     end
     16'b1001_00??_????_????: begin
-      Rd[4:0] = code[8:4];
       case (code[9])
-        1'b0:  // Load Indirect from Data Space to Register using Index Y/Z
+        1'b0:
           case (code[3:0])
+            Rd[4:0] = code[8:4];
             4'b0000: str = $sformatf ("lds  r%0d,0x????", Rd);  // Load Direct from Data Space
-            4'b0001: str = $sformatf ("ld   r%0d,Z+", Rd);  // Y/Z: Post incremented
-            4'b0010: str = $sformatf ("ld   r%0d,-Z", Rd);  // Y/Z: Pre decremented
-            4'b0011: str = $sformatf ("undefined");  // TODO: check
-            4'b0100: str = $sformatf ("lpm  r%0d,Z" , Rd);  //          Load Program Memory
-            4'b0101: str = $sformatf ("lpm  r%0d,Z+", Rd);  //          Load Program Memory, Post incremented
-            4'b0110: str = $sformatf ("elpm r%0d,Z" , Rd);  // Extended Load Program Memory
-            4'b0111: str = $sformatf ("elpm r%0d,Z+", Rd);  // Extended Load Program Memory, Post incremented
-            4'b1000: str = $sformatf ("undefined");  // TODO: check
-            4'b1001: str = $sformatf ("ld   r%0d,Y+", Rd);  // Load Indirect from Data Space to Register using Index Y: Post incremented
-            4'b1010: str = $sformatf ("ld   r%0d,-Y", Rd);  // Load Indirect from Data Space to Register using Index Y: Pre decremented
-            4'b1011: str = $sformatf ("undefined");  // TODO: check
-            4'b1100: str = $sformatf ("undefined");  // TODO: check
-            4'b1101: str = $sformatf ("undefined");  // TODO: check
-            4'b1110: str = $sformatf ("undefined");  // TODO: check
-            4'b1111: str = $sformatf ("pop  r%0d"   , Rd);  // Pop Register from Stack
+            4'b0001: str = $sformatf ("ld   r%0d,Z+"    , Rd);  // Y/Z: Post incremented
+            4'b0010: str = $sformatf ("ld   r%0d,-Z"    , Rd);  // Y/Z: Pre decremented
+            4'b0011: str = $sformatf ("undefined");             // TODO: check
+            4'b0100: str = $sformatf ("lpm  r%0d,Z"     , Rd);  //          Load Program Memory
+            4'b0101: str = $sformatf ("lpm  r%0d,Z+"    , Rd);  //          Load Program Memory, Post incremented
+            4'b0110: str = $sformatf ("elpm r%0d,Z"     , Rd);  // Extended Load Program Memory
+            4'b0111: str = $sformatf ("elpm r%0d,Z+"    , Rd);  // Extended Load Program Memory, Post incremented
+            4'b1000: str = $sformatf ("undefined");             // TODO: check
+            4'b1001: str = $sformatf ("ld   r%0d,Y+"    , Rd);  // Load Indirect from Data Space to Register using Index Y: Post incremented
+            4'b1010: str = $sformatf ("ld   r%0d,-Y"    , Rd);  // Load Indirect from Data Space to Register using Index Y: Pre decremented
+            4'b1011: str = $sformatf ("undefined");             // TODO: check
+            4'b1100: str = $sformatf ("undefined");             // TODO: check
+            4'b1101: str = $sformatf ("undefined");             // TODO: check
+            4'b1110: str = $sformatf ("undefined");             // TODO: check
+            4'b1111: str = $sformatf ("pop  r%0d"       , Rd);  // Pop Register from Stack
           endcase
         1'b1:
           case (code[3:0])
-            4'b0000: str = $sformatf ("sts  0x????,r%0d", Rd);  // Store Direct to Data Space
-            4'b0001: str = $sformatf ("st   Z+,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Z: Post incremented
-            4'b0010: str = $sformatf ("st   -Z,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Z: Pre decremented
-            4'b0011: str = $sformatf ("undefined");  // TODO: check
-            4'b0100: str = $sformatf ("xch  Z,r%0d" , Rd);  // Exchange
-            4'b0101: str = $sformatf ("las  Z,r%0d" , Rd);  // Load and Set
-            4'b0110: str = $sformatf ("lac  Z,r%0d" , Rd);  // Load and Clear
-            4'b0111: str = $sformatf ("lat  Z,r%0d" , Rd);  // Load and Toggle
-            4'b1000: str = $sformatf ("undefined");  // TODO: check
-            4'b1001: str = $sformatf ("st   Y+,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Y: Post incremented
-            4'b1010: str = $sformatf ("st   -Y,r%0d", Rd);  // Store Indirect From Register to Data Space using Index Y: Pre decremented
-            4'b1011: str = $sformatf ("undefined");  // TODO: check
-            4'b1100: str = $sformatf ("st   X,r%0d" , Rd);  // Store Indirect From Register to Data Space using Index X: Unchanged
-            4'b1101: str = $sformatf ("st   X+,r%0d", Rd);  // Store Indirect From Register to Data Space using Index X: Post incremented
-            4'b1110: str = $sformatf ("st   -X,r%0d", Rd);  // Store Indirect From Register to Data Space using Index X: Pre decremented
-            4'b1111: str = $sformatf ("push r%0d"   , Rd);  // Push Register on Stack
+            Rr[4:0] = code[8:4];
+            4'b0000: str = $sformatf ("sts  0x????,r%0d", Rr);  // Store Direct to Data Space
+            4'b0001: str = $sformatf ("st   Z+,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index Z: Post incremented
+            4'b0010: str = $sformatf ("st   -Z,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index Z: Pre decremented
+            4'b0011: str = $sformatf ("undefined");             // TODO: check
+            4'b0100: str = $sformatf ("xch  Z,r%0d"     , Rr);  // Exchange
+            4'b0101: str = $sformatf ("las  Z,r%0d"     , Rr);  // Load and Set
+            4'b0110: str = $sformatf ("lac  Z,r%0d"     , Rr);  // Load and Clear
+            4'b0111: str = $sformatf ("lat  Z,r%0d"     , Rr);  // Load and Toggle
+            4'b1000: str = $sformatf ("undefined");             // TODO: check
+            4'b1001: str = $sformatf ("st   Y+,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index Y: Post incremented
+            4'b1010: str = $sformatf ("st   -Y,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index Y: Pre decremented
+            4'b1011: str = $sformatf ("undefined");             // TODO: check
+            4'b1100: str = $sformatf ("st   X,r%0d"     , Rr);  // Store Indirect From Register to Data Space using Index X: Unchanged
+            4'b1101: str = $sformatf ("st   X+,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index X: Post incremented
+            4'b1110: str = $sformatf ("st   -X,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index X: Pre decremented
+            4'b1111: str = $sformatf ("push r%0d"       , Rr);  // Push Register on Stack
           endcase
       endcase
     end
     16'b1001_010?_????_0???: begin
-      Rd[4:0] = {1'b1, code [7:4]};
+      Rd[4:0] = code[8:4];
       case (code[2:0])
         3'b000: str = $sformatf ("com  r%0d", Rd);  // One’s Complement
         3'b001: str = $sformatf ("neg  r%0d", Rd);  // Two’s Complement
