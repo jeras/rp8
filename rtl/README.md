@@ -11,6 +11,82 @@
 | enhanced |    |    |
 | xmega    |    |    |
 
+| OPCODE                | mnemonic                |  core  | notes |
+| --------------------- | ----------------------- | ------ | ----- |
+| `0000_0000_0000_0000` | `NOP`                   | `RCEX` | |
+| `0000_0000_????_????` | undefined               | `    ` | if not `NOP` |
+| `0000_0001_dddd_rrrr` | `MOVW   Rd+1:Rd,Rr+1Rr` | ||
+| `0000_0010_dddd_rrrr` | `MULS   Rd,Rr`          | ||
+| `0000_0011_0ddd_0rrr` | `MULSU  Rd,Rr`          | ||
+| `0000_0011_0ddd_1rrr` | `FMUL   Rd,Rr`          | ||
+| `0000_0011_1ddd_0rrr` | `FMULS  Rd,Rr`          | ||
+| `0000_0011_1ddd_1rrr` | `FMULSU Rd,Rr`          | ||
+| `0000_01rd_dddd_rrrr` | `CPC    Rd,Rr`          | | also `LSL Rd` |
+| `0000_10rd_dddd_rrrr` | `SBC    Rd,Rr`          | ||
+| `0000_11rd_dddd_rrrr` | `ADD    Rd,Rr`          | ||
+| `0001_00rd_dddd_rrrr` | `CPSE   Rd,Rr`          | ||
+| `0001_01rd_dddd_rrrr` | `CP     Rd,Rr`          | ||
+| `0001_10rd_dddd_rrrr` | `SUB    Rd,Rr`          | ||
+| `0001_11rd_dddd_rrrr` | `ADC    Rd,Rr`          | | also `ROL Rd` |
+| `0010_00rd_dddd_rrrr` | `AND    Rd,Rr`          | | also `TST Rd` |
+| `0010_01rd_dddd_rrrr` | `EOR    Rd,Rr`          | | also `CLR Rd` |
+| `0010_10rd_dddd_rrrr` | `OR     Rd,Rr`          | ||
+| `0010_11rd_dddd_rrrr` | `MOV    Rd,Rr`          | ||
+| `0011_KKKK_dddd_KKKK` | `CPI    Rd,K`           | ||
+| `0100_KKKK_dddd_KKKK` | `SBCI   Rd,K`           | ||
+| `0101_KKKK_dddd_KKKK` | `SUBI   Rd,K`           | ||
+| `0110_KKKK_dddd_KKKK` | `ORI    Rd,K`           | ||
+| `0111_KKKK_dddd_KKKK` | `ANDI   Rd,K`           | ||
+| `1000_000d_dddd_0000` | `LD     Rd,Z`           | `RCEX` |                             |
+| `10q0_qq0d_dddd_0qqq` | `LDD    Rd,Z+q`         | `  EX` | also `LD     Rd,Z` if `q=0` |
+| `1000_000d_dddd_1000` | `LD     Rd,Y`           | `RCEX` |                             |
+| `10q0_qq0d_dddd_1qqq` | `LDD    Rd,Y+q`         | `  EX` | also `LD     Rd,Y` if `q=0` |
+| `1000_001d_dddd_0000` | `ST     Rd,Z`           | `RCEX` |                             |
+| `10q0_qq1d_dddd_0qqq` | `STD    Rd,Z+q`         | `  EX` | also `ST     Rd,Z` if `q=0` |
+| `1000_001d_dddd_1000` | `ST     Rd,Y`           | `RCEX` |                             |
+| `10q0_qq1d_dddd_1qqq` | `STD    Rd,Y+q`         | `  EX` | also `ST     Rd,Y` if `q=0` |
+| `1001_000d_dddd_0000` | `LDS    Rd,0x????`      | `R?EX` | a 16 bit constant follows the instruction |
+| `1001_000d_dddd_0001` | `LD     Rd,Z+`          | `RCEX` ||
+| `1001_000d_dddd_0010` | `LD     Rd,-Z`          | `RCEX` ||
+| `1001_000d_dddd_0011` | undefined               | `    ` ||
+| `1001_000d_dddd_0100` | `LPM    Rd,Z`           | ` CEX` ||
+| `1001_000d_dddd_0101` | `LPM    Rd,Z+`          | ` CEX` ||
+| `1001_000d_dddd_0110` | `ELPM   Rd,Z`           | ` CEX` ||
+| `1001_000d_dddd_0111` | `ELPM   Rd,Z+`          | ` CEX` ||
+| `1001_000d_dddd_1000` | undefined               | `    ` ||
+| `1001_000d_dddd_1001` | `LD     Rd,Y+`          | `RCEX` ||
+| `1001_000d_dddd_1010` | `LD     Rd,-Y`          | `RCEX` ||
+| `1001_000d_dddd_1011` | undefined               | `    ` ||
+| `1001_000d_dddd_1100` | undefined               | `    ` ||
+| `1001_000d_dddd_1101` | undefined               | `    ` ||
+| `1001_000d_dddd_1110` | undefined               | `    ` ||
+| `1001_000d_dddd_1111` | `POP    Rd`             | `RCEX` ||
+| `1001_001d_dddd_0000` | `STS    0x????,Rr`      | `R?EX` | a 16 bit constant follows the instruction |
+| `1001_001d_dddd_0001` | `ST     Z+,Rr`          | `RCEX` ||
+| `1001_001d_dddd_0010` | `ST     -Z,Rr`          | `RCEX` ||
+| `1001_001d_dddd_0011` | undefined               | `    ` ||
+| `1001_001d_dddd_0100` | `XCH    Z,Rr`           | `   X` ||
+| `1001_001d_dddd_0101` | `LAS    Z,Rr`           | `   X` ||
+| `1001_001d_dddd_0110` | `LAC    Z,Rr`           | `   X` ||
+| `1001_001d_dddd_0111` | `LAT    Z,Rr`           | `   X` ||
+| `1001_001d_dddd_1000` | undefined               | `    ` ||
+| `1001_001d_dddd_1001` | `ST     Y+,Rr`          | `RCEX` ||
+| `1001_001d_dddd_1010` | `ST     -Y,Rr`          | `RCEX` ||
+| `1001_001d_dddd_1011` | undefined               | `    ` ||
+| `1001_001d_dddd_1100` | `ST     X,Rr`           | `RCEX` ||
+| `1001_001d_dddd_1101` | `ST     X+,Rr`          | `RCEX` ||
+| `1001_001d_dddd_1110` | `ST     -X,Rr`          | `RCEX` ||
+| `1001_001d_dddd_1111` | `PUSH   Rr`             | `RCEX` ||
+| `1001_010d_dddd_0000` | `COM    Rd`             | ||
+| `1001_010d_dddd_0001` | `NEG    Rd`             | ||
+| `1001_010d_dddd_0010` | `SWAP   Rd`             | ||
+| `1001_010d_dddd_0011` | `INC    Rd`             | ||
+| `1001_010d_dddd_0100` | undefined               | `    ` ||
+| `1001_010d_dddd_0101` | `ASR    Rd`             | ||
+| `1001_010d_dddd_0110` | `LSR    Rd`             | ||
+| `1001_010d_dddd_0111` | `ROR    Rd`             | ||
+| `1001_0100_0bbb_1000` | `BSET   b`              | `RCEX` | also `SE`[`ITHSVNZC`] |
+| `1001_0100_1bbb_1000` | `BCLR   b`              | `RCEX` | also `CL`[`ITHSVNZC`] |
 
 
 ### Program address space size options
