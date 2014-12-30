@@ -22,7 +22,7 @@ function automatic string disasm (
   casez (code)
     16'b0000_0000_????_????: begin
       case (code[7:0])
-        8'h0000: str = $sformatf ("nop");  // No Operation
+        8'h00  : str = $sformatf ("nop");  // No Operation
         default: str = $sformatf ("undefined");  // TODO: check
       endcase
     end
@@ -96,10 +96,11 @@ function automatic string disasm (
       endcase
     end
     16'b1001_00??_????_????: begin
+      Rr[4:0] = code[8:4];
+      Rd[4:0] = code[8:4];
       case (code[9])
         1'b0:
           case (code[3:0])
-            Rd[4:0] = code[8:4];
             4'b0000: str = $sformatf ("lds  r%0d,0x????", Rd);  // Load Direct from Data Space
             4'b0001: str = $sformatf ("ld   r%0d,Z+"    , Rd);  // Y/Z: Post incremented
             4'b0010: str = $sformatf ("ld   r%0d,-Z"    , Rd);  // Y/Z: Pre decremented
@@ -119,7 +120,6 @@ function automatic string disasm (
           endcase
         1'b1:
           case (code[3:0])
-            Rr[4:0] = code[8:4];
             4'b0000: str = $sformatf ("sts  0x????,r%0d", Rr);  // Store Direct to Data Space
             4'b0001: str = $sformatf ("st   Z+,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index Z: Post incremented
             4'b0010: str = $sformatf ("st   -Z,r%0d"    , Rr);  // Store Indirect From Register to Data Space using Index Z: Pre decremented
