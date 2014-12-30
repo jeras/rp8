@@ -1,11 +1,5 @@
 ## Core configurations:
 
-1. reduced
-2. minimal
-4. clasic
-6. enhanced
-7. xmega
-
 ### Instruction set options
 - enable ADIW, SBIW
 - enable \*MUL\* and MOVW
@@ -13,13 +7,13 @@
 | core     |    |    |
 | -------- | -- | -- |
 | reduced  |    |    |
-| clasic   |    |    |
+| classic  |    |    |
 | enhanced |    |    |
 | xmega    |    |    |
 
 ### Program address space size options
 
-The size of the addressable program memory is defined by `parameter int unsigned PAW` (Program Address Width). The program memory is addressible in 2 byte words and not single bytes, so the available program address space depending on the address width is:
+The size of the addressable program memory is defined by `parameter int unsigned PAW` (Program Address Width). The program memory is addressable in 2 byte words and not single bytes, so the available program address space depending on the address width is:
 ```SystemVerilog
 address_space_size = 2**(PAW+1)
 ```
@@ -29,11 +23,11 @@ There are some aspects of the CPU core that change depending on `PAW`.
 
 1. Program counter size and call/interrupt latency
 
-   The program counter `PC[PAW-1:0]` width is the same as the program memory address bus. During subroutine and interrupt calls the program counter is stored on the stack. The number of bytes stored on entry and retrived on return depends on the size of the program counter. Since the data memory the stack resides in requires a clock cycle for each read/write byte transfer, the call latency depends on the byte size of the program counter. Although the program counter can be a single byte for program address space up to 512 Bytes, the Atmel AVR core will push/pop two bytes each call/return. The RP_8bit (TODO) differs from the original here, by only storing a single byte.
+   The program counter `PC[PAW-1:0]` width is the same as the program memory address bus. During subroutine and interrupt calls the program counter is stored on the stack. The number of bytes stored on entry and retrieved on return depends on the size of the program counter. Since the data memory the stack resides in requires a clock cycle for each read/write byte transfer, the call latency depends on the byte size of the program counter. Although the program counter can be a single byte for program address space up to 512 Bytes, the Atmel AVR core will push/pop two bytes each call/return. The RP_8bit (TODO) differs from the original here, by only storing a single byte.
 
 2. Instructions for subroutine calls and jumps, and extended registers
 
-   Different program addressing modes (call and jump intructions) have different reach inside the program address space.
+   Different program addressing modes (call and jump instructions) have different reach inside the program address space.
 
    1. relative
 
@@ -53,9 +47,9 @@ There are some aspects of the CPU core that change depending on `PAW`.
 
 3. Instructions for reading/writing data from/to program memory
 
-   Instructions `LPM`, `ELPM` and `SPM` are used to load/store from/to program memory. All this instructions use the `Z` register for indirec addressing with byte granularity. Load operations transfer a single byte, the `Z` register LSB bit selects between the instruction word bytes (`0`-lower, `1`-higher). Store operations transfer an entire instruction word, the `Z` register LSB bit should be cleared. If there is more then 64kB of program memory the `Z` pointer must be extended by the `RAMPZ` register. The `ELPM` instructin used to access locations above 64kB. There is no dedicated extended instruction for stores, `RAMPZ` is used if available.
+   Instructions `LPM`, `ELPM` and `SPM` are used to load/store from/to program memory. All this instructions use the `Z` register for indirect addressing with byte granularity. Load operations transfer a single byte, the `Z` register LSB bit selects between the instruction word bytes (`0`-lower, `1`-higher). Store operations transfer an entire instruction word, the `Z` register LSB bit should be cleared. If there is more then 64kB of program memory the `Z` pointer must be extended by the `RAMPZ` register. The `ELPM` instruction used to access locations above 64kB. There is no dedicated extended instruction for stores, `RAMPZ` is used if available.
 
-   With RP_8bit read access is compatible with Atmel AVR definitions while write access is symplified to offer word writes to memory, without protection or a Flash memory controller, but this can be added as additional peripherals by the user.
+   With RP_8bit read access is compatible with Atmel AVR definitions while write access is simplified to offer word writes to memory, without protection or a Flash memory controller, but this can be added as additional peripherals by the user.
 
 
 | size  | PAW   | program fetch      | program ld/st | PC | EIND   | RAMPZ | 
@@ -68,19 +62,19 @@ There are some aspects of the CPU core that change depending on `PAW`.
 
 ### Data address space size options
 
-The size of the addressable data memory is defined by `parameter int unsigned DAW` (Data Address Width). The data memory is byte addressible, so the available program address space depending on the address width is:
+The size of the addressable data memory is defined by `parameter int unsigned DAW` (Data Address Width). The data memory is byte addressable, so the available program address space depending on the address width is:
 ```SystemVerilog
 address_space_size = 2**PAW
 ```
 The data address space contains the register file, primary and extended I/O space internal SRAM and external memories.
 
-| from       |   to       | size | contents              | addressing mode                                                                         |
-| ----------:| ---------- | ----:| --------------------- | --------------------------------------------------------------------------------------- |
-|   `0x0000` |   `0x001f` |  32B | register file         | register direct, single or two registers                                                |
-|   `0x0020` |   `0x005f` |  64B | I/O space             | I/O direct                                                                              |
-|   `0x0060` |   `0x00ff` | 160B | extended I/O space    | data direct, data indirect (normal, displacement, pre-decrement, post-increment)        |
-|   `0x0100` |   `RAMEND` |      | internal/external RAM | data direct, data indirect (normal, displacement, pre-decrement, post-increment)        |
-| `0x010000` | `0xffffff` |      | internal/external RAM | extended data direct and indirect (normal, displacement, pre-decrement, post-increment) |
+| from       |   to       | size | contents              | addressing mode                   |
+| ----------:| ----------:| ----:| --------------------- | --------------------------------- |
+|   `0x0000` |   `0x001f` |  32B | register file         | register direct                   |
+|   `0x0020` |   `0x005f` |  64B | I/O space             | I/O direct                        |
+|   `0x0060` |   `0x00ff` | 160B | extended I/O space    | data direct and indirect          |
+|   `0x0100` |   `0xffff` |      | internal/external RAM | data direct and indirect          |
+| `0x010000` | `0xffffff` |      | internal/external RAM | extended data direct and indirect |
 
 The minimal data address space contains 128B (`DAW==7`). The upper limit is 64kB (`DAW==16`) without extended registers and 16MB (`DAW==24`) with extended registers.
 
