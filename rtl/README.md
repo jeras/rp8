@@ -11,6 +11,8 @@
 | enhanced |    |    |
 | xmega    |    |    |
 
+
+
 ### Program address space size options
 
 The size of the addressable program memory is defined by `parameter int unsigned PAW` (Program Address Width). The program memory is addressable in 2 byte words and not single bytes, so the available program address space depending on the address width is:
@@ -68,13 +70,14 @@ address_space_size = 2**PAW
 ```
 The data address space contains the register file, primary and extended I/O space internal SRAM and external memories.
 
-| from       |   to       | size      | contents              | addressing mode                   |
-| ----------:| ----------:| ---------:| --------------------- | --------------------------------- |
-|   `0x0000` |   `0x001f` |       32B | register file         | register direct                   |
-|   `0x0020` |   `0x005f` |       64B | I/O space             | I/O direct                        |
-|   `0x0060` |   `0x00ff` |      160B | extended I/O space    | data direct and indirect          |
-|   `0x0100` |   `0xffff` | 64kB-256B | internal/external RAM | data direct and indirect          |
-| `0x010000` | `0xffffff` | 16MB-64kB | internal/external RAM | extended data direct and indirect |
+| data address            | I/O address     | size      | contents              | addressing mode                   |
+|:-----------------------:|:---------------:| ---------:| --------------------- | --------------------------------- |
+|   `0x0000` - `0x001f`   |                 |       32B | register file         | register direct                   |
+|   `0x0020` - `0x003f`   | `0x00` - `0x1f` |       32B | I/O space             | I/O direct (bit-addressable)      |
+|   `0x0040` - `0x005f`   | `0x20` - `0x3f` |       32B | I/O space             | I/O direct                        |
+|   `0x0060` - `0x00ff`   |                 |      160B | extended I/O space    | data direct and indirect          |
+|   `0x0100` - `0xffff`   |                 | 64kB-256B | internal/external RAM | data direct and indirect          |
+| `0x010000` - `0xffffff` |                 | 16MB-64kB | internal/external RAM | extended data direct and indirect |
 
 The minimal data address space contains 128B (`DAW>=7`). The upper limit is 64kB (`DAW<=16`) without extended registers and 16MB (`DAW<=24`) with extended registers.
 
