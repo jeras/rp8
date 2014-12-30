@@ -68,13 +68,13 @@ address_space_size = 2**PAW
 ```
 The data address space contains the register file, primary and extended I/O space internal SRAM and external memories.
 
-| from       |   to       | size | contents              | addressing mode                   |
-| ----------:| ----------:| ----:| --------------------- | --------------------------------- |
-|   `0x0000` |   `0x001f` |  32B | register file         | register direct                   |
-|   `0x0020` |   `0x005f` |  64B | I/O space             | I/O direct                        |
-|   `0x0060` |   `0x00ff` | 160B | extended I/O space    | data direct and indirect          |
-|   `0x0100` |   `0xffff` |      | internal/external RAM | data direct and indirect          |
-| `0x010000` | `0xffffff` |      | internal/external RAM | extended data direct and indirect |
+| from       |   to       | size      | contents              | addressing mode                   |
+| ----------:| ----------:| ---------:| --------------------- | --------------------------------- |
+|   `0x0000` |   `0x001f` |       32B | register file         | register direct                   |
+|   `0x0020` |   `0x005f` |       64B | I/O space             | I/O direct                        |
+|   `0x0060` |   `0x00ff` |      160B | extended I/O space    | data direct and indirect          |
+|   `0x0100` |   `0xffff` | 64kB-265B | internal/external RAM | data direct and indirect          |
+| `0x010000` | `0xffffff` |   8M-64kB | internal/external RAM | extended data direct and indirect |
 
 The minimal data address space contains 128B (`DAW==7`). The upper limit is 64kB (`DAW==16`) without extended registers and 16MB (`DAW==24`) with extended registers.
 
