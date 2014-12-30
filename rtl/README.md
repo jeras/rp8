@@ -76,7 +76,19 @@ The data address space contains the register file, primary and extended I/O spac
 |   `0x0100` |   `0xffff` | 64kB-256B | internal/external RAM | data direct and indirect          |
 | `0x010000` | `0xffffff` | 16MB-64kB | internal/external RAM | extended data direct and indirect |
 
-The minimal data address space contains 128B (`DAW==7`). The upper limit is 64kB (`DAW==16`) without extended registers and 16MB (`DAW==24`) with extended registers.
+The minimal data address space contains 128B (`DAW>=7`). The upper limit is 64kB (`DAW<=16`) without extended registers and 16MB (`DAW<=24`) with extended registers.
 
-There are some aspects of the CPU core that change depending on `PDW`.
+Specifying a data address space larger then 64kB (`DAW>16`) will create extended registers.
 
+1. direct addressing mode extended register `RAMPD`
+
+   There are no special extended versions of direct addressing mode instructions. Instructions `LDS` and `STS` will use the `RAMPD` register if it is present.
+
+2. indirect addressing mode extended registers `RAMPX`, `RAMPY`, `RAMPZ`
+
+   There are no special extended versions of indirect addressing mode instructions. Instructions `LD` and `ST` will use the `RAMPD` register if it is present. Post-increment and pre-decrement modes will increment the concatenation of the `RAMPZ`, `RAMPY`, `RAMPZ` registers with the basic index registers `X`, `Y`, `Z`.
+
+### TODO
+
+1. It is not yet clear how many bits do `RAMPX`, `RAMPY`, `RAMPZ` have if `DAW-16` is greater then 0 but less then 8.
+2. It is not yet clear how many bits of `X`, `Y`, `Z` are changed by pre-decrement post-increment instructions, if `DAW<16`.
