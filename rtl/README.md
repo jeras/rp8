@@ -74,7 +74,6 @@ address_space_size = 2**PAW
 ```
 The data address space contains the register file, primary and extended I/O space internal SRAM and external memories.
 
-| address                ||      |                       |                                                                                         |
 | from       |   to       | size | contents              | addressing mode                                                                         |
 | ----------:| ---------- | ----:| --------------------- | --------------------------------------------------------------------------------------- |
 |   `0x0000` |   `0x001f` |  32B | register file         | register direct, single or two registers                                                |
