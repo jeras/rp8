@@ -68,7 +68,7 @@ int main(int argc, char **argv, char **env) {
   avr_t *avr = NULL;
   // load firmware
   elf_firmware_t fw;
-  elf_read_firmware ("test_ldi.elf", &fw);
+  elf_read_firmware ("test_isa.elf", &fw);
   // initialize structure and load firmware
   avr = avr_make_mcu_by_name ("atmega128");
   //avr = avr_make_mcu_by_name (fw.mmcu);
