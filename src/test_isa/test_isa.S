@@ -1,5 +1,9 @@
 .set SUBISA, 0b1000
 
+;-------------------------------------------------------------------------------
+; table defining availability of instructions for various ISA subsets
+;-------------------------------------------------------------------------------
+
 ; mnemonic                |  core  |
 ; ----------------------- | ------ |
 .set ISA_MSK_NOP   , 0b1111
@@ -101,11 +105,15 @@
 .set ISA_MSK_SBRC  , 0b1111
 .set ISA_MSK_SBRS  , 0b1111
 
-.section .text
-.global main
+;-------------------------------------------------------------------------------
+; main is calling instruction tests one by one
+;-------------------------------------------------------------------------------
+
+.org 0
+
+; TODO missing interrupt routines
 
 main:
-
   rcall init_inc
   rcall test_nop
   rcall test_movw
@@ -339,4 +347,5 @@ init_inc:
   ldi r31,0x1f
 
   ret
+
 .end
