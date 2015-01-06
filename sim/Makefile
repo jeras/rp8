@@ -11,8 +11,8 @@ iverilog:
 
 verilator:
 	# TODO generalize this
-	cp -f ../src/test_ldi/test_ldi.elf .
-	cp -f ../src/test_ldi/test_ldi.vmem .
+	cp -f ../src/test_isa/test_isa.elf .
+	cp -f ../src/test_isa/test_isa.vmem .
 	# compile SystemVerilog sources
 	verilator -Wall --cc --trace --exe ../tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
 	-Wno-fatal \

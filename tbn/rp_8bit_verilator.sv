@@ -73,7 +73,7 @@ rp_8bit #(
 logic [16-1:0] pmem [0:2**BI_AW-1];
 
 initial begin
-  $readmemh ("test_ldi.vmem", pmem);
+  $readmemh ("test_isa.vmem", pmem);
 end
 
 always @(posedge clk)
