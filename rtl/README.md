@@ -31,22 +31,22 @@ The next table provides a list of all instructions and specifies which instructi
 | `0000_0011_0ddd_1rrr` | `FMUL   Rd,Rr`          | `..EX` ||
 | `0000_0011_1ddd_0rrr` | `FMULS  Rd,Rr`          | `..EX` ||
 | `0000_0011_1ddd_1rrr` | `FMULSU Rd,Rr`          | `..EX` ||
-| `0000_01rd_dddd_rrrr` | `CPC    Rd,Rr`          | `RCEX` | also `LSL Rd` |
+| `0000_01rd_dddd_rrrr` | `CPC    Rd,Rr`          | `RCEX` | also `LSL    Rd` |
 | `0000_10rd_dddd_rrrr` | `SBC    Rd,Rr`          | `RCEX` ||
 | `0000_11rd_dddd_rrrr` | `ADD    Rd,Rr`          | `RCEX` ||
 | `0001_00rd_dddd_rrrr` | `CPSE   Rd,Rr`          | `RCEX` ||
 | `0001_01rd_dddd_rrrr` | `CP     Rd,Rr`          | `RCEX` ||
 | `0001_10rd_dddd_rrrr` | `SUB    Rd,Rr`          | `RCEX` ||
-| `0001_11rd_dddd_rrrr` | `ADC    Rd,Rr`          | `RCEX` | also `ROL Rd` |
-| `0010_00rd_dddd_rrrr` | `AND    Rd,Rr`          | `RCEX` | also `TST Rd` |
-| `0010_01rd_dddd_rrrr` | `EOR    Rd,Rr`          | `RCEX` | also `CLR Rd` |
+| `0001_11rd_dddd_rrrr` | `ADC    Rd,Rr`          | `RCEX` | also `ROL    Rd` |
+| `0010_00rd_dddd_rrrr` | `AND    Rd,Rr`          | `RCEX` | also `TST    Rd` |
+| `0010_01rd_dddd_rrrr` | `EOR    Rd,Rr`          | `RCEX` | also `CLR    Rd` |
 | `0010_10rd_dddd_rrrr` | `OR     Rd,Rr`          | `RCEX` ||
 | `0010_11rd_dddd_rrrr` | `MOV    Rd,Rr`          | `RCEX` ||
 | `0011_KKKK_dddd_KKKK` | `CPI    Rd,K`           | `RCEX` ||
 | `0100_KKKK_dddd_KKKK` | `SBCI   Rd,K`           | `RCEX` ||
 | `0101_KKKK_dddd_KKKK` | `SUBI   Rd,K`           | `RCEX` ||
-| `0110_KKKK_dddd_KKKK` | `ORI    Rd,K`           | `RCEX` ||
-| `0111_KKKK_dddd_KKKK` | `ANDI   Rd,K`           | `RCEX` ||
+| `0110_KKKK_dddd_KKKK` | `ORI    Rd,K`           | `RCEX` | also `SBR    Rd,K` |
+| `0111_KKKK_dddd_KKKK` | `ANDI   Rd,K`           | `RCEX` | also `CBR    Rd,K` |
 | `1000_000d_dddd_0000` | `LD     Rd,Z`           | `RCEX` |                             |
 | `10q0_qq0d_dddd_0qqq` | `LDD    Rd,Z+q`         | `..EX` | also `LD     Rd,Z` if `q=0` |
 | `1000_000d_dddd_1000` | `LD     Rd,Y`           | `RCEX` |                             |
@@ -130,15 +130,15 @@ The next table provides a list of all instructions and specifies which instructi
 | `1001_11rd_dddd_rrrr` | `MUL    Rd,Rr`          | `..EX` ||
 | `1011_0AAd_dddd_AAAA` | `IN     Rd,A`           | `RCEX` ||
 | `1011_1AAd_dddd_AAAA` | `OUT    A,Rd`           | `RCEX` ||
-| `1100_kkkk_kkkk_kkkk` | `rjmp   k`              | `RCEX` ||
-| `1101_kkkk_kkkk_kkkk` | `rcall  k`              | `RCEX` ||
-| `1110_KKKK_dddd_KKKK` | `ldi    Rd,K`           | `RCEX` ||
-| `1111_00kk_kkkk_kbbb` | `brbs   b,k`            | `RCEX` | also `BR[ITHSVNZC]S` |
-| `1111_01kk_kkkk_kbbb` | `brbc   b,k`            | `RCEX` | also `BR[ITHSVNZC]C` |
-| `1111_100d_dddd_0bbb` | `bld    Rd,b`           | `RCEX` ||
-| `1111_101d_dddd_0bbb` | `bst    Rd,b`           | `RCEX` ||
-| `1111_110d_dddd_0bbb` | `sbrc   Rd,b`           | `RCEX` ||
-| `1111_111d_dddd_0bbb` | `sbrs   Rd,b`           | `RCEX` ||
+| `1100_kkkk_kkkk_kkkk` | `RJMP   k`              | `RCEX` ||
+| `1101_kkkk_kkkk_kkkk` | `RCALL  k`              | `RCEX` ||
+| `1110_KKKK_dddd_KKKK` | `LDI    Rd,K`           | `RCEX` | also `SER    Rd` |
+| `1111_00kk_kkkk_kbbb` | `BRBS   b,k`            | `RCEX` | also `BR[ITHSVNZC]S` |
+| `1111_01kk_kkkk_kbbb` | `BRBC   b,k`            | `RCEX` | also `BR[ITHSVNZC]C` |
+| `1111_100d_dddd_0bbb` | `BLD    Rd,b`           | `RCEX` ||
+| `1111_101d_dddd_0bbb` | `BST    Rd,b`           | `RCEX` ||
+| `1111_110d_dddd_0bbb` | `SBRC   Rd,b`           | `RCEX` ||
+| `1111_111d_dddd_0bbb` | `SBRS   Rd,b`           | `RCEX` ||
 
 ### Program address space size options
 
