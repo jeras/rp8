@@ -86,6 +86,7 @@ function automatic string disasm (
       Rd[4:0] = code[8:4];
       q = {code[13], code[12:11], code[2:0]};
       index = code[3] ? "Y" : "Z";
+      // 32bit
       case (code[9])
         1'b0:  // Load Indirect from Data Space to Register using Index Y/Z
           if (~|q)  str = $sformatf ("ld  r%0d,%s"       , Rd, index   );  // Y/Z: Unchanged
@@ -94,6 +95,15 @@ function automatic string disasm (
           if (~|q)  str = $sformatf ("st  %s,r%0d"       , Rr, index   );  // Y/Z: Unchanged
           else      str = $sformatf ("std %s+0x%02x,r%0d", Rr, index, q);  // Y/Z: Unchanged, q: Displacement
       endcase
+      // 16bit: TODO
+      if (code[13]) begin
+        Rd[4:0] = {1'b1, code[7:4]};
+        K = {~code[8], code[8], code[10:9], code[3:0]};
+        case (code[11])
+          1'b0: str = $sformatf ("lds r%0d,0x%02x", Rd, K);  // Load Direct from Data Space
+          1'b1: str = $sformatf ("sts r%0d,0x%02x", Rd, K);  // Store Direct to Data Space
+        endcase
+      end
     end
     16'b1001_00??_????_????: begin
       Rr[4:0] = code[8:4];
