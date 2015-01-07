@@ -62,13 +62,13 @@ The next table provides a list of all instructions and specifies which instructi
 | `0101_KKKK_dddd_KKKK` | `SUBI   Rd,K`           | `RMCEX` ||
 | `0110_KKKK_dddd_KKKK` | `ORI    Rd,K`           | `RMCEX` | also `SBR    Rd,K` |
 | `0111_KKKK_dddd_KKKK` | `ANDI   Rd,K`           | `RMCEX` | also `CBR    Rd,K` |
-| `1000_000d_dddd_0000` | `LD     Rd,Z`           | `RMCEX` |                             |
 | `1010_0kkk_dddd_kkkk` | `LDS    Rd,k`           | `R....` | instruction conflict        |
+| `1010_1kkk_rrrr_kkkk` | `STS    k,Rr`           | `R....` | instruction conflict        |
+| `1000_000d_dddd_0000` | `LD     Rd,Z`           | `RMCEX` |                             |
 | `10q0_qq0d_dddd_0qqq` | `LDD    Rd,Z+q`         | `..CEX` | also `LD     Rd,Z` if `q=0` |
 | `1000_000d_dddd_1000` | `LD     Rd,Y`           | `R.CEX` |                             |
 | `10q0_qq0d_dddd_1qqq` | `LDD    Rd,Y+q`         | `..CEX` | also `LD     Rd,Y` if `q=0` |
 | `1000_001r_rrrr_0000` | `ST     Z,Rr`           | `RMCEX` |                             |
-| `1010_1kkk_rrrr_kkkk` | `STS    k,Rr`           | `R....` | instruction conflict        |
 | `10q0_qq1r_rrrr_0qqq` | `STD    Z+q,Rr`         | `..CEX` | also `ST     Rd,Z` if `q=0` |
 | `1000_001r_rrrr_1000` | `ST     Y,Rr`           | `R.CEX` |                             |
 | `10q0_qq1r_rrrr_1qqq` | `STD    Y+q,Rr`         | `..CEX` | also `ST     Rd,Y` if `q=0` |
@@ -126,10 +126,10 @@ The next table provides a list of all instructions and specifies which instructi
 | `1001_0101_1001_1000` | `BREAK`                 | `R..EX` ||
 | `1001_0101_1010_1000` | `WDR`                   | `RMCEX` ||
 | `1001_0101_1011_1000` | undefined               | `.....` ||
-| `1001_0101_1100_1000` | `LPM`                   | `.MCEX` ||
-| `1001_0101_1101_1000` | `ELPM`                  | `...EX` | depends program memory size |
-| `1001_0101_1110_1000` | `SPM `                  | `...EX` ||
-| `1001_0101_1111_1000` | `SPM Z+`                | `...EX` ||
+| `1001_0101_1100_1000` | `LPM    ; R0,Z`         | `.MCEX` ||
+| `1001_0101_1101_1000` | `ELPM   ; R0,Z`         | `...EX` | depends program memory size |
+| `1001_0101_1110_1000` | `SPM    ; Z,R1:R0`      | `...EX` ||
+| `1001_0101_1111_1000` | `SPM Z+ ; Z+,R1:R0`     | `...EX` ||
 | `1001_0100_0000_1001` | `IJMP`                  | `RMCEX` ||
 | `1001_0100_0001_1001` | `EIJMP`                 | `..CEX` | depends program memory size |
 | `1001_0101_0000_1001` | `ICALL`                 | `RMCEX` ||
