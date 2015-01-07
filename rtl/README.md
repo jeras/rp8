@@ -8,137 +8,154 @@ The next table specifies configuration options supported by the `gcc-avr` compil
 
 TODO
 
+### Reference devices
+
+To achive compatibility with GNU AVR toolchain, configuration options are based on actual AVR devices.
+
+| reference device     | core type | `PAW`  | `DAW` |
+| -------------------- | --------- | ------ | ----- |
+| ATtiny4/5/9/10/20/40 | reduced   | `8:11` |       |
+| ATtiny11/12          | minimal   |||
+| ATtiny13             | minimal   |||
+| AT90S2313            | classic   | `10`   ||
+| ATmega103            | classic   | `16`   ||
+| ATmega8              | enhanced  | `12`   ||
+| ATmega128            | enhanced  | `16`   ||
+
 ### Instruction set options
 
-A subset of core types provided by Atmel is available, the visibly missing is the minimal core, instead the reduced core should be used.
+A subset of core types provided by Atmel is available. The minimal core will not be implemented, instead the reduced core should be used.
 
 | core type |     |
 | --------- | --- |
 | reduced   | `R` |
+| minimal   | `M` |
 | classic   | `C` |
 | enhanced  | `E` |
 | xmega     | `X` |
 
 The next table provides a list of all instructions and specifies which instruction is supported by which core.
 
-| OPCODE                | mnemonic                |  core  | notes |
-| --------------------- | ----------------------- | ------ | ----- |
-| `0000_0000_0000_0000` | `NOP`                   | `RCEX` ||
-| `0000_0000_????_????` | undefined               | `....` | if not `NOP` |
-| `0000_0001_dddd_rrrr` | `MOVW   Rd+1:Rd,Rr+1Rr` | `..EX` ||
-| `0000_0010_dddd_rrrr` | `MULS   Rd,Rr`          | `..EX` ||
-| `0000_0011_0ddd_0rrr` | `MULSU  Rd,Rr`          | `..EX` ||
-| `0000_0011_0ddd_1rrr` | `FMUL   Rd,Rr`          | `..EX` ||
-| `0000_0011_1ddd_0rrr` | `FMULS  Rd,Rr`          | `..EX` ||
-| `0000_0011_1ddd_1rrr` | `FMULSU Rd,Rr`          | `..EX` ||
-| `0000_01rd_dddd_rrrr` | `CPC    Rd,Rr`          | `RCEX` | also `LSL    Rd` |
-| `0000_10rd_dddd_rrrr` | `SBC    Rd,Rr`          | `RCEX` ||
-| `0000_11rd_dddd_rrrr` | `ADD    Rd,Rr`          | `RCEX` ||
-| `0001_00rd_dddd_rrrr` | `CPSE   Rd,Rr`          | `RCEX` ||
-| `0001_01rd_dddd_rrrr` | `CP     Rd,Rr`          | `RCEX` ||
-| `0001_10rd_dddd_rrrr` | `SUB    Rd,Rr`          | `RCEX` ||
-| `0001_11rd_dddd_rrrr` | `ADC    Rd,Rr`          | `RCEX` | also `ROL    Rd` |
-| `0010_00rd_dddd_rrrr` | `AND    Rd,Rr`          | `RCEX` | also `TST    Rd` |
-| `0010_01rd_dddd_rrrr` | `EOR    Rd,Rr`          | `RCEX` | also `CLR    Rd` |
-| `0010_10rd_dddd_rrrr` | `OR     Rd,Rr`          | `RCEX` ||
-| `0010_11rd_dddd_rrrr` | `MOV    Rd,Rr`          | `RCEX` ||
-| `0011_KKKK_dddd_KKKK` | `CPI    Rd,K`           | `RCEX` ||
-| `0100_KKKK_dddd_KKKK` | `SBCI   Rd,K`           | `RCEX` ||
-| `0101_KKKK_dddd_KKKK` | `SUBI   Rd,K`           | `RCEX` ||
-| `0110_KKKK_dddd_KKKK` | `ORI    Rd,K`           | `RCEX` | also `SBR    Rd,K` |
-| `0111_KKKK_dddd_KKKK` | `ANDI   Rd,K`           | `RCEX` | also `CBR    Rd,K` |
-| `1000_000d_dddd_0000` | `LD     Rd,Z`           | `RCEX` |                             |
-| `10q0_qq0d_dddd_0qqq` | `LDD    Rd,Z+q`         | `..EX` | also `LD     Rd,Z` if `q=0` |
-| `1000_000d_dddd_1000` | `LD     Rd,Y`           | `RCEX` |                             |
-| `10q0_qq0d_dddd_1qqq` | `LDD    Rd,Y+q`         | `..EX` | also `LD     Rd,Y` if `q=0` |
-| `1000_001d_dddd_0000` | `ST     Rd,Z`           | `RCEX` |                             |
-| `10q0_qq1d_dddd_0qqq` | `STD    Rd,Z+q`         | `..EX` | also `ST     Rd,Z` if `q=0` |
-| `1000_001d_dddd_1000` | `ST     Rd,Y`           | `RCEX` |                             |
-| `10q0_qq1d_dddd_1qqq` | `STD    Rd,Y+q`         | `..EX` | also `ST     Rd,Y` if `q=0` |
-| `1001_000d_dddd_0000` | `LDS    Rd,0x????`      | `R?EX` | a 16 bit constant follows the instruction |
-| `1001_000d_dddd_0001` | `LD     Rd,Z+`          | `RCEX` ||
-| `1001_000d_dddd_0010` | `LD     Rd,-Z`          | `RCEX` ||
-| `1001_000d_dddd_0011` | undefined               | `....` ||
-| `1001_000d_dddd_0100` | `LPM    Rd,Z`           | `.CEX` ||
-| `1001_000d_dddd_0101` | `LPM    Rd,Z+`          | `.CEX` ||
-| `1001_000d_dddd_0110` | `ELPM   Rd,Z`           | `.CEX` ||
-| `1001_000d_dddd_0111` | `ELPM   Rd,Z+`          | `.CEX` ||
-| `1001_000d_dddd_1000` | undefined               | `....` ||
-| `1001_000d_dddd_1001` | `LD     Rd,Y+`          | `RCEX` ||
-| `1001_000d_dddd_1010` | `LD     Rd,-Y`          | `RCEX` ||
-| `1001_000d_dddd_1011` | undefined               | `....` ||
-| `1001_000d_dddd_1100` | undefined               | `....` ||
-| `1001_000d_dddd_1101` | undefined               | `....` ||
-| `1001_000d_dddd_1110` | undefined               | `....` ||
-| `1001_000d_dddd_1111` | `POP    Rd`             | `RCEX` ||
-| `1001_001d_dddd_0000` | `STS    0x????,Rr`      | `R?EX` | a 16 bit constant follows the instruction |
-| `1001_001d_dddd_0001` | `ST     Z+,Rr`          | `RCEX` ||
-| `1001_001d_dddd_0010` | `ST     -Z,Rr`          | `RCEX` ||
-| `1001_001d_dddd_0011` | undefined               | `....` ||
-| `1001_001d_dddd_0100` | `XCH    Z,Rr`           | `...X` ||
-| `1001_001d_dddd_0101` | `LAS    Z,Rr`           | `...X` ||
-| `1001_001d_dddd_0110` | `LAC    Z,Rr`           | `...X` ||
-| `1001_001d_dddd_0111` | `LAT    Z,Rr`           | `...X` ||
-| `1001_001d_dddd_1000` | undefined               | `....` ||
-| `1001_001d_dddd_1001` | `ST     Y+,Rr`          | `RCEX` ||
-| `1001_001d_dddd_1010` | `ST     -Y,Rr`          | `RCEX` ||
-| `1001_001d_dddd_1011` | undefined               | `....` ||
-| `1001_001d_dddd_1100` | `ST     X,Rr`           | `RCEX` ||
-| `1001_001d_dddd_1101` | `ST     X+,Rr`          | `RCEX` ||
-| `1001_001d_dddd_1110` | `ST     -X,Rr`          | `RCEX` ||
-| `1001_001d_dddd_1111` | `PUSH   Rr`             | `RCEX` ||
-| `1001_010d_dddd_0000` | `COM    Rd`             | `RCEX` ||
-| `1001_010d_dddd_0001` | `NEG    Rd`             | `RCEX` ||
-| `1001_010d_dddd_0010` | `SWAP   Rd`             | `RCEX` ||
-| `1001_010d_dddd_0011` | `INC    Rd`             | `RCEX` ||
-| `1001_010d_dddd_0100` | undefined               | `....` ||
-| `1001_010d_dddd_0101` | `ASR    Rd`             | `RCEX` ||
-| `1001_010d_dddd_0110` | `LSR    Rd`             | `RCEX` ||
-| `1001_010d_dddd_0111` | `ROR    Rd`             | `RCEX` ||
-| `1001_0100_0bbb_1000` | `BSET   b`              | `RCEX` | also `SE[ITHSVNZC]` |
-| `1001_0100_1bbb_1000` | `BCLR   b`              | `RCEX` | also `CL[ITHSVNZC]` |
-| `1001_0101_0000_1000` | `RET`                   | `RCEX` ||
-| `1001_0101_0001_1000` | `RETI`                  | `RCEX` ||
-| `1001_0101_0010_1000` | undefined               | `....` ||
-| `1001_0101_0011_1000` | undefined               | `....` ||
-| `1001_0101_0100_1000` | undefined               | `....` ||
-| `1001_0101_0101_1000` | undefined               | `....` ||
-| `1001_0101_0110_1000` | undefined               | `....` ||
-| `1001_0101_0111_1000` | undefined               | `....` ||
-| `1001_0101_1000_1000` | `SLEEP`                 | `RCEX` ||
-| `1001_0101_1001_1000` | `BREAK`                 | `R?EX` ||
-| `1001_0101_1010_1000` | `WDR`                   | `RCEX` ||
-| `1001_0101_1011_1000` | undefined               | `....` ||
-| `1001_0101_1100_1000` | `LPM`                   | `.CEX` ||
-| `1001_0101_1101_1000` | `ELPM`                  | `.?EX` | depends program memory size |
-| `1001_0101_1110_1000` | `SPM `                  | `.?EX` ||
-| `1001_0101_1111_1000` | `SPM Z+`                | `.?EX` ||
-| `1001_0100_0000_1001` | `IJMP`                  | `RCEX` ||
-| `1001_0100_0001_1001` | `EIJMP`                 | `.CEX` | depends program memory size |
-| `1001_0101_0000_1001` | `ICALL`                 | `RCEX` ||
-| `1001_0101_0001_1001` | `EICALL`                | `.CEX` | depends program memory size |
-| `1001_010d_dddd_1010` | `DEC    Rd`             | `RCEX` ||
-| `1001_0100_KKKK_1011` | `DES    K`              | `...X` ||
-| `1001_010K_KKKK_110K` | `JMP    0xK????`        | `.CEX` | TODO, depends program memory size |
-| `1001_010K_KKKK_111K` | `CALL   0xK????`        | `.CEX` | TODO, depends program memory size |
-| `1001_0110_KKdd_KKKK` | `ADIW   Rd+1:Rd,K`      | `..EX` ||
-| `1001_0111_KKdd_KKKK` | `SBIW   Rd+1:Rd,K`      | `..EX` ||
-| `1001_1000_AAAA_?bbb` | `CBI    A,b`            | `RCEX` ||
-| `1001_1001_AAAA_?bbb` | `SBIC   A,b`            | `RCEX` ||
-| `1001_1010_AAAA_?bbb` | `SBI    A,b`            | `RCEX` ||
-| `1001_1011_AAAA_?bbb` | `SBIS   A,b`            | `RCEX` ||
-| `1001_11rd_dddd_rrrr` | `MUL    Rd,Rr`          | `..EX` ||
-| `1011_0AAd_dddd_AAAA` | `IN     Rd,A`           | `RCEX` ||
-| `1011_1AAd_dddd_AAAA` | `OUT    A,Rd`           | `RCEX` ||
-| `1100_kkkk_kkkk_kkkk` | `RJMP   k`              | `RCEX` ||
-| `1101_kkkk_kkkk_kkkk` | `RCALL  k`              | `RCEX` ||
-| `1110_KKKK_dddd_KKKK` | `LDI    Rd,K`           | `RCEX` | also `SER    Rd` |
-| `1111_00kk_kkkk_kbbb` | `BRBS   b,k`            | `RCEX` | also `BR[ITHSVNZC]S` |
-| `1111_01kk_kkkk_kbbb` | `BRBC   b,k`            | `RCEX` | also `BR[ITHSVNZC]C` |
-| `1111_100d_dddd_0bbb` | `BLD    Rd,b`           | `RCEX` ||
-| `1111_101d_dddd_0bbb` | `BST    Rd,b`           | `RCEX` ||
-| `1111_110d_dddd_0bbb` | `SBRC   Rd,b`           | `RCEX` ||
-| `1111_111d_dddd_0bbb` | `SBRS   Rd,b`           | `RCEX` ||
+| OPCODE                | mnemonic                |  core   | notes |
+| --------------------- | ----------------------- | ------- | ----- |
+| `0000_0000_0000_0000` | `NOP`                   | `RMCEX` ||
+| `0000_0000_????_????` | undefined               | `.....` | if not `NOP` |
+| `0000_0001_dddd_rrrr` | `MOVW   Rd+1:Rd,Rr+1Rr` | `...EX` ||
+| `0000_0010_dddd_rrrr` | `MULS   Rd,Rr`          | `...EX` ||
+| `0000_0011_0ddd_0rrr` | `MULSU  Rd,Rr`          | `...EX` ||
+| `0000_0011_0ddd_1rrr` | `FMUL   Rd,Rr`          | `...EX` ||
+| `0000_0011_1ddd_0rrr` | `FMULS  Rd,Rr`          | `...EX` ||
+| `0000_0011_1ddd_1rrr` | `FMULSU Rd,Rr`          | `...EX` ||
+| `0000_01rd_dddd_rrrr` | `CPC    Rd,Rr`          | `RMCEX` | also `LSL    Rd` |
+| `0000_10rd_dddd_rrrr` | `SBC    Rd,Rr`          | `RMCEX` ||
+| `0000_11rd_dddd_rrrr` | `ADD    Rd,Rr`          | `RMCEX` ||
+| `0001_00rd_dddd_rrrr` | `CPSE   Rd,Rr`          | `RMCEX` ||
+| `0001_01rd_dddd_rrrr` | `CP     Rd,Rr`          | `RMCEX` ||
+| `0001_10rd_dddd_rrrr` | `SUB    Rd,Rr`          | `RMCEX` ||
+| `0001_11rd_dddd_rrrr` | `ADC    Rd,Rr`          | `RMCEX` | also `ROL    Rd` |
+| `0010_00rd_dddd_rrrr` | `AND    Rd,Rr`          | `RMCEX` | also `TST    Rd` |
+| `0010_01rd_dddd_rrrr` | `EOR    Rd,Rr`          | `RMCEX` | also `CLR    Rd` |
+| `0010_10rd_dddd_rrrr` | `OR     Rd,Rr`          | `RMCEX` ||
+| `0010_11rd_dddd_rrrr` | `MOV    Rd,Rr`          | `RMCEX` ||
+| `0011_KKKK_dddd_KKKK` | `CPI    Rd,K`           | `RMCEX` ||
+| `0100_KKKK_dddd_KKKK` | `SBCI   Rd,K`           | `RMCEX` ||
+| `0101_KKKK_dddd_KKKK` | `SUBI   Rd,K`           | `RMCEX` ||
+| `0110_KKKK_dddd_KKKK` | `ORI    Rd,K`           | `RMCEX` | also `SBR    Rd,K` |
+| `0111_KKKK_dddd_KKKK` | `ANDI   Rd,K`           | `RMCEX` | also `CBR    Rd,K` |
+| `1000_000d_dddd_0000` | `LD     Rd,Z`           | `RMCEX` |                             |
+| `1010_0kkk_dddd_kkkk` | `LDS    Rd,k`           | `R....` | instruction conflict        |
+| `10q0_qq0d_dddd_0qqq` | `LDD    Rd,Z+q`         | `..CEX` | also `LD     Rd,Z` if `q=0` |
+| `1000_000d_dddd_1000` | `LD     Rd,Y`           | `R.CEX` |                             |
+| `10q0_qq0d_dddd_1qqq` | `LDD    Rd,Y+q`         | `..CEX` | also `LD     Rd,Y` if `q=0` |
+| `1000_001r_rrrr_0000` | `ST     Z,Rr`           | `RMCEX` |                             |
+| `1010_1kkk_rrrr_kkkk` | `STS    k,Rr`           | `R....` | instruction conflict        |
+| `10q0_qq1r_rrrr_0qqq` | `STD    Z+q,Rr`         | `..CEX` | also `ST     Rd,Z` if `q=0` |
+| `1000_001r_rrrr_1000` | `ST     Y,Rr`           | `R.CEX` |                             |
+| `10q0_qq1r_rrrr_1qqq` | `STD    Y+q,Rr`         | `..CEX` | also `ST     Rd,Y` if `q=0` |
+| `1001_000d_dddd_0000` | `LDS    Rd,0x????`      | `..CEX` | a 16 bit constant follows the instruction |
+| `1001_000d_dddd_0001` | `LD     Rd,Z+`          | `R.CEX` ||
+| `1001_000d_dddd_0010` | `LD     Rd,-Z`          | `R.CEX` ||
+| `1001_000d_dddd_0011` | undefined               | `.....` ||
+| `1001_000d_dddd_0100` | `LPM    Rd,Z`           | `...EX` ||
+| `1001_000d_dddd_0101` | `LPM    Rd,Z+`          | `...EX` ||
+| `1001_000d_dddd_0110` | `ELPM   Rd,Z`           | `...EX` ||
+| `1001_000d_dddd_0111` | `ELPM   Rd,Z+`          | `...EX` ||
+| `1001_000d_dddd_1000` | undefined               | `.....` ||
+| `1001_000d_dddd_1001` | `LD     Rd,Y+`          | `R.CEX` ||
+| `1001_000d_dddd_1010` | `LD     Rd,-Y`          | `R.CEX` ||
+| `1001_000d_dddd_1011` | undefined               | `.....` ||
+| `1001_000d_dddd_1100` | undefined               | `.....` ||
+| `1001_000d_dddd_1101` | undefined               | `.....` ||
+| `1001_000d_dddd_1110` | undefined               | `.....` ||
+| `1001_000d_dddd_1111` | `POP    Rd`             | `R.CEX` ||
+| `1001_001r_rrrr_0000` | `STS    0x????,Rr`      | `..CEX` | a 16 bit constant follows the instruction |
+| `1001_001r_rrrr_0001` | `ST     Z+,Rr`          | `R.CEX` ||
+| `1001_001r_rrrr_0010` | `ST     -Z,Rr`          | `R.CEX` ||
+| `1001_001r_rrrr_0011` | undefined               | `.....` ||
+| `1001_001r_rrrr_0100` | `XCH    Z,Rr`           | `....X` ||
+| `1001_001r_rrrr_0101` | `LAS    Z,Rr`           | `....X` ||
+| `1001_001r_rrrr_0110` | `LAC    Z,Rr`           | `....X` ||
+| `1001_001r_rrrr_0111` | `LAT    Z,Rr`           | `....X` ||
+| `1001_001r_rrrr_1000` | undefined               | `.....` ||
+| `1001_001r_rrrr_1001` | `ST     Y+,Rr`          | `R.CEX` ||
+| `1001_001r_rrrr_1010` | `ST     -Y,Rr`          | `R.CEX` ||
+| `1001_001r_rrrr_1011` | undefined               | `.....` ||
+| `1001_001r_rrrr_1100` | `ST     X,Rr`           | `R.CEX` ||
+| `1001_001r_rrrr_1101` | `ST     X+,Rr`          | `R.CEX` ||
+| `1001_001r_rrrr_1110` | `ST     -X,Rr`          | `R.CEX` ||
+| `1001_001r_rrrr_1111` | `PUSH   Rr`             | `R.CEX` ||
+| `1001_010d_dddd_0000` | `COM    Rd`             | `RMCEX` ||
+| `1001_010d_dddd_0001` | `NEG    Rd`             | `RMCEX` ||
+| `1001_010d_dddd_0010` | `SWAP   Rd`             | `RMCEX` ||
+| `1001_010d_dddd_0011` | `INC    Rd`             | `RMCEX` ||
+| `1001_010d_dddd_0100` | undefined               | `.....` ||
+| `1001_010d_dddd_0101` | `ASR    Rd`             | `RMCEX` ||
+| `1001_010d_dddd_0110` | `LSR    Rd`             | `RMCEX` ||
+| `1001_010d_dddd_0111` | `ROR    Rd`             | `RMCEX` ||
+| `1001_0100_0bbb_1000` | `BSET   b`              | `RMCEX` | also `SE[ITHSVNZC]` |
+| `1001_0100_1bbb_1000` | `BCLR   b`              | `RMCEX` | also `CL[ITHSVNZC]` |
+| `1001_0101_0000_1000` | `RET`                   | `RMCEX` ||
+| `1001_0101_0001_1000` | `RETI`                  | `RMCEX` ||
+| `1001_0101_0010_1000` | undefined               | `.....` ||
+| `1001_0101_0011_1000` | undefined               | `.....` ||
+| `1001_0101_0100_1000` | undefined               | `.....` ||
+| `1001_0101_0101_1000` | undefined               | `.....` ||
+| `1001_0101_0110_1000` | undefined               | `.....` ||
+| `1001_0101_0111_1000` | undefined               | `.....` ||
+| `1001_0101_1000_1000` | `SLEEP`                 | `RMCEX` ||
+| `1001_0101_1001_1000` | `BREAK`                 | `R..EX` ||
+| `1001_0101_1010_1000` | `WDR`                   | `RMCEX` ||
+| `1001_0101_1011_1000` | undefined               | `.....` ||
+| `1001_0101_1100_1000` | `LPM`                   | `.MCEX` ||
+| `1001_0101_1101_1000` | `ELPM`                  | `...EX` | depends program memory size |
+| `1001_0101_1110_1000` | `SPM `                  | `...EX` ||
+| `1001_0101_1111_1000` | `SPM Z+`                | `...EX` ||
+| `1001_0100_0000_1001` | `IJMP`                  | `RMCEX` ||
+| `1001_0100_0001_1001` | `EIJMP`                 | `..CEX` | depends program memory size |
+| `1001_0101_0000_1001` | `ICALL`                 | `RMCEX` ||
+| `1001_0101_0001_1001` | `EICALL`                | `..CEX` | depends program memory size |
+| `1001_010d_dddd_1010` | `DEC    Rd`             | `RMCEX` ||
+| `1001_0100_KKKK_1011` | `DES    K`              | `....X` ||
+| `1001_010K_KKKK_110K` | `JMP    0xK????`        | `..CEX` | TODO, depends program memory size |
+| `1001_010K_KKKK_111K` | `CALL   0xK????`        | `..CEX` | TODO, depends program memory size |
+| `1001_0110_KKdd_KKKK` | `ADIW   Rd+1:Rd,K`      | `...EX` ||
+| `1001_0111_KKdd_KKKK` | `SBIW   Rd+1:Rd,K`      | `...EX` ||
+| `1001_1000_AAAA_?bbb` | `CBI    A,b`            | `RMCEX` ||
+| `1001_1001_AAAA_?bbb` | `SBIC   A,b`            | `RMCEX` ||
+| `1001_1010_AAAA_?bbb` | `SBI    A,b`            | `RMCEX` ||
+| `1001_1011_AAAA_?bbb` | `SBIS   A,b`            | `RMCEX` ||
+| `1001_11rd_dddd_rrrr` | `MUL    Rd,Rr`          | `...EX` ||
+| `1011_0AAd_dddd_AAAA` | `IN     Rd,A`           | `RMCEX` ||
+| `1011_1AAd_dddd_AAAA` | `OUT    A,Rd`           | `RMCEX` ||
+| `1100_kkkk_kkkk_kkkk` | `RJMP   k`              | `RMCEX` ||
+| `1101_kkkk_kkkk_kkkk` | `RCALL  k`              | `RMCEX` ||
+| `1110_KKKK_dddd_KKKK` | `LDI    Rd,K`           | `RMCEX` | also `SER    Rd` |
+| `1111_00kk_kkkk_kbbb` | `BRBS   b,k`            | `RMCEX` | also `BR[ITHSVNZC]S` |
+| `1111_01kk_kkkk_kbbb` | `BRBC   b,k`            | `RMCEX` | also `BR[ITHSVNZC]C` |
+| `1111_100d_dddd_0bbb` | `BLD    Rd,b`           | `RMCEX` ||
+| `1111_101d_dddd_0bbb` | `BST    Rd,b`           | `RMCEX` ||
+| `1111_110d_dddd_0bbb` | `SBRC   Rd,b`           | `RMCEX` ||
+| `1111_111d_dddd_0bbb` | `SBRS   Rd,b`           | `RMCEX` ||
 
 ### Program address space size options
 
