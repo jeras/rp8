@@ -11,8 +11,8 @@ task muls  ; R=$signed(Rd)*$signed(      Rr ); $display ("MULS   Rd,Rr ; %4d(8'h
 task mulsu ; R=$signed(Rd)*$signed({1'b0,Rr}); $display ("MULSU  Rd,Rr ; %4d(8'h%02x) * %4d(8'h%02x) = %7d(16'h%04x) | C=%b Z=%b", $signed(Rd), Rd,         Rr , Rr, $signed(R), R, R[15], ~|R); endtask
 
 task fmul  ; F=        Fd *              Fr  ;  $display ("FMUL   Rd,Rr ; %f(8'h%02x) * %f(8'h%02x) = %f(16'h%04x) | C=%b Z=%b", $itor(        Fd )/128, Fd, $itor(        Fr )/128, Fr, $itor(        F )/128/128, F, F[1], ~|F[0:-14]); endtask
-task fmuls ; F=$signed(Fd)*$signed(      Fr );  $display ("FMUL   Rd,Rr ; %f(8'h%02x) * %f(8'h%02x) = %f(16'h%04x) | C=%b Z=%b", $itor($signed(Fd))/128, Fd, $itor($signed(Fr))/128, Fr, $itor($signed(F))/128/128, F, F[1], ~|F[0:-14]); endtask
-task fmulsu; F=$signed(Fd)*$signed({1'b0,Fr});  $display ("FMUL   Rd,Rr ; %f(8'h%02x) * %f(8'h%02x) = %f(16'h%04x) | C=%b Z=%b", $itor($signed(Fd))/128, Fd, $itor(        Fr )/128, Fr, $itor($signed(F))/128/128, F, F[1], ~|F[0:-14]); endtask
+task fmuls ; F=$signed(Fd)*$signed(      Fr );  $display ("FMULS  Rd,Rr ; %f(8'h%02x) * %f(8'h%02x) = %f(16'h%04x) | C=%b Z=%b", $itor($signed(Fd))/128, Fd, $itor($signed(Fr))/128, Fr, $itor($signed(F))/128/128, F, F[1], ~|F[0:-14]); endtask
+task fmulsu; F=$signed(Fd)*$signed({1'b0,Fr});  $display ("FMULSU Rd,Rr ; %f(8'h%02x) * %f(8'h%02x) = %f(16'h%04x) | C=%b Z=%b", $itor($signed(Fd))/128, Fd, $itor(        Fr )/128, Fr, $itor($signed(F))/128/128, F, F[1], ~|F[0:-14]); endtask
 
 initial begin
   Rd=8'h00; Rr=8'h00;  mul;
