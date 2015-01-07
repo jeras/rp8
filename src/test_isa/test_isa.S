@@ -114,7 +114,7 @@
 ; TODO missing interrupt routines
 
 main:
-  rcall init_inc
+  rcall init_clr
   rcall test_nop
   rcall test_movw
   rcall test_muls
@@ -157,27 +157,38 @@ test_nop:
 
 test_movw:
 .if (SUBISA & ISA_MSK_MOVW  )
-  movw   r1 :r0 ,r17:r16
-  movw   r15:r14,r31:r30
+  ldi r30,0x1e
+  ldi r31,0x1f
+  movw   r1 :r0 ,r31:r30
+  movw   r29:r28,r1 :r0
 .endif
   ret
 
 test_muls:
 .if (SUBISA & ISA_MSK_MULS  )
-  muls   r16,r17
-  muls   r31,r30
+  clr    r16     ; clear to 0x00
+  clr    r17     ; clear to 0x00
+  muls   r16,r17 ; should set Z flag
+  ser    r30     ; set to 0xff
+  ser    r31     ; set to 0xff
+  muls   r30,r31 ; should set C flag
 .endif
   ret
 
 test_mulsu:
 .if (SUBISA & ISA_MSK_MULSU )
-  mulsu  r16,r17
-  mulsu  r31,r30
+  clr    r16     ; clear to 0x00
+  clr    r17     ; clear to 0x00
+  muls   r16,r17 ; should set Z flag
+  ser    r22     ; set to 0xff
+  ser    r23     ; set to 0xff
+  muls   r23,r22 ; should set C flag
 .endif
   ret
 
 test_fmul:
 .if (SUBISA & ISA_MSK_FMUL  )
+;TODO
   fmul   r16,r17
   fmul   r31,r30
 .endif
@@ -185,13 +196,15 @@ test_fmul:
 
 test_fmuls:
 .if (SUBISA & ISA_MSK_FMULS )
+;TODO
   fmuls  r16,r17
   fmuls  r31,r30
-  ret
 .endif
+  ret
 
 test_fmulsu:
 .if (SUBISA & ISA_MSK_FMULSU)
+;TODO
   fmulsu r16,r17
   fmulsu r31,r30
 .endif
@@ -199,6 +212,10 @@ test_fmulsu:
 
 test_cpc:
 .if (SUBISA & ISA_MSK_CPC   )
+  clc            ; clear carry
+  cpc    r0 ,r1
+  cpc    r31,r30
+  sec            ; set carry
   cpc    r0 ,r1
   cpc    r31,r30
 .endif
@@ -294,58 +311,39 @@ test_andi:
 ; initialize registers to incrementing values
 ;-------------------------------------------------------------------------------
 
-init_inc:
-  ldi r16,0x00
-  ldi r17,0x01
-  ldi r18,0x02
-  ldi r19,0x03
-  ldi r20,0x04
-  ldi r21,0x05
-  ldi r22,0x06
-  ldi r23,0x07
-  ldi r24,0x08
-  ldi r25,0x09
-  ldi r26,0x0a
-  ldi r27,0x0b
-  ldi r28,0x0c
-  ldi r29,0x0d
-  ldi r30,0x0e
-  ldi r31,0x0f
-
-  mov r0 ,r16
-  mov r1 ,r17
-  mov r2 ,r18
-  mov r3 ,r19
-  mov r4 ,r20
-  mov r5 ,r21
-  mov r6 ,r22
-  mov r7 ,r23
-  mov r8 ,r24
-  mov r9 ,r25
-  mov r10,r26
-  mov r11,r27
-  mov r12,r28
-  mov r13,r29
-  mov r14,r30
-  mov r15,r31
-
-  ldi r16,0x10
-  ldi r17,0x11
-  ldi r18,0x12
-  ldi r19,0x13
-  ldi r20,0x14
-  ldi r21,0x15
-  ldi r22,0x16
-  ldi r23,0x17
-  ldi r24,0x18
-  ldi r25,0x19
-  ldi r26,0x1a
-  ldi r27,0x1b
-  ldi r28,0x1c
-  ldi r29,0x1d
-  ldi r30,0x1e
-  ldi r31,0x1f
-
+init_clr:
+  clr r0
+  clr r1
+  clr r2
+  clr r3
+  clr r4
+  clr r5
+  clr r6
+  clr r7
+  clr r8
+  clr r9
+  clr r10
+  clr r11
+  clr r12
+  clr r13
+  clr r14
+  clr r15
+  clr r16
+  clr r17
+  clr r18
+  clr r19
+  clr r20
+  clr r21
+  clr r22
+  clr r23
+  clr r24
+  clr r25
+  clr r26
+  clr r27
+  clr r28
+  clr r29
+  clr r30
+  clr r31
   ret
 
 .end
