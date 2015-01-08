@@ -4,106 +4,126 @@
 ; table defining availability of instructions for various ISA subsets
 ;-------------------------------------------------------------------------------
 
-; mnemonic                |  core  |
-; ----------------------- | ------ |
-.set ISA_MSK_NOP   , 0b1111
-.set ISA_MSK_MOVW  , 0b0011
-.set ISA_MSK_MULS  , 0b0011
-.set ISA_MSK_MULSU , 0b0011
-.set ISA_MSK_FMUL  , 0b0011
-.set ISA_MSK_FMULS , 0b0011
-.set ISA_MSK_FMULSU, 0b0011
-.set ISA_MSK_CPC   , 0b1111
-.set ISA_MSK_SBC   , 0b1111
-.set ISA_MSK_ADD   , 0b1111
-.set ISA_MSK_CPSE  , 0b1111
-.set ISA_MSK_CP    , 0b1111
-.set ISA_MSK_SUB   , 0b1111
-.set ISA_MSK_ADC   , 0b1111
-.set ISA_MSK_AND   , 0b1111
-.set ISA_MSK_EOR   , 0b1111
-.set ISA_MSK_OR    , 0b1111
-.set ISA_MSK_MOV   , 0b1111
-.set ISA_MSK_CPI   , 0b1111
-.set ISA_MSK_SBCI  , 0b1111
-.set ISA_MSK_SUBI  , 0b1111
-.set ISA_MSK_ORI   , 0b1111
-.set ISA_MSK_ANDI  , 0b1111
-; `LD     Rd,Z`       , 0b1111
-; `LDD    Rd,Z+q`     , 0b0011
-; `LD     Rd,Y`       , 0b1111
-; `LDD    Rd,Y+q`     , 0b0011
-; `ST     Rd,Z`       , 0b1111
-; `STD    Rd,Z+q`     , 0b0011
-; `ST     Rd,Y`       , 0b1111
-; `STD    Rd,Y+q`     , 0b0011
-; `LDS    Rd,0x????`  , 0b0011
-; `LD     Rd,Z+`      , 0b1111
-; `LD     Rd,-Z`      , 0b1111
-; `LPM    Rd,Z`       , 0b0111
-; `LPM    Rd,Z+`      , 0b0111
-; `ELPM   Rd,Z`       , 0b0111
-; `ELPM   Rd,Z+`      , 0b0111
-; `LD     Rd,Y+`      , 0b1111
-; `LD     Rd,-Y`      , 0b1111
-.set ISA_MSK_POP   , 0b1111
-.set ISA_MSK_STS   , 0b0011
-; `ST     Z+,Rr`      , 0b1111
-; `ST     -Z,Rr`      , 0b1111
-.set ISA_M0001CH   , 0b0001
-.set ISA_MSK_LAS   , 0b0001
-.set ISA_MSK_LAC   , 0b0001
-.set ISA_MSK_LAT   , 0b0001
-; `ST     Y+,Rr`      , 0b1111
-; `ST     -Y,Rr`      , 0b1111
-; `ST  0001,Rr`       , 0b1111
-; `ST  0001+,Rr`      , 0b1111
-; `ST   0001,Rr`      , 0b1111
-.set ISA_MSK_PUSH  , 0b1111
-.set ISA_MSK_COM   , 0b1111
-.set ISA_MSK_NEG   , 0b1111
-.set ISA_MSK_SWAP  , 0b1111
-.set ISA_MSK_INC   , 0b1111
-.set ISA_MSK_ASR   , 0b1111
-.set ISA_MSK_LSR   , 0b1111
-.set ISA_MSK_ROR   , 0b1111
-.set ISA_MSK_BSET  , 0b1111
-.set ISA_MSK_BCLR  , 0b1111
-.set ISA_MSK_RET   , 0b1111
-.set ISA_MSK_RETI  , 0b1111
-.set ISA_MSK_SLEEP , 0b1111
-.set ISA_MSK_BREAK , 0b0011
-.set ISA_MSK_WDR   , 0b1111
-.set ISA_MSK_LPM   , 0b0111
-.set ISA_MSK_ELPM  , 0b0011
-; `SPM `              , 0b0011
-; `SPM Z+`            , 0b0011
-.set ISA_MSK_IJMP  , 0b1111
-.set ISA_MSK_EIJMP , 0b0111
-.set ISA_MSK_ICALL , 0b1111
-.set ISA_MSK_EICALL, 0b0111
-.set ISA_MSK_DEC   , 0b1111
-.set ISA_MSK_DES   , 0b0001
-.set ISA_MSK_JMP   , 0b0111
-.set ISA_MSK_CALL  , 0b0111
-.set ISA_MSK_ADIW  , 0b0011
-.set ISA_MSK_SBIW  , 0b0011
-.set ISA_MSK_CBI   , 0b1111
-.set ISA_MSK_SBIC  , 0b1111
-.set ISA_MSK_SBI   , 0b1111
-.set ISA_MSK_SBIS  , 0b1111
-.set ISA_MSK_MUL   , 0b0011
-.set ISA_MSK_IN    , 0b1111
-.set ISA_MSK_OUT   , 0b1111
-.set ISA_MSK_RJMP  , 0b1111
-.set ISA_MSK_RCALL , 0b1111
-.set ISA_MSK_LDI   , 0b1111
-.set ISA_MSK_BRBS  , 0b1111
-.set ISA_MSK_BRBC  , 0b1111
-.set ISA_MSK_BLD   , 0b1111
-.set ISA_MSK_BST   , 0b1111
-.set ISA_MSK_SBRC  , 0b1111
-.set ISA_MSK_SBRS  , 0b1111
+; mnemonic           |  core  |
+; ------------------ | ------ |
+.set ISA_MSK_NOP     , 0b11111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_MOVW    , 0b00011
+.set ISA_MSK_MULS    , 0b00011
+.set ISA_MSK_MULSU   , 0b00011
+.set ISA_MSK_FMUL    , 0b00011
+.set ISA_MSK_FMULS   , 0b00011
+.set ISA_MSK_FMULSU  , 0b00011
+.set ISA_MSK_CPC     , 0b11111
+.set ISA_MSK_SBC     , 0b11111
+.set ISA_MSK_ADD     , 0b11111
+.set ISA_MSK_CPSE    , 0b11111
+.set ISA_MSK_CP      , 0b11111
+.set ISA_MSK_SUB     , 0b11111
+.set ISA_MSK_ADC     , 0b11111
+.set ISA_MSK_AND     , 0b11111
+.set ISA_MSK_EOR     , 0b11111
+.set ISA_MSK_OR      , 0b11111
+.set ISA_MSK_MOV     , 0b11111
+.set ISA_MSK_CPI     , 0b11111
+.set ISA_MSK_SBCI    , 0b11111
+.set ISA_MSK_SUBI    , 0b11111
+.set ISA_MSK_ORI     , 0b11111
+.set ISA_MSK_ANDI    , 0b11111
+.set ISA_MSK_LDS_16  , 0b10000
+.set ISA_MSK_STS_16  , 0b10000
+.set ISA_MSK_LD_Z    , 0b11111
+.set ISA_MSK_LDD_Z   , 0b00111
+.set ISA_MSK_LD_Y    , 0b10111
+.set ISA_MSK_LDD_Y   , 0b00111
+.set ISA_MSK_ST_Z    , 0b11111
+.set ISA_MSK_STD_Z   , 0b00111
+.set ISA_MSK_ST_Y    , 0b10111
+.set ISA_MSK_STD_Y   , 0b00111
+.set ISA_MSK_LDS_32  , 0b00111
+.set ISA_MSK_LD_ZP   , 0b10111
+.set ISA_MSK_LD_ZM   , 0b10111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_LPM_RZ  , 0b00011
+.set ISA_MSK_LPM_RZP , 0b00011
+.set ISA_MSK_ELPM_RZ , 0b00011
+.set ISA_MSK_ELPM_RZP, 0b00011
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_LD_YP   , 0b10111
+.set ISA_MSK_LD_YM   , 0b10111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_POP     , 0b10111
+.set ISA_MSK_STS     , 0b00111
+.set ISA_MSK_ST_ZP   , 0b10111
+.set ISA_MSK_ST_ZM   , 0b10111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_XCH     , 0b00001
+.set ISA_MSK_LAS     , 0b00001
+.set ISA_MSK_LAC     , 0b00001
+.set ISA_MSK_LAT     , 0b00001
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_ST_YP   , 0b10111
+.set ISA_MSK_ST_YM   , 0b10111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_ST_X    , 0b10111
+.set ISA_MSK_ST_XP   , 0b10111
+.set ISA_MSK_ST_XM   , 0b10111
+.set ISA_MSK_PUSH    , 0b10111
+.set ISA_MSK_COM     , 0b11111
+.set ISA_MSK_NEG     , 0b11111
+.set ISA_MSK_SWAP    , 0b11111
+.set ISA_MSK_INC     , 0b11111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_ASR     , 0b11111
+.set ISA_MSK_LSR     , 0b11111
+.set ISA_MSK_ROR     , 0b11111
+.set ISA_MSK_BSET    , 0b11111
+.set ISA_MSK_BCLR    , 0b11111
+.set ISA_MSK_RET     , 0b11111
+.set ISA_MSK_RETI    , 0b11111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_SLEEP   , 0b11111
+.set ISA_MSK_BREAK   , 0b10011
+.set ISA_MSK_WDR     , 0b11111
+.set ISA_MSK         , 0b00000
+.set ISA_MSK_LPM     , 0b01111
+.set ISA_MSK_ELPM    , 0b00011
+.set ISA_MSK_SPM     , 0b00111
+.set ISA_MSK_SPM_ZP  , 0b00011
+.set ISA_MSK_IJMP    , 0b11111
+.set ISA_MSK_EIJMP   , 0b00111
+.set ISA_MSK_ICALL   , 0b11111
+.set ISA_MSK_EICALL  , 0b00111
+.set ISA_MSK_DEC     , 0b11111
+.set ISA_MSK_DES     , 0b00001
+.set ISA_MSK_JMP     , 0b00111
+.set ISA_MSK_CALL    , 0b00111
+.set ISA_MSK_ADIW    , 0b00011
+.set ISA_MSK_SBIW    , 0b00011
+.set ISA_MSK_CBI     , 0b11111
+.set ISA_MSK_SBIC    , 0b11111
+.set ISA_MSK_SBI     , 0b11111
+.set ISA_MSK_SBIS    , 0b11111
+.set ISA_MSK_MUL     , 0b00011
+.set ISA_MSK_IN      , 0b11111
+.set ISA_MSK_OUT     , 0b11111
+.set ISA_MSK_RJMP    , 0b11111
+.set ISA_MSK_RCALL   , 0b11111
+.set ISA_MSK_LDI     , 0b11111
+.set ISA_MSK_BRBS    , 0b11111
+.set ISA_MSK_BRBC    , 0b11111
+.set ISA_MSK_BLD     , 0b11111
+.set ISA_MSK_BST     , 0b11111
+.set ISA_MSK_SBRC    , 0b11111
+.set ISA_MSK_SBRS    , 0b11111
 
 ;-------------------------------------------------------------------------------
 ; main is calling instruction tests one by one
@@ -188,34 +208,52 @@ test_mulsu:
 
 test_fmul:
 .if (SUBISA & ISA_MSK_FMUL  )
-;TODO
-  fmul   r16,r17
-  fmul   r31,r30
+  clr    r16     ; clear to 0x00
+  clr    r17     ; clear to 0x00
+  fmul   r16,r17 ; should set Z flag
+  ser    r22     ; set to 0xff
+  ser    r23     ; set to 0xff
+  fmul   r23,r22 ; should set C flag
 .endif
   ret
 
 test_fmuls:
 .if (SUBISA & ISA_MSK_FMULS )
-;TODO
-  fmuls  r16,r17
-  fmuls  r31,r30
+  clr    r16     ; clear to 0x00
+  clr    r17     ; clear to 0x00
+  fmuls  r16,r17 ; should set Z flag
+  ser    r22     ; set to 0xff
+  ser    r23     ; set to 0xff
+  fmuls  r23,r22 ; should set C flag
 .endif
   ret
 
 test_fmulsu:
 .if (SUBISA & ISA_MSK_FMULSU)
-;TODO
-  fmulsu r16,r17
-  fmulsu r31,r30
+  clr    r16     ; clear to 0x00
+  clr    r17     ; clear to 0x00
+  fmulsu r16,r17 ; should set Z flag
+  ser    r22     ; set to 0xff
+  ser    r23     ; set to 0xff
+  fmulsu r23,r22 ; should set C flag
 .endif
   ret
 
 test_cpc:
 .if (SUBISA & ISA_MSK_CPC   )
-  clc            ; clear carry
-  cpc    r0 ,r1
-  cpc    r31,r30
-  sec            ; set carry
+  clr    r16      ; clear to 0x00
+  clr    r17      ; clear to 0x00
+  clc    r0       ; clear C
+  cpc    r16,r17  ; should set Z flag
+  clr    r22      ; set to 0x00
+  ser    r23      ; set to 0xff
+  clc    r0       ; clear C
+  cpc    r22,r23  ; should set C flag
+  clr    r22      ; set to 0x00
+  ser    r23      ; set to 0xff
+  clc    r0       ; clear C
+  cpc    r22,r23  ; should set C flag
+  sec             ; set C
   cpc    r0 ,r1
   cpc    r31,r30
 .endif
