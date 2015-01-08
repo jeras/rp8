@@ -128,7 +128,7 @@ The next table provides a list of all instructions and specifies which instructi
 | `1001_0101_1011_1000` | undefined               | `.....` ||
 | `1001_0101_1100_1000` | `LPM    ; R0,Z`         | `.MCEX` ||
 | `1001_0101_1101_1000` | `ELPM   ; R0,Z`         | `...EX` | depends program memory size |
-| `1001_0101_1110_1000` | `SPM    ; Z,R1:R0`      | `...EX` ||
+| `1001_0101_1110_1000` | `SPM    ; Z,R1:R0`      | `..CEX` | not present in all classic core devices |
 | `1001_0101_1111_1000` | `SPM Z+ ; Z+,R1:R0`     | `...EX` ||
 | `1001_0100_0000_1001` | `IJMP`                  | `RMCEX` ||
 | `1001_0100_0001_1001` | `EIJMP`                 | `..CEX` | depends program memory size |
