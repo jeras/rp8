@@ -350,9 +350,32 @@ test_add:
 test_cpse:
 .if (SUBISA & ISA_MSK_CPSE  )
 ; TODO test both skipping and not skipping situations, also test skipping 2 word instructions
-  cpse   r0 ,r1
+  ; test skip (or not) 16bit instruction
+  ser    r16
+  ser    r17
+  cpse   r16,r17     ; should skip
+  ldi    r18,0xA5
+  ser    r16
+  clr    r17
+  cpse   r16,r17     ; should not skip
+  ldi    r18,0x5a
   nop
-  cpse   r31,r30
+  ; test skip (or not) 32bit instruction
+  ldi    r30,0x00
+  ldi    r31,0x01 
+  ldi    r18,0xA5
+  st     Z,r18      ; load 0xA5 into location 0x0100
+  clr    r18        ; clear register
+  ser    r16
+  ser    r17
+  cpse   r16,r17    ; should skip
+  lds    r18,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
+  nop
+  clr    r18        ; clear register
+  ser    r16
+  clr    r17
+  cpse   r16,r17    ; should not skip
+  lds    r18,0x0100
   nop
 .endif
   ret
