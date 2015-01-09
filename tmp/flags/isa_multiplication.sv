@@ -1,4 +1,4 @@
-module multiplication ();
+module isa_multiplication ();
 
 logic [ 7:0] Rd, Rr;
 logic [15:0] R;
@@ -69,4 +69,4 @@ initial begin
   Fd=8'h80; Fr=8'hff;  fmulsu;
 end
 
-endmodule: multiplication
+endmodule: isa_multiplication

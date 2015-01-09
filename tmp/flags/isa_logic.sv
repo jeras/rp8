@@ -1,4 +1,4 @@
-module arithmetic ();
+module isa_logic ();
 
 // SREG: Status Register
 logic C;  // Carry Flag
@@ -35,10 +35,17 @@ initial begin
   Rd=8'hff; Rr=8'hff;         add;
   $display();
   Rd=8'h00; Rr=8'h00; c=1'b0; adc;
-  Rd=8'h01; Rr=8'h01; c=1'b0; adc;
-  Rd=8'h01; Rr=8'hff; c=1'b0; adc;
+  Rd=8'h00; Rr=8'hff; c=1'b0; adc;
+  Rd=8'h80; Rr=8'h80; c=1'b0; adc;
   Rd=8'hff; Rr=8'hff; c=1'b0; adc;
+  Rd=8'h00; Rr=8'h00; c=1'b1; adc;
+  Rd=8'h00; Rr=8'hff; c=1'b1; adc;
+  Rd=8'h80; Rr=8'h80; c=1'b1; adc;
+  Rd=8'hff; Rr=8'hff; c=1'b1; adc;
   $display();
+  Rd=8'h00; Rr=8'h00;         sub;
+  Rd=8'h00; Rr=8'hff;         sub;
+  Rd=8'hff; Rr=8'h00;         sub;
   Rd=8'hff; Rr=8'hff;         sub;
   $display();
   Rd=8'h00; Rr=8'h00; c=1'b0; sbc;
@@ -56,4 +63,4 @@ initial begin
   Rd=8'h00; Rr=8'h01;         dec;
 end
 
-endmodule: arithmetic
+endmodule: isa_logic
