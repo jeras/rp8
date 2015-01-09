@@ -243,33 +243,107 @@ test_cpc:
 .if (SUBISA & ISA_MSK_CPC   )
   clr    r16      ; clear to 0x00
   clr    r17      ; clear to 0x00
-  clc    r0       ; clear C
-  cpc    r16,r17  ; should set Z flag
-  clr    r22      ; set to 0x00
+  clc             ; clear C
+  cpc    r16,r17  ; (0x00-0x00-0) should set ....Z. flags
+
+  clr    r18      ; set to 0x00
+  ser    r19      ; set to 0xff
+  clc             ; clear C
+  cpc    r18,r19  ; (0x00-0xff-0) should set .....C flags
+
+  ser    r20      ; set to 0xff
+  clr    r21      ; set to 0x00
+  clc             ; clear C
+  cpc    r18,r19  ; (0xff-0x00-0) should set .S.N.. flags
+
+  ser    r22      ; set to 0xff
   ser    r23      ; set to 0xff
-  clc    r0       ; clear C
-  cpc    r22,r23  ; should set C flag
-  clr    r22      ; set to 0x00
-  ser    r23      ; set to 0xff
-  clc    r0       ; clear C
-  cpc    r22,r23  ; should set C flag
+  clc             ; clear C
+  cpc    r22,r23  ; (0xff-0xff-0) should set HSV.Z. flags
+
+  clr    r16      ; clear to 0x00
+  clr    r17      ; clear to 0x00
   sec             ; set C
-  cpc    r0 ,r1
-  cpc    r31,r30
+  cpc    r16,r17  ; (0x00-0x00-1) should set ..VN.C flags
+
+  clr    r18      ; set to 0x00
+  ser    r19      ; set to 0xff
+  sec             ; set C
+  cpc    r18,r19  ; (0x00-0xff-1) should set H...ZC flag
+
+  ser    r20      ; set to 0xff
+  clr    r21      ; set to 0x00
+  sec             ; set C
+  cpc    r18,r19  ; (0xff-0x00-1) should set .S.N.. flags
+
+  ser    r22      ; set to 0xff
+  ser    r23      ; set to 0xff
+  sec             ; set C
+  cpc    r22,r23  ; (0xff-0xff-1) should set HS.N.C flags
 .endif
   ret
 
 test_sbc:
 .if (SUBISA & ISA_MSK_SBC   )
-  sbc    r0 ,r1
-  sbc    r31,r30
+  clr    r16      ; clear to 0x00
+  clr    r17      ; clear to 0x00
+  clc             ; clear C
+  sbc    r16,r17  ; (0x00-0x00-0) should set ....Z. flags
+
+  clr    r18      ; set to 0x00
+  ser    r19      ; set to 0xff
+  clc             ; clear C
+  sbc    r18,r19  ; (0x00-0xff-0) should set .....C flags
+
+  ser    r20      ; set to 0xff
+  clr    r21      ; set to 0x00
+  clc             ; clear C
+  sbc    r18,r19  ; (0xff-0x00-0) should set .S.N.. flags
+
+  ser    r22      ; set to 0xff
+  ser    r23      ; set to 0xff
+  clc             ; clear C
+  sbc    r22,r23  ; (0xff-0xff-0) should set HSV.Z. flags
+
+  clr    r16      ; clear to 0x00
+  clr    r17      ; clear to 0x00
+  sec             ; set C
+  sbc    r16,r17  ; (0x00-0x00-1) should set ..VN.C flags
+
+  clr    r18      ; set to 0x00
+  ser    r19      ; set to 0xff
+  sec             ; set C
+  sbc    r18,r19  ; (0x00-0xff-1) should set H...ZC flag
+
+  ser    r20      ; set to 0xff
+  clr    r21      ; set to 0x00
+  sec             ; set C
+  sbc    r18,r19  ; (0xff-0x00-1) should set .S.N.. flags
+
+  ser    r22      ; set to 0xff
+  ser    r23      ; set to 0xff
+  sec             ; set C
+  sbc    r22,r23  ; (0xff-0xff-1) should set HS.N.C flags
 .endif
   ret
 
 test_add:
 .if (SUBISA & ISA_MSK_ADD   )
-  add    r0 ,r1
-  add    r31,r30
+  clr    r16      ; clear to 0x00
+  clr    r17      ; clear to 0x00
+  add    r16,r17  ; (0x00-0x00) should set ....Z. flags
+
+  clr    r18      ; set to 0x00
+  ser    r19      ; set to 0xff
+  add    r18,r19  ; (0x00-0xff) should set .S.N.. flags
+
+  ldi    r20,0x80 ; set to 0x80
+  ldi    r21,0x80 ; set to 0x80
+  add    r18,r19  ; (0x8f-0x80) should set .SV.ZC flags
+
+  ser    r22      ; set to 0xff
+  ser    r23      ; set to 0xff
+  add    r22,r23  ; (0xff-0xff) should set HS.N.C flags
 .endif
   ret
 
