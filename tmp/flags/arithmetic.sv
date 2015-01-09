@@ -30,8 +30,8 @@ endtask
 
 initial begin
   Rd=8'h00; Rr=8'h00;         add;
-  Rd=8'h01; Rr=8'h01;         add;
-  Rd=8'h01; Rr=8'hff;         add;
+  Rd=8'h00; Rr=8'hff;         add;
+  Rd=8'h80; Rr=8'h80;         add;
   Rd=8'hff; Rr=8'hff;         add;
   $display();
   Rd=8'h00; Rr=8'h00; c=1'b0; adc;
@@ -45,6 +45,10 @@ initial begin
   Rd=8'h00; Rr=8'hff; c=1'b0; sbc;
   Rd=8'hff; Rr=8'h00; c=1'b0; sbc;
   Rd=8'hff; Rr=8'hff; c=1'b0; sbc;
+  Rd=8'h00; Rr=8'h00; c=1'b1; sbc;
+  Rd=8'h00; Rr=8'hff; c=1'b1; sbc;
+  Rd=8'hff; Rr=8'h00; c=1'b1; sbc;
+  Rd=8'hff; Rr=8'hff; c=1'b1; sbc;
   $display();
   Rd=8'hff; Rr=8'hff;         com;
   Rd=8'h00; Rr=8'h00;         neg;
