@@ -27,17 +27,17 @@ void print_state_avrsim (avr_t * avr) {
 }
 
 void print_state_avrrtl (
-  uint32_t dump_gpr_precast[8],
-  uint32_t dump_io_precast[16]
+  uint8_t dump_gpr[32],
+  uint8_t dump_io [64]
 ) {
   printf("avrrtl -> ");
   printf("r[31:0] = {");
-  for (int i=8-1; i>=0; i--)
-    printf("%08x", dump_gpr_precast[i]);
+  for (int i=32-1; i>=0; i--)
+    printf("%02x", dump_gpr[i]);
   printf("} ");
   printf("io[63:0] = {");
-  for (int i=16-1; i>=0; i--)
-    printf("%08x", dump_io_precast[i]);
+  for (int i=64-1; i>=0; i--)
+    printf("%02x", dump_io[i]);
   printf("} ");
   printf("\n");
 }
@@ -55,13 +55,18 @@ int main(int argc, char **argv, char **env) {
   tfp->open ("rp_8bit_verilator.vcd");
 
   // verilator public function access
-  uint32_t dump_gpr_precast[8];
-  uint8_t  dump_gpr[32];
+  union {
+    uint32_t word[8];
+    uint8_t  byte[32];
+  } dump_gpr;
   uint32_t dump_pc;
   uint32_t dump_sp;
   uint32_t dump_sreg_precast;
   uint8_t  dump_sreg;
-  uint32_t dump_io_precast[16];
+  union {
+    uint32_t word[16];
+    uint8_t  byte[64];
+  } dump_io;
   //svSetScope (svGetScopeFromName ("DUT"));
 
   // AVR simulator initialization
@@ -91,15 +96,31 @@ int main(int argc, char **argv, char **env) {
     }
     if (!top->rst) {
       // DUT internal state
-      top->v->DUT->dump_state_core (dump_gpr_precast, dump_pc, dump_sp, dump_sreg_precast);
-      top->v->dump_state_io (dump_io_precast);
-      // TODO: implement proper casting
-      //&dump_gpr = (uint8_t [32]) dump_gpr_precast;
+      top->v->DUT->dump_state_core (dump_gpr.word, dump_pc, dump_sp, dump_sreg_precast);
+      top->v->     dump_state_io   (dump_io.word);
       // simavr internal state
       avr_state = avr_run (avr);
+      // TODO: a faster comparison might be done by casting to 64bit)
+      // compare GPR
+      for (unsigned int i=0; i<32; i++) {
+        if (dump_gpr.byte[i] != avr->data[i])
+          printf ("ERROR: GPR[%02d] mismatch\n", i);
+      }
+      // compare IO
+      for (unsigned int i=0; i<64; i++) {
+        if (dump_io.byte[i] != avr->data[32+i])
+          printf ("ERROR: I/O[%02d] mismatch\n", i);
+      }
+      // compare RAM
+      // TODO simulator should report the changed address
+//      for (unsigned int i=0; i<32; i++) {
+//        if (dump_gpr.byte[i] != avr->data[i])
+//          printf ("ERROR: GPR[%02d] mismatch", i);
+//      }
+
       // debug print
       print_state_avrsim (avr);
-      print_state_avrrtl (dump_gpr_precast, dump_io_precast);
+      print_state_avrrtl (dump_gpr.byte, dump_io.byte);
       printf("\n");
     }
     // check for end of simulation
