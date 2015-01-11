@@ -74,12 +74,12 @@ function automatic string disasm (
     16'b01??_????_????_????: begin
       Rd[4:0] = {1'b1, code [7:4]};
       K = {code[11:8], code [3:0]};
-      case (code[15:12])
-        4'b0001: str = $sformatf ("cpi  r%0d,0x%02x", Rd, K);  // Compare with Immediate
-        4'b0100: str = $sformatf ("sbci r%0d,0x%02x", Rd, K);  // Subtract Immediate with Carry
-        4'b0101: str = $sformatf ("subi r%0d,0x%02x", Rd, K);  // Subtract Immediate
-        4'b0110: str = $sformatf ("ori  r%0d,0x%02x", Rd, K);  // Logical OR with Immediate
-        4'b0111: str = $sformatf ("andi r%0d,0x%02x", Rd, K);  // Logical AND with Immediate
+      case (code[14:12])
+        3'b011: str = $sformatf ("cpi  r%0d,0x%02x", Rd, K);  // Compare with Immediate
+        3'b100: str = $sformatf ("sbci r%0d,0x%02x", Rd, K);  // Subtract Immediate with Carry
+        3'b101: str = $sformatf ("subi r%0d,0x%02x", Rd, K);  // Subtract Immediate
+        3'b110: str = $sformatf ("ori  r%0d,0x%02x", Rd, K);  // Logical OR with Immediate
+        3'b111: str = $sformatf ("andi r%0d,0x%02x", Rd, K);  // Logical AND with Immediate
       endcase
     end
     16'b10?0_????_????_????: begin
