@@ -126,6 +126,49 @@
 .set ISA_MSK_SBRS    , 0b11111
 
 ;-------------------------------------------------------------------------------
+; register usage
+;-------------------------------------------------------------------------------
+
+                ; R0  multiplication target
+                ; R1  multiplication target
+.set CL_00 , 2  ; R2  lower  constants 0x00
+.set CL_FF , 3  ; R3  lower  constants 0xff
+.set CL_80 , 4  ; R4  lower  constants 0x80
+.set CL_01 , 5  ; R5  lower  constants 0x01
+.set DL_8  , 8  ; R6  lower  8 bit destination
+                ; R7
+.set DL_16L, 10 ; R8  lower  16 bit destination LO
+.set DL_16H, 11 ; R9  lower  16 bit destination HI
+                ; R10
+                ; R11
+                ; R12
+                ; R13
+                ; R14
+                ; R15
+                ; R16
+                ; R17
+.set CH_00 , 18 ; R18 higher constants 0x00
+.set CH_FF , 19 ; R19 higher constants 0xff
+.set CH_80 , 20 ; R20 higher constants 0x80
+.set CH_01 , 21 ; R21 higher constants 0x01
+.set DH_8  , 22 ; R22 higher 8 bit destination
+                ; R23
+.set DH_16L, 24 ; R24 higher 16 bit destination LO
+.set DH_16H, 25 ; R25 higher 16 bit destination HI
+                ; R26 lo(X)
+                ; R27 hi(X)
+                ; R28 lo(Y)
+                ; R29 hi(Y)
+                ; R30 lo(Z)
+                ; R31 hi(Z)
+
+; TODO check if this 16 bit register targets are correct
+.set CL_16, 2
+.set CH_16, 10
+.set DL_16, 4
+.set DH_16, 12
+
+;-------------------------------------------------------------------------------
 ; main is calling instruction tests one by one
 ;-------------------------------------------------------------------------------
 
@@ -135,6 +178,7 @@
 
 main:
   rcall init_clr
+
   rcall test_nop
   rcall test_movw
   rcall test_muls
@@ -177,173 +221,113 @@ test_nop:
 
 test_movw:
 .if (SUBISA & ISA_MSK_MOVW  )
-  ldi r30,0x1e
-  ldi r31,0x1f
-  movw   r1 :r0 ,r31:r30
-  movw   r29:r28,r1 :r0
+  rcall  init_const
+  movw   DL_16,CL_16
+  movw   DH_16,CH_16
 .endif
   ret
 
 test_muls:
 .if (SUBISA & ISA_MSK_MULS  )
-  clr    r16     ; 0x00
-  clr    r17     ; 0x00
-  muls   r16,r17 ; should set Z flag
-  ser    r30     ; 0xff
-  ser    r31     ; 0xff
-  muls   r30,r31 ; should set C flag
+  rcall  init_const
+  muls   CH_00,CH_00 ; should set Z flag
+  muls   CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
 test_mulsu:
 .if (SUBISA & ISA_MSK_MULSU )
-  clr    r16     ; 0x00
-  clr    r17     ; 0x00
-  muls   r16,r17 ; should set Z flag
-  ser    r22     ; 0xff
-  ser    r23     ; 0xff
-  muls   r23,r22 ; should set C flag
+  rcall  init_const
+  muls   CH_00,CH_00 ; should set Z flag
+  muls   CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
 test_fmul:
 .if (SUBISA & ISA_MSK_FMUL  )
-  clr    r16     ; 0x00
-  clr    r17     ; 0x00
-  fmul   r16,r17 ; should set Z flag
-  ser    r22     ; 0xff
-  ser    r23     ; 0xff
-  fmul   r23,r22 ; should set C flag
+  rcall  init_const
+  fmul   CH_00,CH_00 ; should set Z flag
+  fmul   CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
 test_fmuls:
 .if (SUBISA & ISA_MSK_FMULS )
-  clr    r16     ; 0x00
-  clr    r17     ; 0x00
-  fmuls  r16,r17 ; should set Z flag
-  ser    r22     ; 0xff
-  ser    r23     ; 0xff
-  fmuls  r23,r22 ; should set C flag
+  fmuls  CH_00,CH_00 ; should set Z flag
+  fmuls  CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
 test_fmulsu:
 .if (SUBISA & ISA_MSK_FMULSU)
-  clr    r16     ; 0x00
-  clr    r17     ; 0x00
-  fmulsu r16,r17 ; should set Z flag
-  ser    r22     ; 0xff
-  ser    r23     ; 0xff
-  fmulsu r23,r22 ; should set C flag
+  fmulsu CH_00,CH_00 ; should set Z flag
+  fmulsu CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
 test_cpc:
 .if (SUBISA & ISA_MSK_CPC   )
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  clc             ; clear C
-  cpc    r16,r17  ; (0x00-0x00-0) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  clc             ; clear C
-  cpc    r18,r19  ; (0x00-0xff-0) should set .....C flags
-
-  ser    r20      ; 0xff
-  clr    r21      ; 0x00
-  clc             ; clear C
-  cpc    r18,r19  ; (0xff-0x00-0) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  clc             ; clear C
-  cpc    r22,r23  ; (0xff-0xff-0) should set HSV.Z. flags
-
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  sec             ; set C
-  cpc    r16,r17  ; (0x00-0x00-1) should set ..VN.C flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  sec             ; set C
-  cpc    r18,r19  ; (0x00-0xff-1) should set H...ZC flag
-
-  ser    r20      ; 0xff
-  clr    r21      ; 0x00
-  sec             ; set C
-  cpc    r18,r19  ; (0xff-0x00-1) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  sec             ; set C
-  cpc    r22,r23  ; (0xff-0xff-1) should set HS.N.C flags
+  rcall  init_const  ; instruction CPL does not modify registers
+  clc                ; clear C
+  cpc    CH_00,CH_00 ; (0x00-0x00-0) should set ....Z. flags
+  clc                ; clear C
+  cpc    CH_00,CH_FF ; (0x00-0xff-0) should set .....C flags
+  clc                ; clear C
+  cpc    CH_FF,CH_00 ; (0xff-0x00-0) should set .S.N.. flags
+  clc                ; clear C
+  cpc    CH_FF,CH_FF ; (0xff-0xff-0) should set HSV.Z. flags
+  sec                ; set C
+  cpc    CH_00,CH_00 ; (0x00-0x00-1) should set ..VN.C flags
+  sec                ; set C
+  cpc    CH_00,CH_FF ; (0x00-0xff-1) should set H...ZC flag
+  sec                ; set C
+  cpc    CH_FF,CH_00 ; (0xff-0x00-1) should set .S.N.. flags
+  sec                ; set C
+  cpc    CH_FF,CH_FF ; (0xff-0xff-1) should set HS.N.C flags
 .endif
   ret
 
 test_sbc:
 .if (SUBISA & ISA_MSK_SBC   )
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  clc             ; clear C
-  sbc    r16,r17  ; (0x00-0x00-0) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  clc             ; clear C
-  sbc    r18,r19  ; (0x00-0xff-0) should set .....C flags
-
-  ser    r20      ; 0xff
-  clr    r21      ; 0x00
-  clc             ; clear C
-  sbc    r18,r19  ; (0xff-0x00-0) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  clc             ; clear C
-  sbc    r22,r23  ; (0xff-0xff-0) should set HSV.Z. flags
-
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  sec             ; set C
-  sbc    r16,r17  ; (0x00-0x00-1) should set ..VN.C flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  sec             ; set C
-  sbc    r18,r19  ; (0x00-0xff-1) should set H...ZC flag
-
-  ser    r20      ; 0xff
-  clr    r21      ; 0x00
-  sec             ; set C
-  sbc    r18,r19  ; (0xff-0x00-1) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  sec             ; set C
-  sbc    r22,r23  ; (0xff-0xff-1) should set HS.N.C flags
+  rcall  init_const  ;
+  clc                ; clear C
+  sbc    CH_00,CH_00 ; (0x00-0x00-0) should set ....Z. flags
+  clr    CH_00       ; 0x00
+  clc                ; clear C
+  sbc    CH_00,CH_FF ; (0x00-0xff-0) should set .....C flags
+  clr    CH_00       ; 0x00
+  clc                ; clear C
+  sbc    CH_FF,CH_00 ; (0xff-0x00-0) should set .S.N.. flags
+  ser    CH_FF       ; 0xff
+  clc                ; clear C
+  sbc    CH_FF,CH_FF ; (0xff-0xff-0) should set HSV.Z. flags
+  ser    CH_FF       ; 0xff
+  sec                ; set C
+  sbc    CH_00,CH_00 ; (0x00-0x00-1) should set ..VN.C flags
+  clr    CH_00       ; 0x00
+  sec                ; set C
+  sbc    CH_00,CH_FF ; (0x00-0xff-1) should set H...ZC flag
+  clr    CH_00       ; 0x00
+  sec                ; set C
+  sbc    CH_FF,CH_00 ; (0xff-0x00-1) should set .S.N.. flags
+  ser    CH_FF       ; 0xff
+  sec                ; set C
+  sbc    CH_FF,CH_FF ; (0xff-0xff-1) should set HS.N.C flags
+  ser    CH_FF       ; 0xff
 .endif
   ret
 
 test_add:
 .if (SUBISA & ISA_MSK_ADD   )
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  add    r16,r17  ; (0x00+0x00) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  add    r18,r19  ; (0x00+0xff) should set .S.N.. flags
-
-  ldi    r20,0x80 ; 0x80
-  ldi    r21,0x80 ; 0x80
-  add    r18,r19  ; (0x8f+0x80) should set .SV.ZC flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  add    r22,r23  ; (0xff+0xff) should set HS.N.C flags
+  rcall  init_const  ;
+  add    CH_00,CH_00 ; (0x00+0x00) should set ....Z. flags
+  clr    CH_00       ; 0x00
+  add    CH_00,CH_FF ; (0x00+0xff) should set .S.N.. flags
+  clr    CH_00       ; 0x00
+  add    CH_80,CH_80 ; (0x8f+0x80) should set .SV.ZC flags
+  ldi    CH_80,0x80  ; 0x80
+  add    CH_FF,CH_FF ; (0xff+0xff) should set HS.N.C flags
+  ser    CH_FF       ; 0xff
 .endif
   ret
 
@@ -504,36 +488,209 @@ test_or:
 
 test_mov:
 .if (SUBISA & ISA_MSK_MOV   )
+  ldi    r16,0xa5
+  mov    r17,r17
 .endif
   ret
 
 test_cpi:
 .if (SUBISA & ISA_MSK_CPI   )
+  ; same code as for cp, except immediate instead of second register
+  clr    r16      ; 0x00
+  cpi    r16,0x00 ; (0x00-0x00) should set ....Z. flags
+
+  clr    r18      ; 0x00
+  cpi    r18,0xff ; (0x00-0xff) should set .....C flags
+
+  ser    r20      ; 0xff
+  cpi    r18,0x00 ; (0xff-0x00) should set .S.N.. flags
+
+  ser    r22      ; 0xff
+  cpi    r22,0xff ; (0xff-0xff) should set HSV.Z. flags
 .endif
   ret
 
 test_sbci:
 .if (SUBISA & ISA_MSK_SBCI  )
+  clr    r16      ; 0x00
+  clc             ; clear C
+  sbci   r16,0x00 ; (0x00-0x00-0) should set ....Z. flags
+
+  clr    r18      ; 0x00
+  clc             ; clear C
+  sbci   r18,0xff ; (0x00-0xff-0) should set .....C flags
+
+  ser    r20      ; 0xff
+  clc             ; clear C
+  sbci   r18,0x00 ; (0xff-0x00-0) should set .S.N.. flags
+
+  ser    r22      ; 0xff
+  clc             ; clear C
+  sbci   r22,0xff ; (0xff-0xff-0) should set HSV.Z. flags
+
+  clr    r16      ; 0x00
+  sec             ; set C
+  sbci   r16,0x00 ; (0x00-0x00-1) should set ..VN.C flags
+
+  clr    r18      ; 0x00
+  sec             ; set C
+  sbci   r18,0xff ; (0x00-0xff-1) should set H...ZC flag
+
+  ser    r20      ; 0xff
+  sec             ; set C
+  sbci   r18,0x00 ; (0xff-0x00-1) should set .S.N.. flags
+
+  ser    r22      ; 0xff
+  sec             ; set C
+  sbci   r22,0xff; (0xff-0xff-1) should set HS.N.C flags
 .endif
   ret
 
 test_subi:
 .if (SUBISA & ISA_MSK_SUBI  )
+  clr    r16      ; 0x00
+  subi   r16,0x00 ; (0x00-0x00-0) should set ....Z. flags
+
+  clr    r18      ; 0x00
+  subi   r18,0xff ; (0x00-0xff-0) should set .....C flags
+
+  ser    r20      ; 0xff
+  subi   r18,0x00 ; (0xff-0x00-0) should set .S.N.. flags
+
+  ser    r22      ; 0xff
+  subi   r22,0xff ; (0xff-0xff-0) should set HSV.Z. flags
 .endif
   ret
 
 test_ori:
 .if (SUBISA & ISA_MSK_ORI   )
+  clr    r16      ; 0x00
+  ori    r16,0x00 ; (0x00 & 0x00) should set _...Z_ flags
+
+  clr    r22      ; 0x00
+  ori    r22,0xff ; (0x00 & 0xff) should set _S.N._ flags
 .endif
   ret
 
 test_andi:
 .if (SUBISA & ISA_MSK_ANDI  )
+  ser    r16      ; 0xff
+  andi   r16,0x00 ; (0xff & 0x00) should set _...Z_ flags
+
+  ser    r22      ; 0xff
+  andi   r22,0xff ; (0xff & 0xff) should set _S.N._ flags
+.endif
+  ret
+
+test_lds_16:
+.if (SUBISA & ISA_MSK_LDS_16  )
+  ldi R16,0xa5
+  sts 0x00,R16
+  lds R17,0x00
+  ldi R18,0x5a
+  sts 0x7f,R18
+  lds R19,0x7f
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LD_Z    )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LDD_Z   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LD_Y    )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LDD_Y   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_ST_Z    )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_STD_Z   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_ST_Y    )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_STD_Y   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LDS_32  )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LD_ZP   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LD_ZM   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK         )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LPM_RZ  )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LPM_RZP )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_ELPM_RZ )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_ELPM_RZP)
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK         )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LD_YP   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_LD_YM   )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK         )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK         )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK         )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK         )
+.endif
+  ret
+
+.if (SUBISA & ISA_MSK_POP     )
 .endif
   ret
 
 ;-------------------------------------------------------------------------------
-; initialize registers to incrementing values
+; initialize registers to zero
 ;-------------------------------------------------------------------------------
 
 init_clr:
@@ -569,6 +726,17 @@ init_clr:
   clr r29
   clr r30
   clr r31
+  ret
+
+init_const:
+  ldi CH_00,0x00  ; R18 higher constants 0x00
+  ldi CH_FF,0xff  ; R19 higher constants 0xff
+  ldi CH_80,0x80  ; R20 higher constants 0x80
+  ldi CH_01,0x01  ; R21 higher constants 0x01
+  mov CL_00,CH_00 ; R2  lower  constants 0x00
+  mov CL_FF,CH_FF ; R3  lower  constants 0xff
+  mov CL_80,CH_80 ; R4  lower  constants 0x80
+  mov CL_01,CH_01 ; R5  lower  constants 0x01
   ret
 
 .end
