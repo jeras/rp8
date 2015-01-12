@@ -889,7 +889,7 @@ function void dump_state_core (
 );
 /*verilator public*/
   dump_gpr  = gpr.idx;
-  dump_pc   = pmem_a;
+  dump_pc   = PC;
   dump_sp   = SP;
   dump_sreg = sreg;
 endfunction: dump_state_core
