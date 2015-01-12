@@ -13,17 +13,33 @@
 #include "sim_elf.h"
 //#include "sim_core.h"
 
+// verilator public function access
+typedef struct {
+  union {
+    uint32_t word[8];
+    uint8_t  byte[32];
+  } gpr;
+  uint32_t pc;
+  uint32_t sp;
+  uint32_t sreg_precast;
+  uint8_t  sreg;
+  union {
+    uint32_t word[16];
+    uint8_t  byte[64];
+  } io;
+} dump_t;
+
 void print_state_avrsim (avr_t * avr) {
   uint32_t sp  =  (avr->data[32+0x3d] << 0)
                |  (avr->data[32+0x3e] << 8);
-  uint8_t sreg = ((avr->sreg[0] << 0) & 0x01)
-               | ((avr->sreg[1] << 1) & 0x01)
-               | ((avr->sreg[2] << 2) & 0x01)
-               | ((avr->sreg[3] << 3) & 0x01)
-               | ((avr->sreg[4] << 4) & 0x01)
-               | ((avr->sreg[5] << 5) & 0x01)
-               | ((avr->sreg[6] << 6) & 0x01)
-               | ((avr->sreg[7] << 7) & 0x01);
+  uint8_t sreg = ((avr->sreg[0] & 0x01) << 0)
+               | ((avr->sreg[1] & 0x01) << 1)
+               | ((avr->sreg[2] & 0x01) << 2)
+               | ((avr->sreg[3] & 0x01) << 3)
+               | ((avr->sreg[4] & 0x01) << 4)
+               | ((avr->sreg[5] & 0x01) << 5)
+               | ((avr->sreg[6] & 0x01) << 6)
+               | ((avr->sreg[7] & 0x01) << 7);
   printf("avrsim -> ");
   printf("pc = %06x ", avr->pc/2);
   printf("sp = %06x ", sp);
@@ -40,27 +56,70 @@ void print_state_avrsim (avr_t * avr) {
 }
 
 void print_state_avrrtl (
-  uint32_t dump_pc,
-  uint32_t dump_sp,
-  uint8_t  dump_sreg,
-  uint8_t  dump_gpr[32],
-  uint8_t  dump_io [64]
+  dump_t *dump
 ) {
   printf("avrrtl -> ");
-  printf("pc = %06x ", dump_pc);
-  printf("sp = %06x ", dump_sp);
-  printf("sreg = %02x ", dump_sreg);
+  printf("pc = %06x ", dump->pc);
+  printf("sp = %06x ", dump->sp);
+  printf("sreg = %02x ", dump->sreg);
   printf("r[31:0] = {");
   for (int i=32-1; i>=0; i--)
-    printf("%02x", dump_gpr[i]);
+    printf("%02x", dump->gpr.byte[i]);
   printf("} ");
   printf("io[63:0] = {");
   for (int i=64-1; i>=0; i--)
-    printf("%02x", dump_io[i]);
+    printf("%02x", dump->io.byte[i]);
   printf("} ");
   printf("\n");
 }
 
+int compare_state (
+  avr_t *avr,
+  dump_t *dump
+) {
+  // simavr internal state
+  uint32_t sp  =  (avr->data[32+0x3d] << 0)
+               |  (avr->data[32+0x3e] << 8);
+  uint8_t sreg = ((avr->sreg[0] & 0x01) << 0)
+               | ((avr->sreg[1] & 0x01) << 1)
+               | ((avr->sreg[2] & 0x01) << 2)
+               | ((avr->sreg[3] & 0x01) << 3)
+               | ((avr->sreg[4] & 0x01) << 4)
+               | ((avr->sreg[5] & 0x01) << 5)
+               | ((avr->sreg[6] & 0x01) << 6)
+               | ((avr->sreg[7] & 0x01) << 7);
+  // TODO: a faster comparison might be done by casting to 64bit)
+  // compare PC
+  if (dump->pc != avr->pc/2)
+    printf ("ERROR: PC mismatch - rtl: 0x%06x, sim: 0x%06x\n", dump->pc, avr->pc/2);
+  // compare SP
+  if (dump->sp != sp)
+    printf ("ERROR: SP mismatch - rtl: 0x%06x, sim: 0x%06x\n", dump->sp, sp);
+  // compare SP
+  if (dump->sreg != sreg)
+    printf ("ERROR: SREG mismatch - rtl: 0x%02x, sim: 0x%02x\n", dump->sreg, sreg);
+  // compare GPR
+  for (unsigned int i=0; i<32; i++) {
+    if (dump->gpr.byte[i] != avr->data[i])
+      printf ("ERROR: GPR[0x%02x] mismatch\n", i);
+  }
+  // compare IO
+  for (unsigned int i=0; i<64; i++) {
+    if (dump->io.byte[i] != avr->data[32+i])
+      printf ("ERROR: I/O[0x%02x] mismatch\n", i);
+  }
+  // compare RAM
+  // TODO simulator should report the changed address
+//  for (unsigned int i=0; i<32; i++) {
+//    if (dump->gpr.byte[i] != avr->data[i])
+//      printf ("ERROR: GPR[%02d] mismatch", i);
+//  }
+
+  // debug print
+  print_state_avrsim (avr);
+  print_state_avrrtl (dump);
+  printf("\n");
+}
 
 int main(int argc, char **argv, char **env) {
   // verilator initialization
@@ -73,20 +132,11 @@ int main(int argc, char **argv, char **env) {
   top->trace (tfp, 99);
   tfp->open ("rp_8bit_verilator.vcd");
 
-  // verilator public function access
-  union {
-    uint32_t word[8];
-    uint8_t  byte[32];
-  } dump_gpr;
-  uint32_t dump_pc;
-  uint32_t dump_sp;
-  uint32_t dump_sreg_precast;
-  uint8_t  dump_sreg;
-  union {
-    uint32_t word[16];
-    uint8_t  byte[64];
-  } dump_io;
-  //svSetScope (svGetScopeFromName ("DUT"));
+  dump_t dump;
+
+  // variables used to handle RTL pipeline (synchronous instruction memory)
+  uint32_t prev_pc = 0;
+  uint32_t prev_ce = 0;
 
   // AVR simulator initialization
   avr_t *avr = NULL;
@@ -104,72 +154,37 @@ int main(int argc, char **argv, char **env) {
   // initialize simulation inputs
   top->clk = 1;
   top->rst = 1;
+  top->eval ();
   // run simulation for 100 clock periods
   for (int unsigned cyc=0; cyc<12; cyc++) {
-    // dump variables into VCD file and toggle clock
-    for (int unsigned clk=0; clk<2; clk++) {
-      tfp->dump (2*cyc+clk);
-      top->clk = !top->clk;
-      top->eval ();
-    }
-    // set reset
-    top->rst = (cyc<2);
-    // check if a new instruction is beeing executed
-    uint32_t dump_pmem_ce;
-    top->v->     dump_state_pmem_ce (dump_pmem_ce);
-    // DUT internal state
-    top->v->DUT->dump_state_core (dump_gpr.word, dump_pc, dump_sp, dump_sreg_precast);
-    top->v->     dump_state_io   (dump_io.word);
-    dump_sreg = dump_sreg_precast;
-    // simavr internal state
-    uint32_t sp  =  (avr->data[32+0x3d] << 0)
-                 |  (avr->data[32+0x3e] << 8);
-    uint8_t sreg = ((avr->sreg[0] << 0) & 0x01)
-                 | ((avr->sreg[1] << 1) & 0x01)
-                 | ((avr->sreg[2] << 2) & 0x01)
-                 | ((avr->sreg[3] << 3) & 0x01)
-                 | ((avr->sreg[4] << 4) & 0x01)
-                 | ((avr->sreg[5] << 5) & 0x01)
-                 | ((avr->sreg[6] << 6) & 0x01)
-                 | ((avr->sreg[7] << 7) & 0x01);
-    // only make compatisons, when RTL requests a new instruction,
-    // so the execution of the last one is finished
-    if (dump_pmem_ce) {
-      // TODO: a faster comparison might be done by casting to 64bit)
-      // compare PC
-      if (dump_pc != avr->pc/2)
-        printf ("ERROR: PC mismatch - rtl: 0x%06x, sim: 0x%06x\n", dump_pc, avr->pc/2);
-      // compare SP
-      if (dump_sp != sp)
-        printf ("ERROR: SP mismatch - rtl: 0x%06x, sim: 0x%06x\n", dump_sp, sp);
-      // compare SP
-      if (dump_sreg != sreg)
-        printf ("ERROR: SREG mismatch - rtl: 0x%02x, sim: 0x%02x\n", dump_sreg, sreg);
-      // compare GPR
-      for (unsigned int i=0; i<32; i++) {
-        if (dump_gpr.byte[i] != avr->data[i])
-          printf ("ERROR: GPR[0x%02x] mismatch\n", i);
+    if (cyc>=2) {
+      // set reset
+      top->rst = 0;
+      // check if a new instruction is beeing executed
+      uint32_t dump_pmem_ce;
+      top->v->     dump_state_pmem_ce (dump_pmem_ce);
+      // DUT internal state
+      top->v->DUT->dump_state_core (dump.gpr.word, dump.pc, dump.sp, dump.sreg_precast);
+      top->v->     dump_state_io   (dump.io.word);
+      dump.sreg = dump.sreg_precast;
+      // only make compatisons, when RTL requests a new instruction,
+      // so the execution of the last one is finished
+      if (prev_ce) {
+        compare_state (avr, &dump);
+        // simavr should process another instruction
+        avr_state = avr_run (avr);
       }
-      // compare IO
-      for (unsigned int i=0; i<64; i++) {
-        if (dump_io.byte[i] != avr->data[32+i])
-          printf ("ERROR: I/O[0x%02x] mismatch\n", i);
-      }
-      // compare RAM
-      // TODO simulator should report the changed address
-  //    for (unsigned int i=0; i<32; i++) {
-  //      if (dump_gpr.byte[i] != avr->data[i])
-  //        printf ("ERROR: GPR[%02d] mismatch", i);
-  //    }
-  
-      // debug print
-      print_state_avrsim (avr);
-      print_state_avrrtl (dump_pc, dump_sp, dump_sreg, dump_gpr.byte, dump_io.byte);
-      printf("\n");
+      prev_pc = dump.pc;
+      prev_ce = dump_pmem_ce;
     }
 
-    if (!top->rst && dump_pmem_ce)
-    avr_state = avr_run (avr);
+    // dump variables into VCD file and toggle clock
+    tfp->dump (2*cyc+0);
+    top->clk = 0;
+    top->eval ();
+    tfp->dump (2*cyc+1);
+    top->clk = 1;
+    top->eval ();
 
     // check for end of simulation
     if (Verilated::gotFinish())  exit(0);
