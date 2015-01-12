@@ -140,12 +140,14 @@ assign irq = '0;
 // DPI
 ////////////////////////////////////////////////////////////////////////////////
 
-function void dump_state_pmem_ce (
+function void dump_state_pmem (
+  output int dump_pmem_a,
   output int dump_pmem_ce
 );
 /*verilator public*/
+  dump_pmem_a  = pmem_a ;
   dump_pmem_ce = pmem_ce;
-endfunction: dump_state_pmem_ce
+endfunction: dump_state_pmem
 
 function void dump_state_io (
   output bit [64-1:0] [8-1:0] dump_iomem
