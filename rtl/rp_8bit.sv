@@ -60,14 +60,14 @@ struct packed {logic i, t, h, s, v, n, z, c;} sreg;
 
 /* Stack */
 logic [7:0] io_sp;
-logic [15:0] SP;
+logic [BD_AW-1:0] SP;
 logic push;
 logic pop;
 
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
-  io_sp <= 8'd0;
-  SP <= 16'd0;
+  io_sp <= '0;
+  SP    <= '0;
 end else begin
   io_sp <= io_a[0] ? SP[7:0] : SP[15:8];
   if ((io_a == 6'b111101) | (io_a == 6'b111110)) begin
@@ -920,11 +920,6 @@ end
 ////////////////////////////////////////////////////////////////////////////////
 
 `ifdef verilator
-
-function shortint state_public();
-/*verilator public*/
-return (gpr.idx[18]);
-endfunction: state_public
 
 //function byte dump_gpr [31:0] ();
 function void dump_state_core (
