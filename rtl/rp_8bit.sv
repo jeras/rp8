@@ -219,7 +219,7 @@ wire irq_request = sreg.i & I_r & irq_asserted;
 ////////////////////////////////////////////////////////////////////////////////
 
 always_ff @(posedge clk, posedge rst)
-if (rst)        PC            <= '0;
+if (rst)        PC            <= '1;
 else case (pc_sel)
   PC_SEL_NOP  :;
   PC_SEL_INC  : PC            <= pc_inc;
@@ -234,7 +234,7 @@ else case (pc_sel)
 endcase
 
 reg pmem_selz;
-assign pmem_a = rsts ? 0 : (pmem_selz ? gpr.nam.z[15:1] : pc_inc);
+assign pmem_a = pmem_selz ? gpr.nam.z[15:1] : pc_inc;
 
 /* Load/store operations */
 reg [3:0] dmem_sel;
@@ -261,10 +261,6 @@ reg lds_writeback;
 
 wire [4:0] write_dest = lds_writeback ? Rd_r : Rd;
 
-`define INIT_REGS
-`ifdef INIT_REGS
-integer i_rst_regf;
-`endif
 reg [7:0] R;
 reg writeback;
 reg update_svnz;
@@ -284,19 +280,10 @@ always @(posedge clk) begin
 	R16 = 16'hxxxx;
 	mode16 = 1'b0;
 	if(rsts) begin
-`ifndef REGRESS
-		/*
-		 * Not resetting the register file enables the use of more efficient
-		 * distributed block RAM.
-		 */
-`ifdef INIT_REGS
-                gpr.idx <= '0;
-`endif
 		sreg <= 8'h00;
 		_V = 1'b0;
 		_N = 1'b0;
 		_C = 1'b0;
-`endif
 	end else begin
 		if(I_set)
 			sreg.i <= 1'b1;
