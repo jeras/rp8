@@ -45,6 +45,7 @@ module rp_8bit #(
 
 // program counter
 logic [BI_AW-1:0] PC;
+logic [BI_AW-1:0] pc_inc;
 
 // Register file
 union packed {
@@ -64,10 +65,17 @@ logic [BD_AW-1:0] SP;
 logic push;
 logic pop;
 
+// synchronous reset
+logic rsts;
+always_ff @(posedge clk, posedge rst)
+if (rst) rsts <= 1'b1;
+else     rsts <= 1'b0;
+
+
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
   io_sp <= '0;
-  SP    <= '0;
+  SP    <= 16'h10ff;
 end else begin
   io_sp <= io_a[0] ? SP[7:0] : SP[15:8];
   if ((io_a == 6'b111101) | (io_a == 6'b111110)) begin
@@ -214,7 +222,7 @@ always_ff @(posedge clk, posedge rst)
 if (rst)        PC            <= '0;
 else case (pc_sel)
   PC_SEL_NOP  :;
-  PC_SEL_INC  : PC            <= PC + 1;
+  PC_SEL_INC  : PC            <= pc_inc;
   // !!! WARNING !!! replace with PC <= PC + {{BI_AW-12{Kl[11]}}, Kl}; if BI_AW>12
   PC_SEL_KL   : PC            <= PC + Kl;
   PC_SEL_KS   : PC            <= PC + {{BI_AW-7{Ks[6]}}, Ks};
@@ -226,7 +234,7 @@ else case (pc_sel)
 endcase
 
 reg pmem_selz;
-assign pmem_a = rst ? 0 : (pmem_selz ? gpr.nam.z[15:1] : PC + 1);
+assign pmem_a = rsts ? 0 : (pmem_selz ? gpr.nam.z[15:1] : pc_inc);
 
 /* Load/store operations */
 reg [3:0] dmem_sel;
@@ -275,7 +283,7 @@ always @(posedge clk) begin
 	change_z = 1'b1;
 	R16 = 16'hxxxx;
 	mode16 = 1'b0;
-	if(rst) begin
+	if(rsts) begin
 `ifndef REGRESS
 		/*
 		 * Not resetting the register file enables the use of more efficient
@@ -546,7 +554,7 @@ case (dmem_sel)
 	default:		dmem_a = {BD_AW{1'bx}};
 endcase
 
-wire [BI_AW-1:0] PC_inc = PC + 1;
+assign pc_inc = PC + 1;
 reg exception;
 always_comb
 case(dmem_sel)
@@ -560,8 +568,8 @@ case(dmem_sel)
 	DMEM_SEL_ZMINUS,
 	DMEM_SEL_ZQ,
 	DMEM_SEL_SP_R:		dmem_do = GPR_Rd;
-	DMEM_SEL_SP_PCL:	dmem_do = exception ? PC[7:0] : PC_inc[7:0];
-	DMEM_SEL_SP_PCH:	dmem_do = exception ? PC[BI_AW-1:8] : PC_inc[BI_AW-1:8];
+	DMEM_SEL_SP_PCL:	dmem_do = exception ? PC[    8-1:0] : pc_inc[    8-1:0];
+	DMEM_SEL_SP_PCH:	dmem_do = exception ? PC[BI_AW-1:8] : pc_inc[BI_AW-1:8];
 	DMEM_SEL_PMEM:		dmem_do = GPR_Rd_r;
 	default:		dmem_do = 8'hxx;
 endcase
@@ -599,7 +607,7 @@ else     state <= next_state;
 always_comb begin
 	next_state = state;
 
-	pmem_ce = rst;
+	pmem_ce = rsts;
 
 	pc_sel = PC_SEL_NOP;
 	normal_en = 1'b0;
@@ -881,57 +889,21 @@ always_comb begin
 end
 
 ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-`ifdef REGRESS
-integer i;
-integer cycles;
-always @(posedge clk) begin
-	if(~rst & (state == NORMAL) & (cycles != 0)) begin
-		$display("DUMP REGISTERS");
-		for(i=0;i<24;i=i+1)
-			$display("%x", gpr.idx[i]);
-		$display("%x", sreg);
-		$display("%x", SP[15:8]);
-		$display("%x", SP[7:0]);
-		$display("%x", PC[BI_AW-1:7]);
-		$display("%x", {PC[6:0], 1'b0});
-		tb_regress.dump;
-		$finish;
-	end
-	if(rst)
-		cycles = 0;
-	else
-		cycles = cycles + 1;
-end
-
-reg [7:0] SPR[0:12];
-initial begin
-	$readmemh("gpr.rom", gpr);
-	$readmemh("spr.rom", SPR);
-	sreg = SPR[8];
-	SP = {SPR[9], SPR[10]};
-	PC = {SPR[11], SPR[12]}/2;
-end
-`endif
-
-////////////////////////////////////////////////////////////////////////////////
 // __verilator__ specific bench code
 ////////////////////////////////////////////////////////////////////////////////
 
 `ifdef verilator
 
-//function byte dump_gpr [31:0] ();
 function void dump_state_core (
   output bit [32-1:0] [8-1:0] dump_gpr ,
-  output bit  [2-1:0] [8-1:0] dump_pc  ,
-  output bit  [2-1:0] [8-1:0] dump_sp  ,
+  output int                  dump_pc  ,
+  output int                  dump_sp  ,
   output bit          [8-1:0] dump_sreg
 );
 /*verilator public*/
   dump_gpr  = gpr.idx;
-  dump_pc   = PC;
-  dump_pc   = SP;
+  dump_pc   = pmem_a;
+  dump_sp   = SP;
   dump_sreg = sreg;
 endfunction: dump_state_core
 
