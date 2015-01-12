@@ -14,7 +14,20 @@
 //#include "sim_core.h"
 
 void print_state_avrsim (avr_t * avr) {
+  uint32_t sp  =  (avr->data[32+0x3d] << 0)
+               |  (avr->data[32+0x3e] << 8);
+  uint8_t sreg = ((avr->sreg[0] << 0) & 0x01)
+               | ((avr->sreg[1] << 1) & 0x01)
+               | ((avr->sreg[2] << 2) & 0x01)
+               | ((avr->sreg[3] << 3) & 0x01)
+               | ((avr->sreg[4] << 4) & 0x01)
+               | ((avr->sreg[5] << 5) & 0x01)
+               | ((avr->sreg[6] << 6) & 0x01)
+               | ((avr->sreg[7] << 7) & 0x01);
   printf("avrsim -> ");
+  printf("pc = %06x ", avr->pc);
+  printf("pc = %06x ", sp);
+  printf("sreg = %02x ", sreg);
   printf("r[31:0] = {");
   for (int i=32-1; i>=0; i--)
     printf("%02x", avr->data[i]);
@@ -27,10 +40,16 @@ void print_state_avrsim (avr_t * avr) {
 }
 
 void print_state_avrrtl (
-  uint8_t dump_gpr[32],
-  uint8_t dump_io [64]
+  uint32_t dump_pc,
+  uint32_t dump_sp,
+  uint8_t  dump_sreg,
+  uint8_t  dump_gpr[32],
+  uint8_t  dump_io [64]
 ) {
   printf("avrrtl -> ");
+  printf("pc = %06x ", dump_pc);
+  printf("pc = %06x ", dump_sp);
+  printf("sreg = %02x ", dump_sreg);
   printf("r[31:0] = {");
   for (int i=32-1; i>=0; i--)
     printf("%02x", dump_gpr[i]);
@@ -98,9 +117,29 @@ int main(int argc, char **argv, char **env) {
       // DUT internal state
       top->v->DUT->dump_state_core (dump_gpr.word, dump_pc, dump_sp, dump_sreg_precast);
       top->v->     dump_state_io   (dump_io.word);
+      dump_sreg = dump_sreg_precast;
       // simavr internal state
       avr_state = avr_run (avr);
+      uint32_t sp  =  (avr->data[32+0x3d] << 0)
+                   |  (avr->data[32+0x3e] << 8);
+      uint8_t sreg = ((avr->sreg[0] << 0) & 0x01)
+                   | ((avr->sreg[1] << 1) & 0x01)
+                   | ((avr->sreg[2] << 2) & 0x01)
+                   | ((avr->sreg[3] << 3) & 0x01)
+                   | ((avr->sreg[4] << 4) & 0x01)
+                   | ((avr->sreg[5] << 5) & 0x01)
+                   | ((avr->sreg[6] << 6) & 0x01)
+                   | ((avr->sreg[7] << 7) & 0x01);
       // TODO: a faster comparison might be done by casting to 64bit)
+      // compare PC
+      if (dump_pc != avr->pc)
+        printf ("ERROR: PC mismatch\n");
+      // compare SP
+      if (dump_sp != sp)
+        printf ("ERROR: SP mismatch\n");
+      // compare SP
+      if (dump_sreg != sreg)
+        printf ("ERROR: SREG mismatch\n");
       // compare GPR
       for (unsigned int i=0; i<32; i++) {
         if (dump_gpr.byte[i] != avr->data[i])
@@ -120,7 +159,7 @@ int main(int argc, char **argv, char **env) {
 
       // debug print
       print_state_avrsim (avr);
-      print_state_avrrtl (dump_gpr.byte, dump_io.byte);
+      print_state_avrrtl (dump_pc, dump_sp, dump_sreg, dump_gpr.byte, dump_io.byte);
       printf("\n");
     }
     // check for end of simulation
