@@ -74,6 +74,7 @@ void print_state_avrrtl (
 }
 
 int compare_state (
+  unsigned int cyc,
   avr_t *avr,
   dump_t *dump,
   uint32_t prev_pc
@@ -130,10 +131,11 @@ int compare_state (
 //  }
 
   // debug print
-//  print_state_avrsim (avr);
-//  print_state_avrrtl (dump);
-//  printf("\n");
-
+  if (error) {
+    printf ("cyc = %d\n", cyc);
+    print_state_avrsim (avr);
+    print_state_avrrtl (dump);
+  }
   return (error);
 }
 
@@ -175,7 +177,7 @@ int main(int argc, char **argv, char **env) {
   // compare_state (avr, &dump);
   printf("RESET\n");
   // run simulation for 100 clock periods
-  for (int unsigned cyc=0; cyc<300; cyc++) {
+  for (int unsigned cyc=0; cyc<10; cyc++) {
     if (cyc>=2) {
       // set reset
       top->rst = 0;
@@ -191,7 +193,7 @@ int main(int argc, char **argv, char **env) {
       // only make compatisons, when RTL requests a new instruction,
       // so the execution of the last one is finished
       if (prev_ce) {
-        compare_state (avr, &dump, prev_pc);
+        compare_state (cyc, avr, &dump, prev_pc);
         // simavr should process another instruction
         avr_state = avr_run (avr);
       }
