@@ -95,12 +95,12 @@ test_class test_instance;
 
 initial begin
   test_instance = new();
-  rst = 1;
+  rst = 1'b1;
   repeat (4) @ (posedge clk);
-  rst = 1;
+  rst = 1'b0;
   repeat (16) begin
 //    test_instance.randomize();
-    $display ("%016b", test_instance.code);
+//    $display ("%016b", test_instance.code);
     @ (posedge clk);
   end
   $finish;
@@ -112,17 +112,10 @@ end
 
 logic [16-1:0] pmem [0:2**BI_AW-1];
 
-initial begin
-  for (int i=0; i<2**BI_AW; i++)  pmem[i] = 0;
-  $readmemh ("tbn/sieve.hex", pmem);
-//  $readmemh ("src/square_wave/square_wave.vmem", pmem);
-end
+initial $readmemh ("test_isa.vmem", pmem);
 
 always @(posedge clk)
-if (pmem_ce) begin
-  $display("+LOG+ %t PR @%x %x", $time, pmem_a * 2, pmem[pmem_a]);
-  pmem_d <= pmem[pmem_a];
-end
+if (pmem_ce)  pmem_d <= pmem[pmem_a];
 
 string str;
 bit [0:32-1] [8-1:0] asm;
@@ -141,19 +134,9 @@ end
 
 logic  [8-1:0] dmem [0:2**BD_AW-1];
 
-initial begin
-  for (int i=0; i<2**BI_AW; i++)  dmem[i] = 0;
-end
-
 always @(posedge clk)
-begin
-  if (dmem_we) begin
-    $display("+LOG+ %t DW @%x   %x", $time, dmem_a, dmem_do);
-    dmem[dmem_a] <= dmem_do;
-  end else begin
-    dmem_di <= dmem[dmem_a];
-  end
-end
+if (dmem_we)  dmem[dmem_a] <= dmem_do;
+else          dmem_di <= dmem[dmem_a];
 
 ////////////////////////////////////////////////////////////////////////////////
 // interrupts
