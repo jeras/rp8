@@ -5,6 +5,32 @@ localparam BI_IW =  8; // bus instruction - interrupt width
 localparam BI_AW = 11; // bus instruction - address   width
 localparam BD_AW = 13; // bus data        - address   width
 
+// test class
+class test_class;
+  rand bit [16-1:0] code;
+
+  constraint valid {
+    code inside {
+      16'b0000_0000_0000_0000,  // NOP
+      16'b0000_0001_????_????,  // MOVW
+      16'b0000_0010_????_????,  // MULS
+      16'b0000_0011_????_????,  // MULSU FMUL FMULS FMULSU
+      16'b0000_01??_????_????,  // CPC  
+      16'b0000_10??_????_????,  // SBC  
+      16'b0000_11??_????_????,  // ADD  
+      16'b0001_00??_????_????,  // CPSE 
+      16'b0001_01??_????_????,  // CP   
+      16'b0001_10??_????_????,  // SUB  
+      16'b0001_11??_????_????,  // ADC  
+      16'b0010_00??_????_????,  // AND  
+      16'b0010_01??_????_????,  // EOR  
+      16'b0010_10??_????_????,  // OR   
+      16'b0010_11??_????_????  // MOV  
+      
+    };
+  }
+endclass: test_class
+
 // system signals
 logic        clk;
 logic        rst;
@@ -56,27 +82,28 @@ rp_8bit #(
   .irq_ack (irq_ack)
 );
 
-integer cycles;
+////////////////////////////////////////////////////////////////////////////////
+// clocking
+////////////////////////////////////////////////////////////////////////////////
+
+initial    clk = 1'b0;
+always #50 clk = ~clk;
+
+////////////////////////////////////////////////////////////////////////////////
+
+test_class test_instance;
 
 initial begin
-	clk <= 1;
-	rst <= 1;
-	cycles = 0;
-	while (cycles < 8) begin
-		#50; clk <= ~clk;
-		cycles = cycles + 1;
-		#50; clk <= ~clk;
-	end
-	rst <= #20 0;
-	forever begin
-		#50; clk <= ~clk;
-		cycles = cycles + 1;
-		#50; clk <= ~clk;
-		if (cycles == 10000) begin
-			$display("Reached limit of 10000 cpu cycles.");
-			$finish;
-		end
-	end
+  test_instance = new();
+  rst = 1;
+  repeat (4) @ (posedge clk);
+  rst = 1;
+  repeat (16) begin
+//    test_instance.randomize();
+    $display ("%016b", test_instance.code);
+    @ (posedge clk);
+  end
+  $finish;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
