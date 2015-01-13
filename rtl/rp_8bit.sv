@@ -44,6 +44,15 @@ module rp_8bit #(
 );
 
 ////////////////////////////////////////////////////////////////////////////////
+// helper functions
+////////////////////////////////////////////////////////////////////////////////
+
+// binary to one hot
+function logic [8-1:0] b2o (input logic [3-1:0] b);
+  b2o = 8'h01 << b;
+endfunction
+
+////////////////////////////////////////////////////////////////////////////////
 // type definitions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -73,19 +82,17 @@ typedef struct packed {
 // status register
 typedef struct packed {logic i, t, h, s, v, n, z, c;} sreg_t;
 
-// general purpose register control structure
+// general purpose registers control structure
 typedef struct packed {
   // write access
-  logic          wen; // write enable
-  logic          w16; // write 16 bit mode (0 - 8 bit mode, 1 - 16 bit mode)
-  logic [16-1:0] wdt; // write data 16 bit
-  logic  [5-1:0] wad; // write address 
-  // 8 bit read byte access
-  logic          rbe; // read byte enable
-  logic  [5-1:0] rba; // read byte address
-  // 18 bit read word access
-  logic          rwe; // read word enable
-  logic  [5-1:0] rwa; // read word address
+  logic          we; // write enable
+  logic          ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
+  logic [16-1:0] wd; // write data 16 bit
+  logic  [5-1:0] wa; // write address 
+  // read word (16 bit) access
+  logic  [5-1:0] rw; // read word address
+  // read byte (8 bit) access
+  logic  [5-1:0] rb; // read byte address
 } gpr_ctl_t;
 
 // arithmetic logic unit control structure
@@ -103,6 +110,27 @@ typedef struct packed {
   logic         c; // carry input
 } alu_ctl_t;
 
+// address adder control structure
+struct packed {
+  enum logic {
+    ADD_ADD = 1'b0, // addition
+    ADD_SUB = 1'b1  // subtraction
+  } m;              // adder modes
+  logic [16-1:0] d; // destination register value
+  logic [16-1:0] r; // source      register value
+} add_ctl_t;
+
+// multiplier control structure
+struct packed {
+  struct packed {
+    logic f; // fractional
+    logic d; // destination (0 - unsigned, 1 - signed)
+    logic r; // source      (0 - unsigned, 1 - signed)
+  } m;             // adder modes
+  logic [8-1:0] d; // destination register value
+  logic [8-1:0] r; // source      register value
+} add_mul_t;
+
 // status register control structure
 typedef struct packed {
   sreg_t s; // status
@@ -111,9 +139,10 @@ typedef struct packed {
 
 // entire control structure
 typedef struct packed {
-  gpr_ctl_t gpr;
-  alu_ctl_t alu;
-  srg_ctl_t srg;
+  gpr_ctl_t gpr; // general purpose registers
+  alu_ctl_t alu; // arithmetic logic unit
+  alu_ctl_t add; // address adder
+  srg_ctl_t srg; // status register
   prg_ctl_t prg;
   iop_ctl_t iop;
   dat_ctl_t dat;
@@ -131,6 +160,7 @@ logic [16-1:0] pw;
 logic  [8-1:0] Rd; // destination
 logic  [8-1:0] Rr; // source
 logic [16-1:0] Rw; // word
+logic  [8-1:0] Rs; // nibble swap of Rd
 
 // program counter
 prg_ptr_t pc;
@@ -166,42 +196,240 @@ logic [5-1:0] rm = {2'b10, pw[2:0]};
 // destination register address for index registers (used by ADIW/SBIW)
 logic [5-1:0] di = {2'b11, pw[5:4], 1'b0};
 
+// register address constant
+localparam logic [5-1:0] RX = 5'hxx;
+
 // bit address
 logic [3-1:0] b  = pw[2:0];
 
-// 8 bit common constants
+// bit constants
+localparam logic         CX = 1'bx;
+localparam logic         C0 = 1'b0;
+localparam logic         C1 = 1'b1;
+
+// byte (8 bit) constants
 localparam logic [8-1:0] KX = 8'hxx;
 localparam logic [8-1:0] KF = 8'hff;
 localparam logic [8-1:0] K0 = 8'h00;
 localparam logic [8-1:0] K1 = 8'h01;
 
-// 8 bit immediate for arithmetic operations
-logic [8-1:0] k8 = {pw[11:8], pw[3:0]};
-//
+// byte (8 bit) immediate for ALU operations
+logic [8-1:0] kb = {pw[11:8], pw[3:0]};
+// word (6bit) for address adder
+logic [6-1:0] kw = {pw[7:6], pw[3:0]};
 
-wire [11:0] Kl = pmem_d[11:0];
-wire [6:0] Ks = pmem_d[9:3];
-wire [1:0] Rd16 = pmem_d[5:4];
-wire [5:0] K16 = {pmem_d[7:6], pmem_d[3:0]};
-wire [5:0] q = {pmem_d[13], pmem_d[11:10], pmem_d[2:0]};
+logic signed [12-1:0] Kl = pw[11:0];
+logic signed  [7-1:0] Ks = pw[ 9:3];
+logic         [6-1:0] q = {pw[13], pw[11:10], pw[2:0]};
 
-logic [16-1:0] Rd16;
+// reusable_results
+logic Rd_b = Rd[b];
 
-wire Rd_b = Rd[b];
+////////////////////////////////////////////////////////////////////////////////
+// instruction decoder
+////////////////////////////////////////////////////////////////////////////////
 
-//assign Rd16 = gpr.idx [{2'b11,Rd16,1'b0}+:2];
-assign Rd16 = {gpr.idx [{2'b11,Rd16,1'b1}], gpr.idx [{2'b11,Rd16,1'b0}]};
+// constants for idling units
+localparam gpr_ctl_t GPR_I = `{we: 1'b0, ww: 1'b0, wd: 16'hxxxx, wa: 5'hxx, rb: RX, rw: RX};
+localparam alu_ctl_t ALU_I = `{m: 3'bxxx, d: 8'hxx, r: 8'hxx, c: 1'bx};
+localparam alu_ctl_t ADD_I = `{m: 1'bx, d: 16'hxxxx, r: 16'hxxxx};
+localparam srg_ctl_t SRG_I = `{s: KX, m: 8'h00};
+localparam prg_ctl_t PRG_I = `{};
+localparam iop_ctl_t IOP_I = `{};
+localparam dat_ctl_t DAT_I = `{};
+localparam spt_ctl_t SPT_I = `{};
 
-/* Memorize values to support 16-bit instructions */
-reg regmem_ce;
+always_comb
+casez (pw)
+  // no operation, same as default
+  16'b0000_0000_0000_0000: begin cfg = '{ GPR_I, ALU_I, ADD_I, SRG_I, PRG_I, IOP_I, DAT_I, SPT_I }; end // NOP
+  // arithmetic
+  //                                    {  gpr                           alu                            srg                                        }
+  //                                    {  {we, ww, wd       , rw, rb}   {m  , d , r , c     }          {s    , m    }                             }
+  16'b0000_01??_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, db, rb}, '{SUB, Rd, Rr, sreg.c}, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // CPC
+  16'b0000_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{SUB, Rd, Rr, sreg.c}, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // SBC
+  16'b0000_11??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{ADD, Rd, Rr, C0    }, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ADD
+  16'b0001_01??_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, db, rb}, '{SUB, Rd, Rr, C0    }, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // CP
+  16'b0001_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{SUB, Rd, Rr, C0    }, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // SUB
+  16'b0001_11??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{ADD, Rd, Rr, sreg.c}, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ADC
+  16'b0011_????_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, dw, RX}, '{SUB, Rd, kb, C0    }, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // CPI
+  16'b0100_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, RX}, '{SUB, Rd, kb, sreg.c}, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // SBCI
+  16'b0101_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, RX}, '{SUB, Rd, kb, C0    }, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // SUBI
+  16'b1001_010?_????_0000: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{SUB, KF, Rd, C0    }, ADD_I, '{alu_s, 8'h1f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // COM
+  // TODO check the value of carry and overflow
+  16'b1001_010?_????_0001: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{SUB, K0, Rd, C0    }, ADD_I, '{alu_s, 8'h3f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // NEG
+  16'b1001_010?_????_0011: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{ADD, Rd, K0, C1    }, ADD_I, '{alu_s, 8'h3e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // INC
+  16'b1001_010?_????_1010: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{SUB, Rd, K0, C1    }, ADD_I, '{alu_s, 8'h3e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // DEC
+  // logic // TODO check flags
+  16'b0010_00??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{AND, Rd, Rr, C0    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // AND
+  16'b0111_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, RX}, '{AND, Rd, kb, C0    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ANDI
+  16'b0010_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{OR , Rd, Rr, C0    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // OR
+  16'b0110_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, RX}, '{OR , Rd, kb, C0    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ORI
+  16'b0010_01??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, rb}, '{XOR, Rd, Rr, C0    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // EOR
+  // shift right // TODO check flags
+  16'b1001_010?_????_0110: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{SHR, Rd, K0, C0    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // LSR
+  16'b1001_010?_????_0111: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{SHR, Rd, K0, C1    }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ROR
+  16'b1001_010?_????_0101: begin cfg = '{ '{C1, C0, {2{alu_r}, db, RX}, '{SHR, Rd, K0, Rd[7] }, ADD_I, '{alu_s, 8'h1e}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ASR
+  // register moves
+  16'b0010_11??_????_????: begin cfg = '{ '{C1, C0, {2{Rr}}, db, rb}, ALU_I, ADD_I, SRG_I, PRG_I, IOP_I, DAT_I, SPT_I }; end // MOV
+  16'b1110_????_????_????: begin cfg = '{ '{C1, C0, {2{kb}}, dw, RX}, ALU_I, ADD_I, SRG_I, PRG_I, IOP_I, DAT_I, SPT_I }; end // LDI
+  16'b1001_010?_????_0010: begin cfg = '{ '{C1, C0, {2{Rs}}, db, RX}, ALU_I, ADD_I, SRG_I, PRG_I, IOP_I, DAT_I, SPT_I }; end // SWAP
+  // bit manipulation
+  16'b1001_010?_0???_1000: begin cfg = '{ GPR_I, ALU_I, ADD_I, '{KF, b2o(pw[6:4])}, PRG_I, IOP_I, DAT_I, SPT_I }; end // BSET // create a common source instead of two functions
+  16'b1001_010?_1???_1000: begin cfg = '{ GPR_I, ALU_I, ADD_I, '{K0, b2o(pw[6:4])}, PRG_I, IOP_I, DAT_I, SPT_I }; end // BCLR
+  // 16-24 bit adder
+  16'b1001_0110_????_????: begin cfg = '{ '{C1, C1, add_r, di, RX}, ALU_I, '{ADD, Rw, kw}, '{add_sr, 8'h1f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // ADIW
+  16'b1001_0111_????_????: begin cfg = '{ '{C1, C1, add_r, di, RX}, ALU_I, '{SUB, Rw, kw}, '{add_sr, 8'h1f}, PRG_I, IOP_I, DAT_I, SPT_I }; end // SBIW
+  // bit manipulation
+  16'b1111_101?_????_0???: begin cfg = '{ '{C0, C0, 16'hxxxx                                  , db, RX}, ALU_I, ADD_I, srg = '{{8{Rd_b}}, 8'h40}, PRG_I, IOP_I, DAT_I, SPT_I ; end // SBT
+  16'b1111_100?_????_0???: begin cfg = '{ '{C1, C0, {2{Rd & ~b2o(b)) | {8{sreg.t}} & b20(b))}}, db, RX}, ALU_I, ADD_I, srg = '{KX,        8'h00}, PRG_I, IOP_I, DAT_I, SPT_I ; end // BLD
 
-reg [4:0] Rd_r;
-reg [7:0] Rd_r;
-always_ff @(posedge clk) begin
-	if(regmem_ce)
-		Rd_r <= Rd; /* < control with regmem_ce */
-	Rd_r <= Rd; /* < always loaded */
+  /* TODO: SLEEP is not implemented */
+  /* TODO: WDR is not implemented */
+  16'b1001_00??_????_1111, /* PUSH/POP */
+  16'b1001_00??_????_1100, /*  X   */
+  16'b1001_00??_????_1101, /*  X+  */
+  16'b1001_00??_????_1110, /* -X   */
+  16'b1001_00??_????_1001, /*  Y+  */
+  16'b1001_00??_????_1010, /* -Y   */
+  16'b10?0_????_????_1???, /*  Y+q */
+  16'b1001_00??_????_0001, /*  Z+  */
+  16'b1001_00??_????_0010, /* -Z   */
+  16'b10?0_????_????_0???: /*  Z+q */
+  begin
+  	/* LD - POP (run from state WRITEBACK) */
+  	R = dmem_di;
+  end
+  16'b1011_0???_????_????: begin
+  	/* IN (run from state WRITEBACK) */
+  	case(io_sel)
+  		IO_SEL_STACK: R = io_sp;
+  		IO_SEL_SREG:  R = sreg;
+  		default: R = io_di;
+  	endcase
+  end
+endcase
+      	end /* if(normal_en) */
+      	if(lds_writeback) begin
+      		R = dmem_di;
+      		writeback = 1'b1;
+      	end
+      	if(lpm_en) begin
+      		R = gpr.nam.z[0] ? pmem_d[15:8] : pmem_d[7:0];
+      		writeback = 1'b1;
+      	end
+      	if(io_we & (io_a == 6'b111111))
+      		sreg <= io_do[7:0];
+      	if(I_clr)
+      		sreg.i <= 1'b0;
+      	if(writeback) begin
+      		if(mode16) begin
+      			// $display("REG WRITE(16): %d < %d", Rw, R16);
+      			//gpr.idx [{2'b11,Rw,1'b0}+:2] <= R16;  // TODO
+      			{gpr.idx [{2'b11,Rw,1'b1}], gpr.idx [{2'b11,Rw,1'b0}]} <= R16;
+      		end else begin
+      			// $display("REG WRITE: %d < %d", Rd, R);
+      			gpr.idx [write_dest] <= R;
+      		end
+      	end else begin /* if(writeback) */
+      		case(dmem_sel)
+      			DMEM_SEL_XPLUS:		gpr.nam.x <= gpr.nam.x + 16'd1;
+      			DMEM_SEL_XMINUS:	gpr.nam.x <= gpr.nam.x - 16'd1;
+      			DMEM_SEL_YPLUS:		gpr.nam.y <= gpr.nam.y + 16'd1;
+      			DMEM_SEL_YMINUS:	gpr.nam.y <= gpr.nam.y - 16'd1;
+      			DMEM_SEL_ZPLUS:		gpr.nam.z <= gpr.nam.z + 16'd1;
+      			DMEM_SEL_ZMINUS:	gpr.nam.z <= gpr.nam.z - 16'd1;
+      			default:;
+      		endcase
+      	end
+      end /* if(rst) ... else */
 end
+
+////////////////////////////////////////////////////////////////////////////////
+// register file access
+////////////////////////////////////////////////////////////////////////////////
+
+// GPR control structure
+gpr_ctl_t gpr = ctl.gpr;
+
+// GPR write access
+always_ff @ (posedge clk)
+if (gpr.we) begin
+  // TODO recode this, so it is appropriate for a register file or at least optimized
+  if (gpr.ww) gpr_f.idx [{wa[5-1:1], 1'b0}+:2] <= wd;
+  else        gpr_f.idx [ wa                 ] <= wd[8-1:0];
+end
+
+// read word access
+assign Rw = gpr_f.idx [{rw[5-1:1], 1'b0}+:2];
+assign Rd = gpr_f.idx [rw];
+
+// read byte access
+assign Rr = gpr_f.idx [rb];
+
+// swap of Rd
+assign Rs = {Rd[3:0], Rd[7:4]};
+
+////////////////////////////////////////////////////////////////////////////////
+// ALU (8 bit)
+////////////////////////////////////////////////////////////////////////////////
+
+// ALU control structure
+alu_ctl_t alu = ctl.alu;
+
+logic [8-1:0] alu_r; // result
+sreg_t        alu_s; // status
+
+always_comb
+case (alu.md)
+  ALU_ADD: {alu_s.c, alu_r} = alu.d + alu.r + alu.c;
+  ALU_SUB: {alu_s.c, alu_r} = alu.d - alu.r - alu.c;
+  ALU_AND: {alu_s.c, alu_r} = {1'bx, alu.d & alu.r};
+  ALU_OR : {alu_s.c, alu_r} = {1'bx, alu.d | alu.r};
+  ALU_EOR: {alu_s.c, alu_r} = {1'bx, alu.d ^ alu.r};
+  ALU_SHR: {alu_r, alu_s.c} = {alu.c, alu.d};
+endcase
+
+assign alu_s.i = 1'bx;
+assign alu_s.t = 1'bx;
+assign alu_s.h = alu.d[3] & alu.r[3] | alu.r[3] & ~alu_r[3] | ~alu_r[3] & alu.d[3];
+assign alu_s.s = alu_s.n ^ alu_s.v;
+assign alu_s.v = alu.d[7] & alu.r[7] & ~alu_r[7] | ~alu.d[7] & ~alu.r[7] & alu_r[7];
+assign alu_s.n = alu_r[7];
+assign alu_s.z = ~|alu_r;
+
+////////////////////////////////////////////////////////////////////////////////
+// address adder (16 bit - 24 bit)
+////////////////////////////////////////////////////////////////////////////////
+
+// adder control structure
+add_ctl_t add = ctl.add;
+
+logic [16-1:0] add_r; // result
+sreg_t         add_s;
+
+always_comb
+case (alu.md)
+  ALU_ADD: {add.s.c, add_r} = add.d + add.r;
+  ALU_SUB: {add.s.c, add_r} = add.d - add.r;
+endcase
+
+assign add_s.i = 1'bx;
+assign add_s.t = 1'bx;
+assign add_s.h = 1'bx;
+assign add_s.s = alu_s.n ^ alu_s.v;
+assign add_s.v = ~alu.d[15] & alu.r[15];
+assign add_s.n = alu_r[15];
+assign add_s.z = ~|alu_r;
+
+////////////////////////////////////////////////////////////////////////////////
+// status register access
+////////////////////////////////////////////////////////////////////////////////
+
+// SREG write access
+always_ff @ (posedge clk, posedge rst)
+if (rst) sreg <= 8'b00000000;
+else     sreg <= (sreg_tmp & sreg_msk) | (sreg & ~sreg_msk);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -251,220 +479,6 @@ wire [4:0] write_dest = lds_writeback ? Rd_r : Rd;
 
 logic I_clr;
 logic I_set;
-
-////////////////////////////////////////////////////////////////////////////////
-// ALU (8 bit)
-////////////////////////////////////////////////////////////////////////////////
-
-// ALU control structure
-alu_ctl_t alu = ctl.alu;
-
-logic [8-1:0] alu_r; // result
-sreg_t        alu_s; // status
-
-always_comb
-case (alu.md)
-  ALU_ADD: {alu_s.c, alu_r} = alu.d + alu.r + alu.c;
-  ALU_SUB: {alu_s.c, alu_r} = alu.d - alu.r - alu.c;
-  ALU_AND: {alu_s.c, alu_r} = {1'bx, alu.d & alu.r};
-  ALU_OR : {alu_s.c, alu_r} = {1'bx, alu.d | alu.r};
-  ALU_EOR: {alu_s.c, alu_r} = {1'bx, alu.d ^ alu.r};
-  ALU_SHR: {alu_r, alu_s.c} = {alu.c, alu.d};
-endcase
-
-assign alu_s.i = 1'bx;
-assign alu_s.t = 1'bx;
-assign alu_s.h = alu.d[3] & alu.r[3] | alu.r[3] & ~alu_r[3] | ~alu_r[3] & alu.d[3];
-assign alu_s.s = alu_s.n ^ alu_s.v;
-assign alu_s.v = alu.d[7] & alu.r[7] & ~alu_r[7] | ~alu.d[7] & ~alu.r[7] & alu_r[7];
-assign alu_s.n = alu_r[7];
-assign alu_s.z = ~|alu_r;
-
-////////////////////////////////////////////////////////////////////////////////
-// address adder (16 bit - 24 bit)
-////////////////////////////////////////////////////////////////////////////////
-
-struct packed {
-  enum logic {
-    ADD_ADD = 1'b0, // addition
-    ADD_SUB = 1'b1  // subtraction
-  } md;              // alu modes
-  logic [16-1:0] rd; // destination register value
-  logic [16-1:0] rr; // source      register value
-} add;
-logic [16-1:0] add_ro; // result
-sreg_t         add_sr;
-
-always_comb
-case (alu.md)
-  ALU_ADD: {add.s.c, add_ro} = add.rd + add.rr;
-  ALU_SUB: {add.s.c, add_ro} = add.rd - add.rr;
-endcase
-
-assign add_s.i = 1'bx;
-assign add_s.t = 1'bx;
-assign add_s.h = 1'bx;
-assign add_s.s = alu_sr.n ^ alu_sr.v;
-assign add_s.v = ~alu.rd[15] & alu.rr[15];
-assign add_s.n = alu_ro[15];
-assign add_s.z = ~|alu_ro;
-
-////////////////////////////////////////////////////////////////////////////////
-// instruction decoder
-////////////////////////////////////////////////////////////////////////////////
-
-// constants for idling units
-localparam gpr_ctl_t GPR_IDL = `{wen: 1'b0, w16: 1'b0, wdt: 16'hxxxx, wad: 5'hxx, rbe: 1'b0, rba: 5'hxx, rwe: 1'b0, rwa: 5'hxx};
-localparam alu_ctl_t ALU_IDL = `{m: 3'bxxx, d: 8'hxx, r: 8'hxx, c: 1'bx};
-localparam srg_ctl_t SRG_IDL = `{s: KX, m: 8'h00};
-localparam prg_ctl_t PRG_IDL = `{};
-localparam iop_ctl_t IOP_IDL = `{};
-localparam dat_ctl_t DAT_IDL = `{};
-localparam spt_ctl_t SPT_IDL = `{};
-
-always_comb
-casez (pw)
-  // no operation, same as default
-  16'b0000_0000_0000_0000: begin cfg = '{  GPR_IDL, ALU_IDL, SRG_IDL, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // NOP
-  // arithmetic
-  //                                    {  gpr                             alu                     srg            }
-  //                                       {wen , w16 , wdt      , , , }   {m  , d , r , c     }   {s    , m    } }
-  16'b0000_01??_????_????: begin cfg = '{ '{1'b0, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, Rr, sreg.c}, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // CPC
-  16'b0000_10??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, Rr, sreg.c}, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // SBC
-  16'b0000_11??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{ADD, Rd, Rr, 1'b0  }, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // ADD
-  16'b0001_01??_????_????: begin cfg = '{ '{1'b0, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, Rr, 1'b0  }, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // CP
-  16'b0001_10??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, Rr, 1'b0  }, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // SUB
-  16'b0001_11??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{ADD, Rd, Rr, sreg.c}, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // ADC
-  16'b0011_????_????_????: begin cfg = '{ '{1'b0, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, k8, 1'b0  }, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // CPI
-  16'b0100_????_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, k8, sreg.c}, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // SBCI
-  16'b0101_????_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, k8, 1'b0  }, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // SUBI
-  16'b1001_010?_????_0000: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, KF, Rd, 1'b0  }, '{alu_s, 8'h1f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // COM
-  // TODO check the value of carry and overflow
-  16'b1001_010?_????_0001: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, K0, Rd, 1'b0  }, '{alu_s, 8'h3f}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // NEG
-  16'b1001_010?_????_0011: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{ADD, Rd, K0, 1'b1  }, '{alu_s, 8'h3e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // INC
-  16'b1001_010?_????_1010: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SUB, Rd, K0, 1'b1  }, '{alu_s, 8'h3e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // DEC
-  // logic // TODO check flags
-  16'b0010_00??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{AND, Rd, Rr, 1'b0  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // AND
-  16'b0111_????_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{AND, Rd, k8, 1'b0  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // ANDI
-  16'b0010_10??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{OR , Rd, Rr, 1'b0  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // OR
-  16'b0110_????_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{OR , Rd, k8, 1'b0  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // ORI
-  16'b0010_01??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{XOR, Rd, Rr, 1'b0  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // EOR
-  // shift right // TODO check flags
-  16'b1001_010?_????_0110: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SHR, Rd, K0, 1'b0  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // LSR
-  16'b1001_010?_????_0111: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SHR, Rd, K0, 1'b1  }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // ROR
-  16'b1001_010?_????_0101: begin cfg = '{ '{1'b1, 1'b0, {2{alu_r}, , , }, '{SHR, Rd, K0, Rd[7] }, '{alu_s, 8'h1e}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // ASR
-
-  // register moves
-  16'b0010_11??_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{Rr}}              , , , }, ALU_IDL, SRG_IDL, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // MOV
-  16'b1110_????_????_????: begin cfg = '{ '{1'b1, 1'b0, {2{k8}}              , , , }, ALU_IDL, SRG_IDL, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // LDI
-  16'b1001_010?_????_0010: begin cfg = '{ '{1'b1, 1'b0, {2{Rd[3:0], Rd[7:4]}}, , , }, ALU_IDL, SRG_IDL, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // SWAP
-  // bit manipulation
-  16'b1001_010?_0???_1000: begin cfg = '{ GPR_IDL, ALU_IDL, '{KF, 8'h01 << pw[6:4]}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // BSET
-  16'b1001_010?_1???_1000: begin cfg = '{ GPR_IDL, ALU_IDL, '{K0, 8'h01 << pw[6:4]}, PRG_IDL, IOP_IDL, DAT_IDL, SPT_IDL }; end // BCLR
-  // 16-24 bit adder
-  16'b1001_0110_????_????: begin alu = 'x; add = '{ADD_ADD, Rd16, K16}; srg = '{add_sr, 8'h1f}; gpr_str = '{1'b1, 1'b1, add_ro}; end // ADIW
-  16'b1001_0111_????_????: begin alu = 'x; add = '{ADD_SUB, Rd16, K16}; srg = '{add_sr, 8'h1f}; gpr_str = '{1'b1, 1'b1, add_ro}; end // SBIW
-
-  16'b1111_101?_????_0???: begin alu = 'x; add = 'x; srg = '{{8{Rd_b}}, 8'h40}; gpr_str = '{1'b0, 1'b0, 16'hxxxx}; end // SBT
-  16'b1111_100?_????_0???: begin alu = 'x; add = 'x; srg = '{KX, 8'h00}; gpr_str = '{1'b1, 1'b0, {2{Rd & ~(8'h01<<b) | {8{sreg.t}} & (8'h01<<b)}}}; end // BLD
-
-  /* SLEEP is not implemented */
-  /* WDR is not implemented */
-  16'b1001_00??_????_1111, /* PUSH/POP */
-  16'b1001_00??_????_1100, /*  X   */
-  16'b1001_00??_????_1101, /*  X+  */
-  16'b1001_00??_????_1110, /* -X   */
-  16'b1001_00??_????_1001, /*  Y+  */
-  16'b1001_00??_????_1010, /* -Y   */
-  16'b10?0_????_????_1???, /*  Y+q */
-  16'b1001_00??_????_0001, /*  Z+  */
-  16'b1001_00??_????_0010, /* -Z   */
-  16'b10?0_????_????_0???: /*  Z+q */
-  begin
-  	/* LD - POP (run from state WRITEBACK) */
-  	R = dmem_di;
-  end
-  16'b1011_0???_????_????: begin
-  	/* IN (run from state WRITEBACK) */
-  	case(io_sel)
-  		IO_SEL_STACK: R = io_sp;
-  		IO_SEL_SREG:  R = sreg;
-  		default: R = io_di;
-  	endcase
-  end
-endcase
-      	end /* if(normal_en) */
-      	if(lds_writeback) begin
-      		R = dmem_di;
-      		writeback = 1'b1;
-      	end
-      	if(lpm_en) begin
-      		R = gpr.nam.z[0] ? pmem_d[15:8] : pmem_d[7:0];
-      		writeback = 1'b1;
-      	end
-      	if(io_we & (io_a == 6'b111111))
-      		sreg <= io_do[7:0];
-      	if(I_clr)
-      		sreg.i <= 1'b0;
-      	if(writeback) begin
-      		if(mode16) begin
-      			// $display("REG WRITE(16): %d < %d", Rd16, R16);
-      			//gpr.idx [{2'b11,Rd16,1'b0}+:2] <= R16;  // TODO
-      			{gpr.idx [{2'b11,Rd16,1'b1}], gpr.idx [{2'b11,Rd16,1'b0}]} <= R16;
-      		end else begin
-      			// $display("REG WRITE: %d < %d", Rd, R);
-      			gpr.idx [write_dest] <= R;
-      		end
-      	end else begin /* if(writeback) */
-      		case(dmem_sel)
-      			DMEM_SEL_XPLUS:		gpr.nam.x <= gpr.nam.x + 16'd1;
-      			DMEM_SEL_XMINUS:	gpr.nam.x <= gpr.nam.x - 16'd1;
-      			DMEM_SEL_YPLUS:		gpr.nam.y <= gpr.nam.y + 16'd1;
-      			DMEM_SEL_YMINUS:	gpr.nam.y <= gpr.nam.y - 16'd1;
-      			DMEM_SEL_ZPLUS:		gpr.nam.z <= gpr.nam.z + 16'd1;
-      			DMEM_SEL_ZMINUS:	gpr.nam.z <= gpr.nam.z - 16'd1;
-      			default:;
-      		endcase
-      	end
-      end /* if(rst) ... else */
-end
-
-////////////////////////////////////////////////////////////////////////////////
-// register file access
-////////////////////////////////////////////////////////////////////////////////
-
-// GPR control structure
-gpr_ctl_t gpr = ctl.gpr;
-
-// GPR write access
-always_ff @ (posedge clk)
-if (gpr.wen) begin
-  // TODO recode this, so it is appropriate for a register file or at least optimized
-  if (gpr.w16) gpr_f.idx [{wad[5-1:1], 1'b0}+:2] <= wdt;
-  else         gpr_f.idx [ wad                 ] <= wdt[8-1:0];
-end
-
-// read word access
-always_comb
-if (gpr.rwe) Rw = gpr_f.idx [{rwa[5-1:1], 1'b0}+:2];
-else         Rw = 16'hxxxx;
-always_comb
-if (gpr.rwe) Rd = gpr_f.idx [rwa];
-else         Rd = KX;
-
-// read byte access
-always_comb
-if (gpr.rbe) Rr = gpr_f.idx [rba];
-else         Rr = KX;
-
-////////////////////////////////////////////////////////////////////////////////
-// status register access
-////////////////////////////////////////////////////////////////////////////////
-
-// SREG write access
-always_ff @ (posedge clk, posedge rst)
-if (rst) sreg <= 8'b00000000;
-else     sreg <= (sreg_tmp & sreg_msk) | (sreg & ~sreg_msk);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
