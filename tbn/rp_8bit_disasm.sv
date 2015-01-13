@@ -27,15 +27,18 @@ function automatic string disasm (
       endcase
     end
     16'b0000_0001_????_????: begin
-      {Rd[4:0], Rr[4:0]} = {code[7:4], 1'b0, code[3:0], 1'b0};
+      Rd[4:0] = {code[7:4], 1'b0};
+      Rr[4:0] = {code[3:0], 1'b0};
       str = $sformatf ("movw r%0d:%0d,r%0d,%0d", Rd+1, Rd, Rr+1, Rr);  // Copy Register Word
     end
     16'b0000_0010_????_????: begin
-      {Rd[4:0], Rr[4:0]} = {2'b1, code[7:4], 2'b1, code[3:0]};
+      Rd[4:0] = {1'b1, code[7:4]};
+      Rr[4:0] = {1'b1, code[3:0]};
       str = $sformatf ("muls  r%0d,r%0d", Rd, Rr);  // Multiply Signed
     end
     16'b0000_0011_????_????: begin
-      {Rd[4:0], Rr[4:0]} = {2'b10, code[6:4], 2'b10, code[2:0]};
+      Rd[4:0] = {2'b10, code[6:4]};
+      Rr[4:0] = {2'b10, code[2:0]};
       case ({code[7], code[3]})
         2'b00: str = $sformatf ("mulsu  r%0d,r%0d", Rd, Rr);  // Multiply Signed with Unsigned
         2'b01: str = $sformatf ("fmul   r%0d,r%0d", Rd, Rr);  // Fractional Multiply Unsigned
@@ -47,7 +50,8 @@ function automatic string disasm (
     16'b0000_1???_????_????,
     16'b0001_????_????_????,
     16'b0010_????_????_????: begin
-      {Rr[4], Rd[4:0], Rr[3:0]} = code [9:0];
+      Rd[4:0] = code [8:4];
+      Rr[4:0] = {code[9], code[3:0]};
       case (code[13:10])
         4'b0001: str = $sformatf ("cpc  r%0d,r%0d", Rd, Rr);  // Compare with Carry
         4'b0010: str = $sformatf ("sbc  r%0d,r%0d", Rd, Rr);  // Subtract with Carry
@@ -249,7 +253,8 @@ function automatic string disasm (
       endcase
     end
     16'b1001_11??_????_????: begin
-      {Rr[4], Rd[4:0], Rr[3:0]} = code[9:0];
+      Rd[4:0] = code [8:4];
+      Rr[4:0] = {code[9], code[3:0]};
       str = $sformatf ("mul   r%0d,r%0d", Rd, Rr);  // Multiply Unsigned
     end
     16'b1011_????_????_????: begin
