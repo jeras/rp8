@@ -17,7 +17,7 @@
  */
 
 module rp_8bit #(
-  parameter int unsigned BI_IW =  8, // interrupt request width
+  parameter int unsigned IRW =  8, // interrupt request width
   parameter int unsigned PAW = 11, // 16 bit words
   parameter int unsigned DAW = 13  //  8 bit bytes
 )(
@@ -34,19 +34,29 @@ module rp_8bit #(
   input  logic           bp_jmp, // debug jump request
   input  logic           bp_rdy, // ready (read data, new PC, debug jump request)
   // data bus
-  output logic           dmem_we,
-  output logic [DAW-1:0] dmem_a ,
-  output logic   [8-1:0] dmem_do,
-  input  logic   [8-1:0] dmem_di,
+  output logic           bd_we,
+  output logic [DAW-1:0] bd_a ,
+  output logic   [8-1:0] bd_do,
+  input  logic   [8-1:0] bd_di,
   // peripheral bus
-  output logic           io_re,
-  output logic           io_we,
-  output logic   [6-1:0] io_a ,
-  output logic   [8-1:0] io_do,
-  input  logic   [8-1:0] io_di,
+typedef struct packed {
+  logic           wen; // write enable
+  logic           ren; // read  enable
+  logic   [6-1:0] adr; // address
+  logic   [8-1:0] wdt; // write data
+  logic   [8-1:0] msk; // write mask
+  logic   [8-1:0] rdt; // read data
+} iou_cfg_t;
+
+  output logic           io_wen, // write enable
+  output logic           io_ren, // read  enable
+  output logic   [6-1:0] io_adr, // address
+  output logic   [8-1:0] io_wdt, // write data
+  input  logic   [8-1:0] io_msk, // write mask
+  input  logic   [8-1:0] io_rdt, // read data
   // interrupt
-  input  logic [BI_IW-1:0] irq,
-  output logic [BI_IW-1:0] irq_ack
+  input  logic [IRW-1:0] irq_req,
+  output logic [IRW-1:0] irq_ack
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -145,6 +155,24 @@ typedef struct packed {
   sreg_t m; // mask
 } srg_ctl_t;
 
+typedef struct packed {
+  logic [PAW-1:0] adr; // address
+  logic           wen; // write enable (for SPM instruction)
+  logic  [16-1:0] wdt; // write data   (for SPM instruction)
+  logic           slp; // sleep
+  logic           brk; // break
+  logic           wdr; // watchdog reset
+} ifu_cfg_t;
+
+typedef struct packed {
+  logic           wen; // write enable
+  logic           ren; // read  enable
+  logic   [6-1:0] adr; // address
+  logic   [8-1:0] wdt; // write data
+  logic   [8-1:0] msk; // write mask
+  logic   [8-1:0] rdt; // read data
+} iou_cfg_t;
+
 // entire control structure
 typedef struct packed {
   gpr_ctl_t gpr; // general purpose registers
@@ -168,6 +196,9 @@ logic  [8-1:0] Rd; // destination
 logic  [8-1:0] Rr; // source
 logic [16-1:0] Rw; // word
 logic  [8-1:0] Rs; // nibble swap of Rd
+
+// I/O read value
+logic  [8-1:0] id;
 
 // program counter
 ifu_ptr_t pc;
@@ -207,8 +238,11 @@ logic [5-1:0] rm = {2'b10, pw[2:0]};
 logic [5-1:0] di = {2'b11, pw[5:4], 1'b0};
 
 // register address constant
-localparam logic [5-1:0] R0 = 5'h00; // used for multiplication destination address
 localparam logic [5-1:0] RX = 5'hxx;
+localparam logic [5-1:0] R0 = 5'h00; // R1:R0 used for multiplication destination address
+localparam logic [5-1:0] DX = 5'h1a; // index register X
+localparam logic [5-1:0] DY = 5'h1c; // index register Y
+localparam logic [5-1:0] DZ = 5'h1e; // index register Z
 
 // bit address
 logic [3-1:0] b  = pw[2:0];
@@ -256,13 +290,13 @@ casez (pw)
   // arithmetic
   //                                    {  gpr                               alu                          srg                           }
   //                                    {  {we, ww, wd       , wa, rw, rb}   {m  , d , r , c     }        {s    , m    }                }
-  16'b0000_01??_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPC
+  16'b0000_01??_????_????: begin cfg = '{ '{C0, CX, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPC
   16'b0000_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SBC
   16'b0000_11??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{ADD, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // ADD
   16'b0001_01??_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CP
   16'b0001_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SUB
   16'b0001_11??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{ADD, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // ADC
-  16'b0011_????_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPI
+  16'b0011_????_????_????: begin cfg = '{ '{C0, CX, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPI
   16'b0100_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SBCI
   16'b0101_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SUBI
   16'b1001_010?_????_0000: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, RX}, '{SUB, KF, Rd, C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU }; end // COM
@@ -300,32 +334,28 @@ casez (pw)
   16'b1001_0110_????_????: begin cfg = '{ '{C1, C1, alu_r, di, di, RX}, '{ADW, Rw, kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU }; end // ADIW
   16'b1001_0111_????_????: begin cfg = '{ '{C1, C1, alu_r, di, di, RX}, '{SBW, Rw, kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU }; end // SBIW
   // bit manipulation
-  16'b1111_101?_????_0???: begin cfg = '{ '{C0, C0, 16'hxxxx                                  , db, db, RX}, ALU, MUL, srg = '{{8{Rd_b}}, 8'h40}, IFU, IOU, LSU }; end // SBT
+  16'b1111_101?_????_0???: begin cfg = '{ '{C0, CX, 16'hxxxx                                  , db, db, RX}, ALU, MUL, srg = '{{8{Rd_b}}, 8'h40}, IFU, IOU, LSU }; end // SBT
   16'b1111_100?_????_0???: begin cfg = '{ '{C1, C0, {2{Rd & ~b2o(b)) | {8{sreg.t}} & b20(b))}}, db, db, RX}, ALU, MUL, srg = '{KX,        8'h00}, IFU, IOU, LSU }; end // BLD
 
   /* TODO: SLEEP is not implemented */
   /* TODO: WDR is not implemented */
-  16'b1001_00??_????_1111, /* PUSH/POP */
-  16'b1001_00??_????_1100, /*  X   */
-  16'b1001_00??_????_1101, /*  X+  */
-  16'b1001_00??_????_1110, /* -X   */
-  16'b1001_00??_????_1001, /*  Y+  */
-  16'b1001_00??_????_1010, /* -Y   */
-  16'b10?0_????_????_1???, /*  Y+q */
-  16'b1001_00??_????_0001, /*  Z+  */
-  16'b1001_00??_????_0010, /* -Z   */
-  16'b10?0_????_????_0???: /*  Z+q */
+  16'b1001_00??_????_1111, // PUSH/POP
+  16'b1001_00??_????_1111, // PUSH/POP
+  16'b1001_00??_????_1100, begin cfg = '{ '{C0, CX, alu_r, RX, DX, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  X
+  16'b1001_00??_????_1101, begin cfg = '{ '{C1, C1, alu_r, DX, DX, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  X+
+  16'b1001_00??_????_1110, begin cfg = '{ '{C1, C1, alu_r, DX, DX, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end // -X
+  16'b10?0_????_????_1???, begin cfg = '{ '{C0, CX, alu_r, RX, DY, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Y+q
+  16'b1001_00??_????_1001, begin cfg = '{ '{C1, C1, alu_r, DY, DY, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Y+
+  16'b1001_00??_????_1010, begin cfg = '{ '{C1, C1, alu_r, DY, DY, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end // -Y
+  16'b10?0_????_????_0???: begin cfg = '{ '{C0, CX, alu_r, RX, DZ, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Z+q
+  16'b1001_00??_????_0001, begin cfg = '{ '{C1, C1, alu_r, DZ, DZ, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Z+
+  16'b1001_00??_????_0010, begin cfg = '{ '{C1, C1, alu_r, DZ, DZ, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end // -Z
   begin
   	/* LD - POP (run from state WRITEBACK) */
   	R = dmem_di;
   end
   16'b1011_0???_????_????: begin
   	/* IN (run from state WRITEBACK) */
-  	case(io_sel)
-  		IO_SEL_STACK: R = io_sp;
-  		IO_SEL_SREG:  R = sreg;
-  		default: R = io_di;
-  	endcase
   end
   16'b1100_????_????_????: begin /* RJMP */pc_sel = PC_SEL_KL;	next_state = STALL;end
   16'b1101_????_????_????: begin/* RCALL */dmem_sel = DMEM_SEL_SP_PCL;dmem_we = 1'b1;push = 1'b1;next_state = RCALL;end
@@ -336,36 +366,8 @@ casez (pw)
   	if (sreg[b] ^ pmem_d[10]) begin pc_sel = PC_SEL_KS;next_state = STALL; end
   	else				pc_sel = PC_SEL_INC;
   end
-  16'b1001_00??_????_1100, /*  X   */
-  16'b1001_00??_????_1101, /*  X+  */
-  16'b1001_00??_????_1110, /* -X   */
-  16'b1001_00??_????_1001, /*  Y+  */
-  16'b1001_00??_????_1010, /* -Y   */
-  16'b10?0_????_????_1???, /*  Y+q */
-  16'b1001_00??_????_0001, /*  Z+  */
-  16'b1001_00??_????_0010, /* -Z   */
-  16'b10?0_????_????_0???: /*  Z+q */
-  begin
-    casez ({pmem_d[12], pmem_d[3:0]})
-      5'b1_1100: dmem_sel = DMEM_SEL_X;
-      5'b1_1101: dmem_sel = DMEM_SEL_XPLUS;
-      5'b1_1110: dmem_sel = DMEM_SEL_XMINUS;
-      5'b1_1001: dmem_sel = DMEM_SEL_YPLUS;
-      5'b1_1010: dmem_sel = DMEM_SEL_YMINUS;
-      5'b0_1???: dmem_sel = DMEM_SEL_YQ;
-      5'b1_0001: dmem_sel = DMEM_SEL_ZPLUS;
-      5'b1_0010: dmem_sel = DMEM_SEL_ZMINUS;
-      5'b0_0???: dmem_sel = DMEM_SEL_ZQ;
-    endcase
-    if(pmem_d[9]) begin /* ST */pc_sel = PC_SEL_INC;pmem_ce = 1'b1;	dmem_we = 1'b1; end
-    else begin/* LD */		next_state = WRITEBACK;			end
-  end
   16'b1011_0???_????_????: begin/* IN */	io_re = 1'b1; next_state = WRITEBACK; end
   16'b1011_1???_????_????: begin/* OUT */ io_we = 1'b1; pc_sel = PC_SEL_INC; pmem_ce = 1'b1;end
-  16'b1001_00??_????_1111: begin
-  	if(pmem_d[9]) begin/* PUSH */push = 1'b1;dmem_sel = DMEM_SEL_SP_R;dmem_we = 1'b1;pc_sel = PC_SEL_INC; pmem_ce = 1'b1; end
-  	else begin	/* POP */pop = 1'b1;dmem_sel = DMEM_SEL_SP_R;next_state = WRITEBACK;end
-  end
   16'b1001_00??_????_0000: begin	pc_sel = PC_SEL_INC; pmem_ce = 1'b1; next_state = (pmem_d[9]) ? STS : LDS1;end
   16'b1001_0101_000?_1000: begin	/* RET / RETI */ dmem_sel = DMEM_SEL_SP_PCH;pop = 1'b1;	next_state = (pmem_d[4] == 1'b0) ? RET1 : RETI1;end
   16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
@@ -373,41 +375,6 @@ casez (pw)
   16'b1001_0101_0000_1001: begin	/* ICALL */	dmem_sel = DMEM_SEL_SP_PCL;dmem_we = 1'b1;push = 1'b1;	next_state = ICALL;end
   default: begin					pc_sel = PC_SEL_INC;	normal_en = 1'b1; pmem_ce = 1'b1; end
 endcase
-      	end /* if(normal_en) */
-      	if(lds_writeback) begin
-      		R = dmem_di;
-      		writeback = 1'b1;
-      	end
-      	if(lpm_en) begin
-      		R = gpr.nam.z[0] ? pmem_d[15:8] : pmem_d[7:0];
-      		writeback = 1'b1;
-      	end
-      	if(io_we & (io_a == 6'b111111))
-      		sreg <= io_do[7:0];
-      	if(I_clr)
-      		sreg.i <= 1'b0;
-      	if(writeback) begin
-      		if(mode16) begin
-      			// $display("REG WRITE(16): %d < %d", Rw, R16);
-      			//gpr.idx [{2'b11,Rw,1'b0}+:2] <= R16;  // TODO
-      			{gpr.idx [{2'b11,Rw,1'b1}], gpr.idx [{2'b11,Rw,1'b0}]} <= R16;
-      		end else begin
-      			// $display("REG WRITE: %d < %d", Rd, R);
-      			gpr.idx [write_dest] <= R;
-      		end
-      	end else begin /* if(writeback) */
-      		case(dmem_sel)
-      			DMEM_SEL_XPLUS:		gpr.nam.x <= gpr.nam.x + 16'd1;
-      			DMEM_SEL_XMINUS:	gpr.nam.x <= gpr.nam.x - 16'd1;
-      			DMEM_SEL_YPLUS:		gpr.nam.y <= gpr.nam.y + 16'd1;
-      			DMEM_SEL_YMINUS:	gpr.nam.y <= gpr.nam.y - 16'd1;
-      			DMEM_SEL_ZPLUS:		gpr.nam.z <= gpr.nam.z + 16'd1;
-      			DMEM_SEL_ZMINUS:	gpr.nam.z <= gpr.nam.z - 16'd1;
-      			default:;
-      		endcase
-      	end
-      end /* if(rst) ... else */
-end
 
 ////////////////////////////////////////////////////////////////////////////////
 // register file access
@@ -520,20 +487,21 @@ assign mul_s.c = mul_t[15];
 // status register access
 ////////////////////////////////////////////////////////////////////////////////
 
+// SREG configuration structure
+srg_cfg_t srg = cfg.srg;
+
 // SREG write access
 always_ff @ (posedge clk, posedge rst)
-if (rst)          sreg <= 8'b00000000;
-else if (~stall)  sreg <= (sreg_tmp & sreg_msk) | (sreg & ~sreg_msk);
+if (rst)  sreg <= 8'b00000000;
+else if (~stall) begin
+  if (iou.wen & iou.adr==ADR_SREG)  sreg <= iou.wdt;
+  else                              sreg <= (srg.s &  sreg.m)
+                                          | (sreg  & ~sreg.m);
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // instruction fetch unit
 ////////////////////////////////////////////////////////////////////////////////
-
-typedef struct packed {
-  logic [PAW-1:0] adr; // address
-  logic           wen; // write enable (for SPM instruction)
-  logic  [16-1:0] wdt; // write data   (for SPM instruction)
-} ifu_cfg_t;
 
 ifu_cfg_t ifu = cfg.ifu;
 
@@ -544,202 +512,56 @@ always_ff @(posedge clk, posedge rst)
 if (rst) ifu_rst <= 1'b1;
 else     ifu_rst <= 1'b0;
 
-always_ff @(posedge clk, posedge rst)
-if (rst)        PC            <= '1;
-else case (pc_sel)
-  PC_SEL_NOP  :;
-  PC_SEL_INC  : PC            <= pc_inc;
-  // !!! WARNING !!! replace with PC <= PC + {{PAW-12{Kl[11]}}, Kl}; if PAW>12
-  PC_SEL_KL   : PC            <= PC + Kl;
-  PC_SEL_KS   : PC            <= PC + {{PAW-7{Ks[6]}}, Ks};
-  PC_SEL_DMEML: PC[7:0]       <= dmem_di;
-  PC_SEL_DMEMH: PC[PAW-1:8] <= dmem_di[PAW-8-1:0];
-  PC_SEL_DEC  : PC            <= PC - 1;
-  PC_SEL_Z    : PC            <= gpr.nam.z - 1;
-  PC_SEL_EX   : PC            <= PC_ex;
-endcase
+// TODO exception code should be here too
 
-reg pmem_selz;
-assign pmem_a = pmem_selz ? gpr.nam.z[15:1] : pc_inc;
-
-/* Load/store operations */
-reg [3:0] dmem_sel;
-
-localparam DMEM_SEL_UNDEFINED	= 3'bxxx;
-localparam DMEM_SEL_X		= 4'd0;
-localparam DMEM_SEL_XPLUS	= 4'd1;
-localparam DMEM_SEL_XMINUS	= 4'd2;
-localparam DMEM_SEL_YPLUS	= 4'd3;
-localparam DMEM_SEL_YMINUS	= 4'd4;
-localparam DMEM_SEL_YQ		= 4'd5;
-localparam DMEM_SEL_ZPLUS	= 4'd6;
-localparam DMEM_SEL_ZMINUS	= 4'd7;
-localparam DMEM_SEL_ZQ		= 4'd8;
-localparam DMEM_SEL_SP_R	= 4'd9;
-localparam DMEM_SEL_SP_PCL	= 4'd10;
-localparam DMEM_SEL_SP_PCH	= 4'd11;
-localparam DMEM_SEL_PMEM	= 4'd12;
-
-/* ALU */
-
-reg normal_en;
-reg lds_writeback;
-
-wire [4:0] write_dest = lds_writeback ? Rd_r : Rd;
-
-logic I_clr;
-logic I_set;
+// TODO EIND register should be here
 
 ////////////////////////////////////////////////////////////////////////////////
+// I/O unit
 ////////////////////////////////////////////////////////////////////////////////
 
-/* I/O port */
-assign io_a = {pmem_d[10:9], pmem_d[3:0]};
-assign io_do = Rd;
+// I/O configuration structure
+iou_cfg_t iou = cfg.iou;
 
-/* Data memory */
-always_comb
-case (dmem_sel)
-	DMEM_SEL_X,
-	DMEM_SEL_XPLUS:		dmem_a = gpr.nam.x;
-	DMEM_SEL_XMINUS:	dmem_a = gpr.nam.x - 16'd1;
-	DMEM_SEL_YPLUS:		dmem_a = gpr.nam.y;
-	DMEM_SEL_YMINUS:	dmem_a = gpr.nam.y - 16'd1;
-	DMEM_SEL_YQ:		dmem_a = gpr.nam.y + q;
-	DMEM_SEL_ZPLUS:		dmem_a = gpr.nam.z;
-	DMEM_SEL_ZMINUS:	dmem_a = gpr.nam.z - 16'd1;
-	DMEM_SEL_ZQ:		dmem_a = gpr.nam.z + q;
-	DMEM_SEL_SP_R,
-	DMEM_SEL_SP_PCL,
-	DMEM_SEL_SP_PCH:	dmem_a = SP + pop;
-	DMEM_SEL_PMEM:		dmem_a = pmem_d;
-	default:		dmem_a = {DAW{1'bx}};
-endcase
+assign io_wen = iou.wen; // write enable
+assign io_ren = iou.ren; // read  enable
+assign io_adr = iou.adr; // address
+assign io_wdt = iou.wdt; // write data
+assign io_msk = iou.msk; // write mask
+assign id io_rdt;        // read data
 
-assign pc_inc = PC + 1;
-reg exception;
-always_comb
-case(dmem_sel)
-	DMEM_SEL_X,
-	DMEM_SEL_XPLUS,
-	DMEM_SEL_XMINUS,
-	DMEM_SEL_YPLUS,
-	DMEM_SEL_YMINUS,
-	DMEM_SEL_YQ,
-	DMEM_SEL_ZPLUS,
-	DMEM_SEL_ZMINUS,
-	DMEM_SEL_ZQ,
-	DMEM_SEL_SP_R:		dmem_do = Rd;
-	DMEM_SEL_SP_PCL:	dmem_do = exception ? PC[    8-1:0] : pc_inc[    8-1:0];
-	DMEM_SEL_SP_PCH:	dmem_do = exception ? PC[PAW-1:8] : pc_inc[PAW-1:8];
-	DMEM_SEL_PMEM:		dmem_do = Rd_r;
-	default:		dmem_do = 8'hxx;
-endcase
+// TODO: SP and SREG access
+// TODO: access to extended address space registers is arround
 
-/* Multi-cycle operation sequencer */
+////////////////////////////////////////////////////////////////////////////////
+// load/store unit
+////////////////////////////////////////////////////////////////////////////////
 
-wire reg_equal = Rd == Rr;
+typedef struct packed {
+  logic           ena; // enable
+  logic           wen; // write enable
+  enum [2:0] {
+    REG // normal register
+    STK // stack push/pop
+    IND // indirect
+    DIR // direct
+    PC  // program counter
+  } typ;               // access type
+  logic           stk; // stack push/pop
+  logic           sub; // coubroutine/interrupt call/return
+  logic [DAW-1:0] adr; // address
+  logic   [8-1:0] wdt; // write data
+} lsu_cfg_t;
 
-logic [4:0] state;
-logic [4:0] next_state;
+// SP incrementing decrementing is done here
 
-localparam NORMAL	= 5'd0;
-localparam RCALL	= 5'd1;
-localparam ICALL	= 5'd2;
-localparam STALL	= 5'd3;
-localparam RET1		= 5'd4;
-localparam RET2		= 5'd5;
-localparam RET3		= 5'd6;
-localparam LPM		= 5'd7;
-localparam STS		= 5'd8;
-localparam LDS1		= 5'd9;
-localparam LDS2		= 5'd10;
-localparam SKIP		= 5'd11;
-localparam WRITEBACK	= 5'd12;
-localparam EXCEPTION	= 5'd13;
-localparam RETI1	= 5'd14;
-localparam RETI2	= 5'd15;
-localparam RETI3	= 5'd16;
-localparam RETI4	= 5'd17;
-
-always_ff @(posedge clk, posedge rst)
-if (rst) state <= NORMAL;
-else     state <= next_state;
-
-always_comb begin
-	next_state = state;
-
-	pmem_ce = rsts;
-
-	pc_sel = PC_SEL_NOP;
-	normal_en = 1'b0;
-	lpm_en = 1'b0;
-
-	io_re = 1'b0;
-	io_we = 1'b0;
-
-	dmem_we = 1'b0;
-	dmem_sel = DMEM_SEL_UNDEFINED;
-
-	push = 1'b0;
-	pop = 1'b0;
-
-	exception = 1'b0;
-	irq_ack_en = 1'b0;
-	I_set = 1'b0;
-	I_clr = 1'b0;
-
-	pmem_selz = 1'b0;
-
-	regmem_ce = 1'b1;
-	lds_writeback = 1'b0;
-	
-	case(state)
-		NORMAL: begin
-			if(irq_request) begin
-				dmem_sel = DMEM_SEL_SP_PCL;
-				dmem_we = 1'b1;
-				exception = 1'b1;
-				push = 1'b1;
-				irq_ack_en = 1'b1;
-				I_clr = 1'b1;
-				next_state = EXCEPTION;
-			end else begin
-				casez (pmem_d)
-				endcase
-			end
-		end
-		RCALL: begin dmem_sel = DMEM_SEL_SP_PCH;	dmem_we = 1'b1;	push = 1'b1;	pc_sel = PC_SEL_KL;	next_state = STALL;	end
-		EXCEPTION: begin dmem_sel = DMEM_SEL_SP_PCH;	dmem_we = 1'b1;	exception = 1'b1;	push = 1'b1;	pc_sel = PC_SEL_EX;	next_state = STALL;	end
-		ICALL: begin dmem_sel = DMEM_SEL_SP_PCH;	dmem_we = 1'b1;	push = 1'b1;	pc_sel = PC_SEL_Z;	next_state = STALL;	end
-		RET1 : begin pc_sel = PC_SEL_DMEMH;	dmem_sel = DMEM_SEL_SP_PCL;	pop = 1'b1;	next_state = RET2; end
-		RET2 : begin pc_sel = PC_SEL_DMEML;	next_state = RET3; end
-		RET3 : begin pc_sel = PC_SEL_DEC;	next_state = STALL; end
-		RETI1: begin pc_sel = PC_SEL_DMEMH;	dmem_sel = DMEM_SEL_SP_PCL; pop = 1'b1; next_state = RETI2; end
-		RETI2: begin pc_sel = PC_SEL_DMEML;	next_state = RETI3; end
-		RETI3: begin pc_sel = PC_SEL_DEC;	next_state = RETI4; end
-		RETI4: begin pc_sel = PC_SEL_INC;	pmem_ce = 1'b1;	    I_set = 1'b1; next_state = NORMAL; end
-		LPM  : begin lpm_en = 1'b1;		pc_sel = PC_SEL_INC; pmem_ce = 1'b1; next_state = NORMAL; end
-		STS  : begin pc_sel = PC_SEL_INC;	pmem_ce = 1'b1;	     dmem_sel = DMEM_SEL_PMEM; dmem_we = 1'b1; next_state = NORMAL; end
-		LDS1 : begin dmem_sel = DMEM_SEL_PMEM;	regmem_ce = 1'b0; next_state = LDS2; end
-		LDS2 : begin pc_sel = PC_SEL_INC;	pmem_ce = 1'b1;	lds_writeback = 1'b1; next_state = NORMAL;end
-		SKIP : begin pc_sel = PC_SEL_INC;	pmem_ce = 1'b1;
-			/* test for STS and LDS */
-			if((pmem_d[15:10] == 6'b100100) & (pmem_d[3:0] == 4'h0))
-				next_state = STALL; /* 2-word instruction, skip the second word as well */
-			else
-				next_state = NORMAL; /* 1-word instruction */
-		end
-		STALL: begin pc_sel = PC_SEL_INC; pmem_ce = 1'b1; next_state = NORMAL; end
-		WRITEBACK: begin pmem_ce = 1'b1; pc_sel = PC_SEL_INC; normal_en = 1'b1; next_state = NORMAL; end
-	endcase
-end
+// TODO RAMPX, RAMPY, RAMPZ
 
 ////////////////////////////////////////////////////////////////////////////////
 // exceptions
 ////////////////////////////////////////////////////////////////////////////////
 
-logic [BI_IW-1:0] next_irq_ack;
+logic [IRW-1:0] next_irq_ack;
 
 always_comb
 casez (irq)
@@ -762,7 +584,7 @@ else     irq_ack <= irq_ack_en ? next_irq_ack : '0;
 
 /* Priority encoder */
 
-logic [$clog2(BI_IW)-1:0] PC_ex;
+logic [$clog2(IRW)-1:0] PC_ex;
 
 always_comb
 casez (irq)
