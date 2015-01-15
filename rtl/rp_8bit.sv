@@ -155,6 +155,7 @@ typedef struct packed {
   sreg_t m; // mask
 } srg_ctl_t;
 
+// instruction fetch unit control structure
 typedef struct packed {
   logic [PAW-1:0] adr; // address
   logic           wen; // write enable (for SPM instruction)
@@ -164,13 +165,13 @@ typedef struct packed {
   logic           wdr; // watchdog reset
 } ifu_cfg_t;
 
+// input/output unit control structure
 typedef struct packed {
-  logic           wen; // write enable
-  logic           ren; // read  enable
-  logic   [6-1:0] adr; // address
-  logic   [8-1:0] wdt; // write data
-  logic   [8-1:0] msk; // write mask
-  logic   [8-1:0] rdt; // read data
+  logic           we; // write enable
+  logic           re; // read  enable
+  logic   [6-1:0] ad; // address
+  logic   [8-1:0] wd; // write data
+  logic   [8-1:0] ms; // write mask
 } iou_cfg_t;
 
 // entire control structure
@@ -280,8 +281,17 @@ localparam alu_ctl_t ALU = `{m: 3'bxxx, d: 8'hxx, r: 8'hxx, c: 1'bx};
 localparam alu_ctl_t MUL = `{m: 3'bxxx, d: 8'hxx, r: 8'hxx, c};
 localparam srg_ctl_t SRG = `{s: KX, m: 8'h00};
 localparam ifu_ctl_t IFU = `{};
-localparam iou_ctl_t IOU = `{};
-localparam lsu_ctl_t LSU = `{};
+localparam iou_ctl_t IOU = `{we: 1'b0, re: 1'b0, ad: 6'hxx, wd: 8'hxx, ms: 8'hxx};
+localparam lsu_ctl_t LSU = `{cs: 1'b0, we: 1'bx, ty: 2'bxx, ad: {DAW{1'bx}}};
+
+typedef struct packed {
+  logic           we; // write enable
+  logic           re; // read  enable
+  logic   [6-1:0] ad; // address
+  logic   [8-1:0] wd; // write data
+  logic   [8-1:0] ms; // write mask
+  logic   [8-1:0] rd; // read data
+} iou_cfg_t;
 
 always_comb
 casez (pw)
@@ -290,13 +300,13 @@ casez (pw)
   // arithmetic
   //                                    {  gpr                               alu                          srg                           }
   //                                    {  {we, ww, wd       , wa, rw, rb}   {m  , d , r , c     }        {s    , m    }                }
-  16'b0000_01??_????_????: begin cfg = '{ '{C0, CX, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPC
+  16'b0000_01??_????_????: begin cfg = '{ '{C0, CX, {2{RX   }, RX, db, rb}, '{SUB, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPC
   16'b0000_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SBC
   16'b0000_11??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{ADD, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // ADD
-  16'b0001_01??_????_????: begin cfg = '{ '{C0, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CP
+  16'b0001_01??_????_????: begin cfg = '{ '{C0, C0, {2{RX   }, RX, db, rb}, '{SUB, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CP
   16'b0001_10??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{SUB, Rd, Rr, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SUB
   16'b0001_11??_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, rb}, '{ADD, Rd, Rr, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // ADC
-  16'b0011_????_????_????: begin cfg = '{ '{C0, CX, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPI
+  16'b0011_????_????_????: begin cfg = '{ '{C0, CX, {2{RX   }, RX, dw, RX}, '{SUB, Rd, kb, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // CPI
   16'b0100_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SBCI
   16'b0101_????_????_????: begin cfg = '{ '{C1, C0, {2{alu_r}, dw, dw, RX}, '{SUB, Rd, kb, C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU }; end // SUBI
   16'b1001_010?_????_0000: begin cfg = '{ '{C1, C0, {2{alu_r}, db, db, RX}, '{SUB, KF, Rd, C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU }; end // COM
@@ -334,46 +344,56 @@ casez (pw)
   16'b1001_0110_????_????: begin cfg = '{ '{C1, C1, alu_r, di, di, RX}, '{ADW, Rw, kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU }; end // ADIW
   16'b1001_0111_????_????: begin cfg = '{ '{C1, C1, alu_r, di, di, RX}, '{SBW, Rw, kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU }; end // SBIW
   // bit manipulation
-  16'b1111_101?_????_0???: begin cfg = '{ '{C0, CX, 16'hxxxx                                  , db, db, RX}, ALU, MUL, srg = '{{8{Rd_b}}, 8'h40}, IFU, IOU, LSU }; end // SBT
-  16'b1111_100?_????_0???: begin cfg = '{ '{C1, C0, {2{Rd & ~b2o(b)) | {8{sreg.t}} & b20(b))}}, db, db, RX}, ALU, MUL, srg = '{KX,        8'h00}, IFU, IOU, LSU }; end // BLD
+  16'b1111_101?_????_0???: begin cfg = '{ '{C0, CX, 16'hxxxx                                  , RX, db, RX}, ALU, MUL, srg = '{{8{Rd_b}}, 8'h40}, IFU, IOU, LSU }; end // SBT
+  16'b1111_100?_????_0???: begin cfg = '{ '{C1, C0, {2{Rd & ~b2o(b)) | {8{sreg.t}} & b20(b))}}, db, db, RX}, ALU, MUL, srg = '{KX,        8'h00}, IFU, IOU, LSU }; end // BLD  // TODO: ALU could be used
 
   /* TODO: SLEEP is not implemented */
   /* TODO: WDR is not implemented */
+  // TODO: separate load from store instructions
   16'b1001_00??_????_1111, // PUSH/POP
   16'b1001_00??_????_1111, // PUSH/POP
-  16'b1001_00??_????_1100, begin cfg = '{ '{C0, CX, alu_r, RX, DX, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  X
-  16'b1001_00??_????_1101, begin cfg = '{ '{C1, C1, alu_r, DX, DX, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  X+
-  16'b1001_00??_????_1110, begin cfg = '{ '{C1, C1, alu_r, DX, DX, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end // -X
-  16'b10?0_????_????_1???, begin cfg = '{ '{C0, CX, alu_r, RX, DY, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Y+q
-  16'b1001_00??_????_1001, begin cfg = '{ '{C1, C1, alu_r, DY, DY, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Y+
-  16'b1001_00??_????_1010, begin cfg = '{ '{C1, C1, alu_r, DY, DY, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end // -Y
-  16'b10?0_????_????_0???: begin cfg = '{ '{C0, CX, alu_r, RX, DZ, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Z+q
-  16'b1001_00??_????_0001, begin cfg = '{ '{C1, C1, alu_r, DZ, DZ, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end //  Z+
-  16'b1001_00??_????_0010, begin cfg = '{ '{C1, C1, alu_r, DZ, DZ, RX}, '{}, MUL, SRG, IFU, IOU, '{} }; end // -Z
-  begin
-  	/* LD - POP (run from state WRITEBACK) */
-  	R = dmem_di;
-  end
-  16'b1011_0???_????_????: begin
-  	/* IN (run from state WRITEBACK) */
-  end
-  16'b1100_????_????_????: begin /* RJMP */pc_sel = PC_SEL_KL;	next_state = STALL;end
-  16'b1101_????_????_????: begin/* RCALL */dmem_sel = DMEM_SEL_SP_PCL;dmem_we = 1'b1;push = 1'b1;next_state = RCALL;end
-  16'b0001_00??_????_????: begin/* CPSE */pc_sel = PC_SEL_INC;pmem_ce = 1'b1; if(reg_equal) next_state = SKIP; end
-  16'b1111_11??_????_0???: begin/* SBRC - SBRS */	pc_sel = PC_SEL_INC;pmem_ce = 1'b1; if(Rd_b == pmem_d[9])next_state = SKIP;end
+  //                                    {  gpr                                   alu                                     lsu               }
+  //                                    {  {we, ww, wd           , wa, rw, rb}   {m  , d , r , c }                       {cs, we, ty , ad} }
+  16'b1001_00??_????_1100, begin cfg = '{ '{C0, CX, 16'hxxxx     , RX, DX, RX}, ALU               , MUL, SRG, IFU, IOU, '{C1, C0, NRM, ex} }; end // X
+  16'b1001_00??_????_1101, begin cfg = '{ '{C1, C1, alu_t[16-1:0], DX, DX, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ex} }; end // X+
+  16'b1001_00??_????_1110, begin cfg = '{ '{C1, C1, alu_t[16-1:0], DX, DX, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ea} }; end // -X
+  16'b10?0_????_????_1???, begin cfg = '{ '{C0, CX, 16'hxxxx     , RX, DY, RX}, '{ADW, Rd, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ea} }; end // Y+q
+  16'b1001_00??_????_1001, begin cfg = '{ '{C1, C1, alu_t[16-1:0], DY, DY, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ey} }; end // Y+
+  16'b1001_00??_????_1010, begin cfg = '{ '{C1, C1, alu_t[16-1:0], DY, DY, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ea} }; end // -Y
+  16'b10?0_????_????_0???: begin cfg = '{ '{C0, CX, 16'hxxxx     , RX, DZ, RX}, '{ADW, Rd, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ea} }; end // Z+q
+  16'b1001_00??_????_0001, begin cfg = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ez} }; end // Z+
+  16'b1001_00??_????_0010, begin cfg = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, NRM, ea} }; end // -Z
+  // I/O instructions
   /* SBIC, SBIS, SBI, CBI are not implemented TODO*/
+  //                                    {  gpr                                                  iou                           }
+  //                                    {  {we, ww, wd      , wa, rw, rb}                       {we, re, ad, wd, ms    }      }
+  16'b1011_0???_????_????: begin cfg = '{ '{C1, C0, io_rdt  , db, RX, RX}, ALU, MUL, SRG, IFU, '{C0, C1, a , KX, KX    }, IOU }; end // IN
+  16'b1011_1???_????_????: begin cfg = '{ '{C0, C0, 16'hxxxx, RX, db, RX}, ALU, MUL, SRG, IFU, '{C1, C0, a , Rd, KF    }, IOU }; end // OUT
+  16'b1001_1000_????_????: begin cfg = '{ GPR                            , ALU, MUL, SRG, IFU, '{C1, C0, a , K0, b2o(b)}, IOU }; end // CBI
+  16'b1001_1010_????_????: begin cfg = '{ GPR                            , ALU, MUL, SRG, IFU, '{C1, C0, a , K0, b2o(b)}, IOU }; end // SBI
+  // skips
+  //                                    {                                 alu                                   ifu          iou                       }
+  //                                    {                                 {m  , d     , r     , c }                          {we, re, ad, wd, ms}      }
+  16'b1111_110?_????_0???: begin cfg = '{ '{C0, CX, {2{KX}, RX, db, RX}, '{AND, Rd    , b20(b), CX}, MUL, SRG, '{ alu_s.z}, '{C0, C1, a , KX, KX}, IOU }; end // SBRC
+  16'b1111_111?_????_0???: begin cfg = '{ '{C0, CX, {2{KX}, RX, db, RX}, '{AND, Rd    , b20(b), CX}, MUL, SRG, '{~alu_s.z}, '{C0, C1, a , KX, KX}, IOU }; end // SBRS
+  16'b1001_1001_????_????: begin cfg = '{ GPR                          , '{AND, io_rdt, b20(b), CX}, MUL, SRG, '{ alu_s.z}, '{C0, C1, a , KX, KX}, IOU }; end // SBIC
+  16'b1001_1011_????_????: begin cfg = '{ GPR                          , '{AND, io_rdt, b20(b), CX}, MUL, SRG, '{~alu_s.z}, '{C0, C1, a , KX, KX}, IOU }; end // SBIS
+  16'b0001_00??_????_????: begin cfg = '{ '{C0, CX, {2{KX}, RX, db, rb}, '{SUB, Rd    , Rr    , C0}, MUL, SRG, '{ alu_s.z}, '{C0, C1, a , KX, KX}, IOU }; end // CPSE
+  // flow control
+  16'b1100_????_????_????: begin cfg = '{}; end // RJMP
+  16'b1101_????_????_????: begin cfg = '{}; end // RCALL
+  16'b1001_0100_0000_1001: begin cfg = '{}; end // IJMP
+  16'b1001_0101_0000_1001: begin cfg = '{}; end // ICALL
+  16'b1001_0101_000?_1000: begin cfg = '{}; end // RET / RETI
+  // branches
   16'b1111_0???_????_????: begin 	/* BRBS - BRBC */pmem_ce = 1'b1;
   	if (sreg[b] ^ pmem_d[10]) begin pc_sel = PC_SEL_KS;next_state = STALL; end
   	else				pc_sel = PC_SEL_INC;
   end
-  16'b1011_0???_????_????: begin/* IN */	io_re = 1'b1; next_state = WRITEBACK; end
-  16'b1011_1???_????_????: begin/* OUT */ io_we = 1'b1; pc_sel = PC_SEL_INC; pmem_ce = 1'b1;end
   16'b1001_00??_????_0000: begin	pc_sel = PC_SEL_INC; pmem_ce = 1'b1; next_state = (pmem_d[9]) ? STS : LDS1;end
-  16'b1001_0101_000?_1000: begin	/* RET / RETI */ dmem_sel = DMEM_SEL_SP_PCH;pop = 1'b1;	next_state = (pmem_d[4] == 1'b0) ? RET1 : RETI1;end
   16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
-  16'b1001_0100_0000_1001: begin	/* IJMP */	pc_sel = PC_SEL_Z;	next_state = STALL;	end
-  16'b1001_0101_0000_1001: begin	/* ICALL */	dmem_sel = DMEM_SEL_SP_PCL;dmem_we = 1'b1;push = 1'b1;	next_state = ICALL;end
-  default: begin					pc_sel = PC_SEL_INC;	normal_en = 1'b1; pmem_ce = 1'b1; end
+  // no operation, same as NOP
+  default:                 begin cfg = '{ GPR, ALU, SRG, IFU, IOU, LSU }; end // NOP
 endcase
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -385,7 +405,9 @@ gpr_ctl_t gpr = ctl.gpr;
 
 // GPR write access
 always_ff @ (posedge clk)
-if (~stall) begin
+if (writeback) begin
+  // TODO, add writeback option from load/store unit
+else if (~stall) begin
   if (gpr.we) begin
     // TODO recode this, so it is appropriate for a register file or at least optimized
     if (gpr.ww) gpr_f.idx [{wa[5-1:1], 1'b0}+:2] <= wd;
@@ -523,12 +545,12 @@ else     ifu_rst <= 1'b0;
 // I/O configuration structure
 iou_cfg_t iou = cfg.iou;
 
-assign io_wen = iou.wen; // write enable
-assign io_ren = iou.ren; // read  enable
-assign io_adr = iou.adr; // address
-assign io_wdt = iou.wdt; // write data
-assign io_msk = iou.msk; // write mask
-assign id io_rdt;        // read data
+assign io_wen = iou.we; // write enable
+assign io_ren = iou.re; // read  enable
+assign io_adr = iou.ad; // address
+assign io_wdt = iou.wd; // write data
+assign io_msk = iou.ms; // write mask
+assign id = io_rdt;     // read data
 
 // TODO: SP and SREG access
 // TODO: access to extended address space registers is arround
@@ -548,7 +570,7 @@ typedef struct packed {
     PC  // program counter
   } typ;               // access type
   logic           stk; // stack push/pop
-  logic           sub; // coubroutine/interrupt call/return
+  logic           sub; // subroutine/interrupt call/return
   logic [DAW-1:0] adr; // address
   logic   [8-1:0] wdt; // write data
 } lsu_cfg_t;
@@ -556,6 +578,18 @@ typedef struct packed {
 // SP incrementing decrementing is done here
 
 // TODO RAMPX, RAMPY, RAMPZ
+
+logic [DAW-1:0] ex, ex, ez, ea;
+
+logic [DAW-16:0] rampx;
+logic [DAW-16:0] rampy;
+logic [DAW-16:0] rampz;
+logic [DAW-16:0] rampd;
+
+assign ex = {rampx, Rw};
+assign ey = {rampy, Rw};
+assign ez = {rampz, Rw};
+assign ed = {rampd, Rw};
 
 ////////////////////////////////////////////////////////////////////////////////
 // exceptions
