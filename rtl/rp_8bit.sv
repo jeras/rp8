@@ -53,6 +53,20 @@ module rp_8bit #(
 );
 
 ////////////////////////////////////////////////////////////////////////////////
+// AVR architecture constants
+////////////////////////////////////////////////////////////////////////////////
+
+// I/O register addresses
+localparam bit [6-1:0] IOA_RAMPD = 6'h30 + 6'h08;
+localparam bit [6-1:0] IOA_RAMPX = 6'h30 + 6'h09;
+localparam bit [6-1:0] IOA_RAMPY = 6'h30 + 6'h0a;
+localparam bit [6-1:0] IOA_RAMPZ = 6'h30 + 6'h0b;
+localparam bit [6-1:0] IOA_EIND  = 6'h30 + 6'h0c;
+localparam bit [6-1:0] IOA_SPL   = 6'h30 + 6'h0d;
+localparam bit [6-1:0] IOA_SPH   = 6'h30 + 6'h0e;
+localparam bit [6-1:0] IOA_SREG  = 6'h30 + 6'h0f;
+
+////////////////////////////////////////////////////////////////////////////////
 // calculated parameters
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -221,6 +235,9 @@ gpr_t     gpr;   // register file
 // various sources of core stall
 logic stall;
 
+// core state machine
+logic writeback;
+
 // ALU results
 logic  [AW-0:0] alu_t; // result (full width plus carry)
 logic   [8-1:0] alu_r; // result (8 bit byte)
@@ -291,6 +308,9 @@ logic [5-1:0] di = {2'b11, pw[5:4], 1'b0};
 logic [8-1:0] kb = {pw[11:8], pw[3:0]};
 // word (6bit) for address adder
 logic [6-1:0] kw = {pw[7:6], pw[3:0]};
+
+// I/O address
+logic [6-1:0] a = {pw[10:9], pw[3:0]};
 
 logic signed [12-1:0] Kl = pw[11:0];
 logic signed  [7-1:0] Ks = pw[ 9:3];
@@ -399,26 +419,28 @@ casez (pw)
   16'b1001_1000_????_????: begin dec = '{ GPR                            , ALU, MUL, SRG, IFU, '{C1, C0, a , K0, b2o(b)}, LSU, CTL }; end // CBI
   16'b1001_1010_????_????: begin dec = '{ GPR                            , ALU, MUL, SRG, IFU, '{C1, C0, a , KF, b2o(b)}, LSU, CTL }; end // SBI
   // skips
-  //                                    {  gpr                            alu                           ifu                            iou                            }
-  //                                    {  {we, ww, wd    , wa, rw, rb}   {m  , d , r , c }             {sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
-  16'b0001_00??_????_????: begin dec = '{ '{C0, CX, {2{KX}, RX, db, rb}, '{SUB, Rd, Rr, C0}, MUL, SRG, '{ alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
-  16'b1001_1001_????_????: begin dec = '{ GPR                          , ALU               , MUL, SRG, '{~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBIC
-  16'b1001_1011_????_????: begin dec = '{ GPR                          , ALU               , MUL, SRG, '{ io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBIS
-  16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, {2{KX}, RX, db, RX}, ALU               , MUL, SRG, '{~Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRC
-  16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, {2{KX}, RX, db, RX}, ALU               , MUL, SRG, '{ Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRS
+  //                                    {  gpr                        alu                           ifu                            iou                            }
+  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d , r , c }             {sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
+  16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{SUB, Rd, Rr, C0}, MUL, SRG, '{ alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
+  16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBIC
+  16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{ io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBIS
+  16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU               , MUL, SRG, '{~Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRC
+  16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU               , MUL, SRG, '{ Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRS
   // flow control
-  16'b1100_????_????_????: begin dec = '{ GPR                          , '{SUB, PC, k , C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU              , CTL }; end // RJMP
-  16'b1101_????_????_????: begin dec = '{ GPR                          , '{SUB, PC, k , C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, '{C1, C1, PC, 'x}, CTL }; end // RCALL
-  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, {2{KX}, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C1, Rw            , C0, WX}, IOU, LSU              , CTL }; end // IJMP
-  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, {2{KX}, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C1, Rw            , C0, WX}, IOU, '{C1, C1, PC, 'x}, CTL }; end // ICALL
+  //                                    {  gpr                        alu                           ifu                                     lsu                           }
+  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d , r , c }             {sk, be, ad            , we, wd}        {en, we, st, sb, ad, wd}      }
+  16'b1100_????_????_????: begin dec = '{ GPR                      , '{SUB, pc, Kl, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU                      , CTL }; end // RJMP
+  16'b1101_????_????_????: begin dec = '{ GPR                      , '{SUB, pc, Kl, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX}, CTL }; end // RCALL
+  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C1, Rw            , C0, WX}, IOU, LSU                      , CTL }; end // IJMP
+  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C1, Rw            , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX}, CTL }; end // ICALL
   16'b1001_0101_000?_1000: begin dec = '{}; end // RET / RETI
   // branches
-  16'b1111_00??_????_????, begin dec = '{ GPR, '{ADW, PC, q , C0}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
-  16'b1111_01??_????_????, begin dec = '{ GPR, '{ADW, PC, q , C0}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
+  //                                    {       alu                           ifu                                             }
+  //                                    {       {m  , d , r , c }             {sk, be, ad            , we, wd}                }
+  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, pc, Ks, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
+  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, pc, Ks, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
 
-  16'b1001_00??_????_0000: begin	pc_sel = PC_SEL_INC; pmem_ce = 1'b1; next_state = (pmem_d[9]) ? STS : LDS1;end
-
-  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
+//  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
   // no operation, same as NOP
   default:                 begin dec = '{ GPR, ALU, SRG, IFU, IOU, LSU, CTL }; end // NOP
 endcase
@@ -431,20 +453,20 @@ endcase
 always_ff @ (posedge clk)
 if (writeback) begin
   // TODO, add writeback option from load/store unit
-else if (~stall) begin
+end else if (~stall) begin
   if (dec.gpr.we) begin
     // TODO recode this, so it is appropriate for a register file or at least optimized
-    if (dec.gpr.ww) gpr.idx [{wa[5-1:1], 1'b0}+:2] <= wd;
-    else            gpr.idx [ wa                 ] <= wd[8-1:0];
+    if (dec.gpr.ww) gpr.idx [{dec.gpr.wa[5-1:1], 1'b0}+:2] <= dec.gpr.wd;
+    else            gpr.idx [ dec.gpr.wa                 ] <= dec.gpr.wd[8-1:0];
   end
 end
 
 // read word access
-assign Rw = gpr.idx [{rw[5-1:1], 1'b0}+:2];
-assign Rd = gpr.idx [rw];
+assign Rw = gpr.idx [{dec.gpr.rw[5-1:1], 1'b0}+:2];
+assign Rd = gpr.idx [ dec.gpr.rw                 ];
 
 // read byte access
-assign Rr = gpr.idx [rb];
+assign Rr = gpr.idx [ dec.gpr.rb];
 
 // swap of Rd
 assign Rs = {Rd[3:0], Rd[7:4]};
@@ -514,22 +536,6 @@ assign mul_s.z = ~|mul_r;
 assign mul_s.c = mul_t[15];
 
 ////////////////////////////////////////////////////////////////////////////////
-// status register access
-////////////////////////////////////////////////////////////////////////////////
-
-// SREG decode structure
-srg_dec_t srg = dec.srg;
-
-// SREG write access
-always_ff @ (posedge clk, posedge rst)
-if (rst)  sreg <= 8'b00000000;
-else if (~stall) begin
-  if (iou.wen & iou.adr==ADR_SREG)  sreg <= iou.wdt;
-  else                              sreg <= (srg.s &  sreg.m)
-                                          | (sreg  & ~sreg.m);
-end
-
-////////////////////////////////////////////////////////////////////////////////
 // instruction fetch unit
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -557,6 +563,47 @@ assign id = io_rdt;     // read data
 
 // TODO: SP and SREG access
 // TODO: access to extended address space registers is arround
+
+////////////////////////////////////////////////////////////////////////////////
+// status register access
+////////////////////////////////////////////////////////////////////////////////
+
+// I/O write access
+always_ff @ (posedge clk, posedge rst)
+if (rst)  sreg <= 8'b00000000;
+else if (~stall) begin
+  if (dec.iou.wen) begin
+    case (dec.iou.adr)
+      IOA_RAMPD: rampd <= dec.iou.wdt;
+      IOA_RAMPX: rampx <= dec.iou.wdt;
+      IOA_RAMPY: rampy <= dec.iou.wdt;
+      IOA_RAMPZ: rampz <= dec.iou.wdt;
+      IOA_EIND : eind  <= dec.iou.wdt;
+      IOA_SPL  : spl   <= dec.iou.wdt;
+      IOA_SPH  : sph   <= dec.iou.wdt;
+      IOA_SREG : sreg  <= dec.iou.wdt;
+      default  :
+    endcase
+  end else begin
+    sreg <= (dec.srg.s & dec.srg.m) | (sreg & ~dec.srg.m);
+  else
+end
+
+// I/O read access
+always_comb
+if (dec.iou.wen) begin
+  case (dec.iou.adr)
+    IOA_RAMPD: iou_rdt = rampd;
+    IOA_RAMPX: iou_rdt = rampx;
+    IOA_RAMPY: iou_rdt = rampy;
+    IOA_RAMPZ: iou_rdt = rampz;
+    IOA_EIND : iou_rdt = eind ;
+    IOA_SPL  : iou_rdt = spl  ;
+    IOA_SPH  : iou_rdt = sph  ;
+    IOA_SREG : iou_rdt = sreg ;
+    default  : iou_rdt = io_rdt;
+  endcase
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // load/store unit
