@@ -237,5 +237,9 @@ Specifying a data address space larger then 64kB (`DAW>16`) will create extended
 
 ### TODO
 
-1. It is not yet clear how many bits do `RAMPX`, `RAMPY`, `RAMPZ` have if `DAW-16` is greater then 0 but less then 8.
+1. Extended addressing register sizes:
+
+   Q: It is not yet clear how many bits do `RAMPX`, `RAMPY`, `RAMPZ` have if `DAW-16` is greater then 0 but less then 8.
+   A: Registers `RAMPD`, `RAMPX`, `RAMPY`, `RAMPZ`, `EIND` all have only as many bits as needed to address the vailable memory, unused bits read as `0`. It seems that the stack pointer size is limited to 16bits, I have not seen implementations with a different size. Also if less then 16 bits are needed, the unused beets are read as 0.
+
 2. It is not yet clear how many bits of `X`, `Y`, `Z` are changed by pre-decrement post-increment instructions, if `DAW<16`.
