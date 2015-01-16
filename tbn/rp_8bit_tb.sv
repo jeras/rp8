@@ -1,9 +1,11 @@
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 module rp_8bit_tb;
 
-localparam BI_IW =  8; // bus instruction - interrupt width
-localparam BI_AW = 11; // bus instruction - address   width
-localparam BD_AW = 13; // bus data        - address   width
+localparam IRW =  8; // bus instruction - interrupt width
+localparam PAW = 11; // bus instruction - address   width
+localparam DAW = 13; // bus data        - address   width
 
 // test class
 class test_class;
@@ -32,53 +34,69 @@ class test_class;
 endclass: test_class
 
 // system signals
-logic        clk;
-logic        rst;
+logic           clk; // clock
+logic           rst; // reset
 
-// instruction bus
-logic             pmem_ce;
-logic [BI_AW-1:0] pmem_a ;
-logic    [16-1:0] pmem_d ;
+// program bus
+logic           bp_vld; // valid (address, write enable, write data)
+logic           bp_wen; // write enable
+logic [PAW-1:0] bp_adr; // address
+logic  [16-1:0] bp_wdt; // write data
+logic  [16-1:0] bp_rdt; // read data
+logic [PAW-1:0] bp_npc; // new PC
+logic           bp_jmp; // debug jump request
+logic           bp_rdy; // ready (read data, new PC, debug jump request)
 // data bus
-logic             dmem_we;
-logic [BD_AW-1:0] dmem_a ;
-logic     [8-1:0] dmem_do;
-logic     [8-1:0] dmem_di;
-// peripheral bus
-logic             io_re;
-logic             io_we;
-logic     [6-1:0] io_a ;
-logic     [8-1:0] io_do;
-logic     [8-1:0] io_di;
-// interrupt
-logic [BI_IW-1:0] irq;
-logic [BI_IW-1:0] irq_ack;
+logic           bd_req;
+logic           bd_wen;
+logic [DAW-1:0] bd_adr;
+logic   [8-1:0] bd_wdt;
+logic   [8-1:0] bd_rdt;
+logic           bd_ack;
+// I/O peripheral bus
+logic           io_wen; // write enable
+logic           io_ren; // read  enable
+logic   [6-1:0] io_adr; // address
+logic   [8-1:0] io_wdt; // write data
+logic   [8-1:0] io_msk; // write mask
+logic   [8-1:0] io_rdt; // read data
+// interrupts
+logic [IRW-1:0] irq_req;
+logic [IRW-1:0] irq_ack;
 
 rp_8bit #(
-  .BI_IW (BI_IW),
-  .BI_AW (BI_AW),
-  .BD_AW (BD_AW)
-) UUT (
+  .IRW (IRW),
+  .PAW (PAW),
+  .DAW (DAW)
+) DUT (
   // system signals
   .clk     (clk),
   .rst     (rst),
-  // instruction bus
-  .pmem_ce (pmem_ce),
-  .pmem_a  (pmem_a ),
-  .pmem_d  (pmem_d ),
+  // program bus
+  .bp_vld  (bp_vld),
+  .bp_wen  (bp_wen),
+  .bp_adr  (bp_adr),
+  .bp_wdt  (bp_wdt),
+  .bp_rdt  (bp_rdt),
+  .bp_npc  (bp_npc),
+  .bp_jmp  (bp_jmp),
+  .bp_rdy  (bp_rdy),
   // data bus
-  .dmem_we (dmem_we),
-  .dmem_a  (dmem_a ),
-  .dmem_di (dmem_di),
-  .dmem_do (dmem_do),
-  // peripheral bus
-  .io_re   (io_re  ),
-  .io_we   (io_we  ),
-  .io_a    (io_a   ),
-  .io_do   (io_do  ),
-  .io_di   (io_di  ),
-  // interrupt
-  .irq     (irq    ),
+  .bd_req  (bd_req),
+  .bd_wen  (bd_wen),
+  .bd_adr  (bd_adr),
+  .bd_wdt  (bd_wdt),
+  .bd_rdt  (bd_rdt),
+  .bd_ack  (bd_ack),
+  // I/O peripheral bus
+  .io_wen  (io_wen),
+  .io_ren  (io_ren),
+  .io_adr  (io_adr),
+  .io_wdt  (io_wdt),
+  .io_msk  (io_msk),
+  .io_rdt  (io_rdt),
+  // interrupts
+  .irq_req (irq_req),
   .irq_ack (irq_ack)
 );
 
@@ -86,7 +104,7 @@ rp_8bit #(
 // clocking
 ////////////////////////////////////////////////////////////////////////////////
 
-initial    clk = 1'b0;
+sinitial    clk = 1'b0;
 always #50 clk = ~clk;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,18 +128,24 @@ end
 // instruction memory
 ////////////////////////////////////////////////////////////////////////////////
 
-logic [16-1:0] pmem [0:2**BI_AW-1];
-
-initial $readmemh ("test_isa.vmem", pmem);
-
-always @(posedge clk)
-if (pmem_ce)  pmem_d <= pmem[pmem_a];
+mem #(
+  .FN ("test_isa.vmem"),
+  .SZ (0:2**PAW-1),
+  .DW (16)
+)(
+  .clk (clk),
+  .ena (bp_ena),
+  .wen (bp_wen),
+  .adr (bp_adr),
+  .wdt (bp_wdt),
+  .rdt (bp_rdt),
+);
 
 string str;
 bit [0:32-1] [8-1:0] asm;
 
 always_comb begin
-  str = rp_8bit_disasm::disasm(pmem_d);
+  str = rp_8bit_disasm::disasm(bp_rdt);
   asm = '0;
   for (int i=0; i<str.len(); i++) begin
     asm [i] = (8)'(str[i]);
@@ -132,51 +156,42 @@ end
 // data memory
 ////////////////////////////////////////////////////////////////////////////////
 
-logic  [8-1:0] dmem [0:2**BD_AW-1];
-
-always @(posedge clk)
-if (dmem_we)  dmem[dmem_a] <= dmem_do;
-else          dmem_di <= dmem[dmem_a];
-
-////////////////////////////////////////////////////////////////////////////////
-// interrupts
-////////////////////////////////////////////////////////////////////////////////
-
-assign irq = '0;
+mem #(
+  .SZ (0:2**DAW-1),
+  .DW (8)
+)(
+  .clk (clk),
+  .ena (bd_ena),
+  .wen (bd_wen),
+  .adr (bd_adr),
+  .wdt (bd_wdt),
+  .rdt (bd_rdt),
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 // periphery
 ////////////////////////////////////////////////////////////////////////////////
 
-integer     output_idx;
-logic [7:0] output_buf [1023:0];
-event       output_eof;
+logic [8-1:0] io_mem [0:64-1];
 
-initial begin
-	output_idx = 0;
+always @(posedge clk, posedge rst)
+if (rst) begin
+  for (int unsigned i=0; i<64; i++)
+    io_mem[io_adr] <= 8'h00;
+end else begin
+  if (io_wen) io_mem[io_wdt] <= io_wdt;
+  if (io_ren) io_rdt <= io_mem[io_adr];
 end
 
-always @(posedge clk) begin
-	if (io_we && io_a == 42) begin
-		$display("+LOG+ %t IO @%x   %x  <---", $time, io_a, io_do);
-		if (io_do == 0) begin
-			-> output_eof;
-		end else begin
-			output_buf[output_idx] = io_do;
-			output_idx = output_idx + 1;
-		end
-	end
-	io_di <= 0;
-end
+////////////////////////////////////////////////////////////////////////////////
+// interrupts
+////////////////////////////////////////////////////////////////////////////////
 
-always @(output_eof) begin
-	#1001;
-	$display("Got EOF marker on IO port.");
-	for (int i=0; i<output_idx; i++) begin
-		$display("+OUT+ %t %d", $time, output_buf[i]);
-	end
-	$finish;
-end
+assign irq_req = '0;
+
+////////////////////////////////////////////////////////////////////////////////
+// waveforms
+////////////////////////////////////////////////////////////////////////////////
 
 initial begin
   $dumpfile("rp_8bit_tb.vcd");
