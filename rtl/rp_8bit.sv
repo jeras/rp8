@@ -33,13 +33,6 @@ module rp_8bit #(
   input  logic [PAW-1:0] bp_npc, // new PC
   input  logic           bp_jmp, // debug jump request
   input  logic           bp_rdy, // ready (read data, new PC, debug jump request)
-  // I/O peripheral bus
-  output logic           io_wen, // write enable
-  output logic           io_ren, // read  enable
-  output logic   [6-1:0] io_adr, // address
-  output logic   [8-1:0] io_wdt, // write data
-  input  logic   [8-1:0] io_msk, // write mask
-  input  logic   [8-1:0] io_rdt, // read data
   // data bus
   output logic           bd_req,
   output logic           bd_wen,
@@ -47,6 +40,13 @@ module rp_8bit #(
   output logic   [8-1:0] bd_wdt,
   input  logic   [8-1:0] bd_rdt,
   input  logic           bd_ack,
+  // I/O peripheral bus
+  output logic           io_wen, // write enable
+  output logic           io_ren, // read  enable
+  output logic   [6-1:0] io_adr, // address
+  output logic   [8-1:0] io_wdt, // write data
+  input  logic   [8-1:0] io_msk, // write mask
+  input  logic   [8-1:0] io_rdt, // read data
   // interrupt
   input  logic [IRW-1:0] irq_req,
   output logic [IRW-1:0] irq_ack
@@ -233,6 +233,15 @@ logic [18-1:0] mul_t; // result tmp
 logic [16-1:0] mul_r; // result
 sreg_t         mul_s;
 
+// TODO RAMPX, RAMPY, RAMPZ
+
+logic [DAW-1:0] ex, ey, ez, ed, ea;
+
+logic [DAW-16:0] rampx;
+logic [DAW-16:0] rampy;
+logic [DAW-16:0] rampz;
+logic [DAW-16:0] rampd;
+
 ////////////////////////////////////////////////////////////////////////////////
 // register addresses and immediates
 ////////////////////////////////////////////////////////////////////////////////
@@ -371,17 +380,17 @@ casez (pw)
   // TODO: separate load from store instructions
 //  16'b1001_00??_????_1111, // PUSH/POP
 //  16'b1001_00??_????_1111, // PUSH/POP
-  //                                    {  gpr                                   alu                                     lsu                   }
-  //                                    {  {we, ww, wd           , wa, rw, rb}   {m  , d , r , c }                       {cs, we, ty, ad}      }
-  16'b1001_00??_????_1100: begin dec = '{ '{C0, CX, WX           , RX, DX, RX}, ALU               , MUL, SRG, IFU, IOU, '{C1, C0, RG, ex}, CTL }; end // X
-  16'b1001_00??_????_1101: begin dec = '{ '{C1, C1, alu_t[16-1:0], DX, DX, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ex}, CTL }; end // X+
-  16'b1001_00??_????_1110: begin dec = '{ '{C1, C1, alu_t[16-1:0], DX, DX, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ea}, CTL }; end // -X
-  16'b10?0_????_????_1???: begin dec = '{ '{C0, CX, WX           , RX, DY, RX}, '{ADW, Rd, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ea}, CTL }; end // Y+q
-  16'b1001_00??_????_1001: begin dec = '{ '{C1, C1, alu_t[16-1:0], DY, DY, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ey}, CTL }; end // Y+
-  16'b1001_00??_????_1010: begin dec = '{ '{C1, C1, alu_t[16-1:0], DY, DY, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ea}, CTL }; end // -Y
-  16'b10?0_????_????_0???: begin dec = '{ '{C0, CX, WX           , RX, DZ, RX}, '{ADW, Rd, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ea}, CTL }; end // Z+q
-  16'b1001_00??_????_0001: begin dec = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ez}, CTL }; end // Z+
-  16'b1001_00??_????_0010: begin dec = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, RG, ea}, CTL }; end // -Z
+  //                                    {  gpr                                   alu                                     lsu                           }
+  //                                    {  {we, ww, wd           , wa, rw, rb}   {m  , d , r , c }                       {en, we, st, sb, ad, wd}      }
+  16'b1001_00??_????_1100: begin dec = '{ '{C0, CX, WX           , RX, DX, RX}, ALU               , MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ex, Rd}, CTL }; end // X
+  16'b1001_00??_????_1101: begin dec = '{ '{C1, C1, alu_t[16-1:0], DX, DX, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ex, Rd}, CTL }; end // X+
+  16'b1001_00??_????_1110: begin dec = '{ '{C1, C1, alu_t[16-1:0], DX, DX, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, Rd}, CTL }; end // -X
+  16'b10?0_????_????_1???: begin dec = '{ '{C0, CX, WX           , RX, DY, RX}, '{ADW, Rd, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, Rd}, CTL }; end // Y+q
+  16'b1001_00??_????_1001: begin dec = '{ '{C1, C1, alu_t[16-1:0], DY, DY, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ey, Rd}, CTL }; end // Y+
+  16'b1001_00??_????_1010: begin dec = '{ '{C1, C1, alu_t[16-1:0], DY, DY, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, Rd}, CTL }; end // -Y
+  16'b10?0_????_????_0???: begin dec = '{ '{C0, CX, WX           , RX, DZ, RX}, '{ADW, Rd, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, Rd}, CTL }; end // Z+q
+  16'b1001_00??_????_0001: begin dec = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ez, Rd}, CTL }; end // Z+
+  16'b1001_00??_????_0010: begin dec = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, Rd}, CTL }; end // -Z
   // I/O instructions
   //                                    {  gpr                                                  iou                                }
   //                                    {  {we, ww, wd      , wa, rw, rb}                       {we, re, ad, wd, ms    }           }
@@ -554,15 +563,6 @@ assign id = io_rdt;     // read data
 ////////////////////////////////////////////////////////////////////////////////
 
 // SP incrementing decrementing is done here
-
-// TODO RAMPX, RAMPY, RAMPZ
-
-logic [DAW-1:0] ex, ex, ez, ea;
-
-logic [DAW-16:0] rampx;
-logic [DAW-16:0] rampy;
-logic [DAW-16:0] rampz;
-logic [DAW-16:0] rampd;
 
 assign ex = {rampx, Rw};
 assign ey = {rampy, Rw};
