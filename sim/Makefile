@@ -5,14 +5,15 @@ TBN=../tbn/rp_8bit_disasm.sv ../tbn/rp_8bit_tb.sv
 
 all: modelsim
 
+copy_test_isa:
+	cp -f ../src/test_isa/test_isa.elf .
+	cp -f ../src/test_isa/test_isa.vmem .
+
 iverilog:
 	iverilog -g2012 -o $(RTL) $(TBN)
 	vvp rp_8bit.out
 
-verilator:
-	# TODO generalize this
-	cp -f ../src/test_isa/test_isa.elf .
-	cp -f ../src/test_isa/test_isa.vmem .
+verilator: copy_test_isa
 	# compile SystemVerilog sources
 	verilator -Wall --cc --trace --exe ../tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
 	-Wno-fatal \
@@ -27,7 +28,7 @@ verilator:
 	# run executable simulation
 	LD_LIBRARY_PATH=/usr/local/lib/ obj_dir/Vrp_8bit_verilator
 
-modelsim:
+modelsim: copy_test_isa
 	$(MODELSIM_BIN)/vlib work
 	$(MODELSIM_BIN)/vlog $(RTL) $(TBN)
 	$(MODELSIM_BIN)/vsim -c -do 'run -all;quit' rp_8bit_tb

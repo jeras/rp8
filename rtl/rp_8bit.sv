@@ -138,8 +138,8 @@ typedef struct packed {
     EOR = 3'b110, // logic eor
     SHR = 3'b111  // shift right
   } m;               // alu modes
-  logic   [8-1:0] d; // destination register value
-  logic   [8-1:0] r; // source      register value
+  logic  [AW-1:0] d; // destination operand value
+  logic  [AW-1:0] r; // source      operand value
   logic           c; // carry input
 } alu_dec_t;
 
@@ -150,8 +150,8 @@ typedef struct packed {
     logic d; // destination (0 - unsigned, 1 - signed)
     logic r; // source      (0 - unsigned, 1 - signed)
   } m;               // adder modes
-  logic   [8-1:0] d; // destination register value
-  logic   [8-1:0] r; // source      register value
+  logic   [8-1:0] d; // destination operand value
+  logic   [8-1:0] r; // source      operand value
 } mul_dec_t;
 
 // status register decode structure
@@ -399,7 +399,7 @@ unique casez (pw)
   //                                    {  gpr                                                         }
   //                                    {  {we, ww, wd     , wa, rw, rb}                               }
   16'b0010_11??_????_????: begin dec = '{ '{C1, C0, {2{Rr}}, db, db, rb}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // MOV
-  16'b1110_????_????_????: begin dec = '{ '{C1, C0, {2{kb}}, dw, dw, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // LDI
+  16'b1110_????_????_????: begin dec = '{ '{C1, C0, {2{kb}}, dh, RX, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // LDI
   16'b1001_010?_????_0010: begin dec = '{ '{C1, C0, {2{Rs}}, db, db, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // SWAP
   // bit manipulation
   //                                    {                 srg                                    }
@@ -597,6 +597,9 @@ assign bp_vld = ~ifu_rst;
 // program write enable
 assign bp_wen = 1'b0;
 
+// TODO: this should be more complex
+assign stall = 1'b0;
+
 // TODO exception code should be here too
 
 //// instruction fetch unit decode structure
@@ -756,16 +759,16 @@ logic   [5-1:0] dec_gpr_wa; // write address
 logic   [5-1:0] dec_gpr_rw; // read address for word (16 bit)
 logic   [5-1:0] dec_gpr_rb; // read address for byte (8 bit)
 // arithmetic logic unit decode structure
-logic   [3-1:0] dec_alu_m;             // alu modes
-logic   [8-1:0] dec_alu_d; // destination register value
-logic   [8-1:0] dec_alu_r; // source      register value
+logic   [3-1:0] dec_alu_m; // alu modes
+logic  [AW-1:0] dec_alu_d; // destination operand value
+logic  [AW-1:0] dec_alu_r; // source      operand value
 logic           dec_alu_c; // carry input
 // multiplier decode structure
 logic           dec_mul_m_f; // fractional
 logic           dec_mul_m_d; // destination (0 - unsigned, 1 - signed)
 logic           dec_mul_m_r; // source      (0 - unsigned, 1 - signed)
-logic   [8-1:0] dec_mul_d; // destination register value
-logic   [8-1:0] dec_mul_r; // source      register value
+logic   [8-1:0] dec_mul_d; // destination operand value
+logic   [8-1:0] dec_mul_r; // source      operand value
 // status register decode structure
 sreg_t          dec_srg_s; // status
 sreg_t          dec_srg_m; // mask
