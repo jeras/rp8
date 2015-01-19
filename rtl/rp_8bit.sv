@@ -118,19 +118,17 @@ typedef struct packed {logic i, t, h, s, v, n, z, c;} sreg_t;
 // general purpose registers decode structure
 typedef struct packed {
   // write access
-  logic          we; // write enable
-  logic          ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
-  logic [16-1:0] wd; // write data 16 bit
-  logic  [5-1:0] wa; // write address 
-  // read word (16 bit) access
-  logic  [5-1:0] rw; // read word address
-  // read byte (8 bit) access
-  logic  [5-1:0] rb; // read byte address
+  logic           we; // write enable
+  logic           ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
+  logic  [16-1:0] wd; // write data 16 bit
+  logic   [5-1:0] wa; // write address 
+  logic   [5-1:0] rw; // read word (16 bit) address
+  logic   [5-1:0] rb; // read byte (8 bit) address
 } gpr_dec_t;
 
 // arithmetic logic unit decode structure
 typedef struct packed {
-  enum logic [2:0] {
+  enum logic [3-1:0] {
     ADD = 3'b000, // addition
     SUB = 3'b001, // subtraction
     ADW = 3'b010, // addition    for word or address
@@ -139,10 +137,10 @@ typedef struct packed {
     OR  = 3'b101, // logic or
     EOR = 3'b110, // logic eor
     SHR = 3'b111  // shift right
-  } m;             // alu modes
-  logic [8-1:0] d; // destination register value
-  logic [8-1:0] r; // source      register value
-  logic         c; // carry input
+  } m;               // alu modes
+  logic   [8-1:0] d; // destination register value
+  logic   [8-1:0] r; // source      register value
+  logic           c; // carry input
 } alu_dec_t;
 
 // multiplier decode structure
@@ -151,20 +149,20 @@ typedef struct packed {
     logic f; // fractional
     logic d; // destination (0 - unsigned, 1 - signed)
     logic r; // source      (0 - unsigned, 1 - signed)
-  } m;             // adder modes
-  logic [8-1:0] d; // destination register value
-  logic [8-1:0] r; // source      register value
+  } m;               // adder modes
+  logic   [8-1:0] d; // destination register value
+  logic   [8-1:0] r; // source      register value
 } mul_dec_t;
 
 // status register decode structure
 typedef struct packed {
-  sreg_t s; // status
-  sreg_t m; // mask
+  sreg_t          s; // status
+  sreg_t          m; // mask
 } srg_dec_t;
 
 // instruction fetch unit decode structure
 typedef struct packed {
-  logic           sk; // skeep
+  logic           sk; // skip
   logic           be; // branch enable
   logic [PAW-1:0] ad; // address
   logic           we; // write enable (for SPM instruction)
@@ -217,6 +215,25 @@ dec_t dec;
 
 // program word
 logic [16-1:0] pw;
+
+// destination/source register address for:
+logic [5-1:0] db, rb; // full space bytes (used by MOV and arithmetic)
+logic [5-1:0] dw, rw; // full space words (used by MOVW)
+logic [5-1:0] dh, rh; // high half space (used by MULS, arithmetic immediate, load store direct)
+logic [5-1:0] dm, rm; // third quarter space (used by *MUL*)
+logic [5-1:0] di;     // index registers (used by ADIW/SBIW)
+
+// various immediate constans decoded from instruction word
+logic         [8-1:0] kb; // byte (8 bit) immediate for ALU operations
+logic         [6-1:0] kw; // word (6bit) for address adder
+logic         [6-1:0] a ; // I/O address
+logic signed [12-1:0] Kl;
+logic signed  [7-1:0] Ks;
+logic         [6-1:0] q ;
+logic         [3-1:0] b ; // bit address
+
+// reusable_results
+logic Rd_b;
 
 // read register values
 logic  [8-1:0] Rd; // destination
@@ -292,37 +309,37 @@ localparam logic [5-1:0] DZ = 5'h1e; // index register Z
 assign pw = bp_rdt;
 
 // destination/source register address for full space bytes (used by MOV and arithmetic)
-logic [5-1:0] db =         pw[8:4] ;
-logic [5-1:0] rb = {pw[9], pw[3:0]};
+assign db =         pw[8:4] ;
+assign rb = {pw[9], pw[3:0]};
 // destination/source register address for full space words (used by MOVW)
-logic [5-1:0] dw =        {pw[7:4], 1'b0};
-logic [5-1:0] rw =        {pw[3:0], 1'b0};
+assign dw =        {pw[7:4], 1'b0};
+assign rw =        {pw[3:0], 1'b0};
 // destination/source register address for high half space (used by MULS, arithmetic immediate, load store direct)
-logic [5-1:0] dh =  {1'b1, pw[7:4]};
-logic [5-1:0] rh =  {1'b1, pw[3:0]};
+assign dh =  {1'b1, pw[7:4]};
+assign rh =  {1'b1, pw[3:0]};
 // destination/source register address for third quarter space (used by *MUL*)
-logic [5-1:0] dm = {2'b10, pw[6:4]};
-logic [5-1:0] rm = {2'b10, pw[2:0]};
+assign dm = {2'b10, pw[6:4]};
+assign rm = {2'b10, pw[2:0]};
 // destination register address for index registers (used by ADIW/SBIW)
-logic [5-1:0] di = {2'b11, pw[5:4], 1'b0};
+assign di = {2'b11, pw[5:4], 1'b0};
 
 // byte (8 bit) immediate for ALU operations
-logic [8-1:0] kb = {pw[11:8], pw[3:0]};
+assign kb = {pw[11:8], pw[3:0]};
 // word (6bit) for address adder
-logic [6-1:0] kw = {pw[7:6], pw[3:0]};
+assign kw = {pw[7:6], pw[3:0]};
 
 // I/O address
-logic [6-1:0] a = {pw[10:9], pw[3:0]};
+assign a = {pw[10:9], pw[3:0]};
 
-logic signed [12-1:0] Kl = pw[11:0];
-logic signed  [7-1:0] Ks = pw[ 9:3];
-logic         [6-1:0] q = {pw[13], pw[11:10], pw[2:0]};
+assign Kl = pw[11:0];
+assign Ks = pw[ 9:3];
+assign q = {pw[13], pw[11:10], pw[2:0]};
 
 // bit address
-logic [3-1:0] b  = pw[2:0];
+assign b  = pw[2:0];
 
 // reusable_results
-logic Rd_b = Rd[b];
+assign Rd_b = Rd[b];
 
 ////////////////////////////////////////////////////////////////////////////////
 // instruction decoder
@@ -339,7 +356,7 @@ localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: {DAW{CX}}, wd: 
 localparam ctl_dec_t CTL = '{slp: C0, brk: C0, wdr: C0};
 
 always_comb
-casez (pw)
+unique casez (pw)
   // no operation, same as default
   16'b0000_0000_0000_0000: begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // NOP
   // arithmetic
@@ -431,8 +448,8 @@ casez (pw)
   // flow control
   //                                    {  gpr                        alu                           ifu                                     lsu                           }
   //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d , r , c }             {sk, be, ad            , we, wd}        {en, we, st, sb, ad, wd}      }
-  16'b1100_????_????_????: begin dec = '{ GPR                      , '{SUB, pc, Kl, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU                      , CTL }; end // RJMP
-  16'b1101_????_????_????: begin dec = '{ GPR                      , '{SUB, pc, Kl, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX}, CTL }; end // RCALL
+  16'b1100_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU                      , CTL }; end // RJMP
+  16'b1101_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX}, CTL }; end // RCALL
   16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C1, Rw            , C0, WX}, IOU, LSU                      , CTL }; end // IJMP
   16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C1, Rw            , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX}, CTL }; end // ICALL
   // TODO
@@ -549,9 +566,47 @@ always_ff @(posedge clk, posedge rst)
 if (rst) ifu_rst <= 1'b1;
 else     ifu_rst <= 1'b0;
 
+// instruction fetch state
+enum logic [2-1:0] {
+  NRM = 2'b00, // normal
+  SKP = 2'b01, // skip
+  WBK = 2'b10, // writeback
+  P32 = 2'b11  // instruction 32 bit long
+} ifu_sts;
+
+// instruction fetch state machine
+always_ff @(posedge clk, posedge rst)
+if (rst) ifu_sts <= NRM;
+else begin
+  ifu_sts <= NRM;
+end
+
+// program counter
+always_ff @(posedge clk, posedge rst)
+if (rst) pc <= '1;
+else begin
+  if (bp_rdy) pc <= bp_adr;
+end
+
+// program address
+assign bp_adr = dec.ifu.be ? dec.ifu.ad : pc + 'd1;
+
+// program memory enable
+assign bp_vld = ~ifu_rst;
+
+// program write enable
+assign bp_wen = 1'b0;
+
 // TODO exception code should be here too
 
-// TODO EIND register should be here
+//// instruction fetch unit decode structure
+//typedef struct packed {
+//  logic           sk; // skip
+//  logic           be; // branch enable
+//  logic [PAW-1:0] ad; // address
+//  logic           we; // write enable (for SPM instruction)
+//  logic  [16-1:0] wd; // write data   (for SPM instruction)
+//} ifu_dec_t;
 
 ////////////////////////////////////////////////////////////////////////////////
 // status register access
@@ -686,5 +741,95 @@ function void dump_state_core (
 endfunction: dump_state_core
 
 `endif
+
+////////////////////////////////////////////////////////////////////////////////
+// VCD specific bench code
+////////////////////////////////////////////////////////////////////////////////
+
+/* verilator lint_off UNUSED */
+
+// general purpose registers decode structure
+logic           dec_gpr_we; // write enable
+logic           dec_gpr_ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
+logic  [16-1:0] dec_gpr_wd; // write data 16 bit
+logic   [5-1:0] dec_gpr_wa; // write address 
+logic   [5-1:0] dec_gpr_rw; // read address for word (16 bit)
+logic   [5-1:0] dec_gpr_rb; // read address for byte (8 bit)
+// arithmetic logic unit decode structure
+logic   [3-1:0] dec_alu_m;             // alu modes
+logic   [8-1:0] dec_alu_d; // destination register value
+logic   [8-1:0] dec_alu_r; // source      register value
+logic           dec_alu_c; // carry input
+// multiplier decode structure
+logic           dec_mul_m_f; // fractional
+logic           dec_mul_m_d; // destination (0 - unsigned, 1 - signed)
+logic           dec_mul_m_r; // source      (0 - unsigned, 1 - signed)
+logic   [8-1:0] dec_mul_d; // destination register value
+logic   [8-1:0] dec_mul_r; // source      register value
+// status register decode structure
+sreg_t          dec_srg_s; // status
+sreg_t          dec_srg_m; // mask
+// instruction fetch unit decode structure
+logic           dec_ifu_sk; // skip
+logic           dec_ifu_be; // branch enable
+logic [PAW-1:0] dec_ifu_ad; // address
+logic           dec_ifu_we; // write enable (for SPM instruction)
+logic  [16-1:0] dec_ifu_wd; // write data   (for SPM instruction)
+// input/output unit decode structure
+logic           dec_iou_we; // write enable
+logic           dec_iou_re; // read  enable
+logic   [6-1:0] dec_iou_ad; // address
+logic   [8-1:0] dec_iou_wd; // write data
+logic   [8-1:0] dec_iou_ms; // write mask
+// load/store unit decode structure
+logic           dec_lsu_en; // enable
+logic           dec_lsu_we; // write enable
+logic           dec_lsu_st; // stack push/pop
+logic           dec_lsu_sb; // subroutine/interrupt call/return
+logic [DAW-1:0] dec_lsu_ad; // address
+logic   [8-1:0] dec_lsu_wd; // write data
+// control decode structure
+logic           dec_ctl_slp; // sleep
+logic           dec_ctl_brk; // break
+logic           dec_ctl_wdr; // watchdog reset
+
+assign {dec_gpr_we,
+        dec_gpr_ww,
+        dec_gpr_wd,
+        dec_gpr_wa,
+        dec_gpr_rw,
+        dec_gpr_rb,
+        dec_alu_m,
+        dec_alu_d,
+        dec_alu_r,
+        dec_alu_c,
+        dec_mul_m_f,
+        dec_mul_m_d,
+        dec_mul_m_r,
+        dec_mul_d,
+        dec_mul_r,
+        dec_srg_s,
+        dec_srg_m,
+        dec_ifu_sk,
+        dec_ifu_be,
+        dec_ifu_ad,
+        dec_ifu_we,
+        dec_ifu_wd,
+        dec_iou_we,
+        dec_iou_re,
+        dec_iou_ad,
+        dec_iou_wd,
+        dec_iou_ms,
+        dec_lsu_en,
+        dec_lsu_we,
+        dec_lsu_st,
+        dec_lsu_sb,
+        dec_lsu_ad,
+        dec_lsu_wd,
+        dec_ctl_slp,
+        dec_ctl_brk,
+        dec_ctl_wdr} = dec;
+
+/* verilator lint_on UNUSED */
 
 endmodule: rp_8bit

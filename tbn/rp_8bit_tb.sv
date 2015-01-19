@@ -134,12 +134,24 @@ mem #(
   .DW (16)
 ) bp_mem (
   .clk (clk),
-  .ena (bp_ena),
+  .ena (bp_vld),
   .wen (bp_wen),
   .adr (bp_adr),
   .wdt (bp_wdt),
   .rdt (bp_rdt)
 );
+
+// TODO: for now there will be no delays on the program bus
+always @ (posedge clk)
+bp_rdy <= bp_vld;
+
+// TODO, debugger code is not yet available
+assign bp_npc = 'x;
+assign bp_jmp = 1'b0;
+
+////////////////////////////////////////////////////////////////////////////////
+// instruction decoder
+////////////////////////////////////////////////////////////////////////////////
 
 string str;
 bit [0:32-1] [8-1:0] asm;
@@ -161,7 +173,7 @@ mem #(
   .DW (8)
 ) bd_mem (
   .clk (clk),
-  .ena (bd_ena),
+  .ena (bd_req),
   .wen (bd_wen),
   .adr (bd_adr),
   .wdt (bd_wdt),

@@ -1,0 +1,160 @@
+[*]
+[*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
+[*] Mon Jan 19 19:38:27 2015
+[*]
+[dumpfile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.vcd"
+[dumpfile_mtime] "Mon Jan 19 19:32:00 2015"
+[dumpfile_size] 19603
+[savefile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.gtkw"
+[timestart] 305
+[size] 1434 1132
+[pos] -1 -1
+*-7.229558 750 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] rp_8bit_tb.
+[sst_width] 242
+[signals_width] 245
+[sst_expanded] 1
+[sst_vpaned_height] 349
+@24
+rp_8bit_tb.IRW[31:0]
+rp_8bit_tb.PAW[31:0]
+rp_8bit_tb.DAW[31:0]
+@28
+rp_8bit_tb.clk
+rp_8bit_tb.rst
+@820
+rp_8bit_tb.asm[255:0]
+@800200
+-program
+@28
+rp_8bit_tb.bp_vld
+rp_8bit_tb.bp_wen
+@22
+rp_8bit_tb.bp_adr[10:0]
+rp_8bit_tb.bp_wdt[15:0]
+rp_8bit_tb.bp_rdt[15:0]
+rp_8bit_tb.bp_npc[10:0]
+@28
+rp_8bit_tb.bp_jmp
+rp_8bit_tb.bp_rdy
+@1000200
+-program
+@800200
+-data
+@28
+rp_8bit_tb.bd_req
+rp_8bit_tb.bd_wen
+@22
+rp_8bit_tb.bd_adr[12:0]
+rp_8bit_tb.bd_wdt[7:0]
+rp_8bit_tb.bd_rdt[7:0]
+@28
+rp_8bit_tb.bd_ack
+@1000200
+-data
+@800200
+-I/O
+@28
+rp_8bit_tb.io_wen
+rp_8bit_tb.io_ren
+@22
+rp_8bit_tb.io_adr[5:0]
+rp_8bit_tb.io_wdt[7:0]
+rp_8bit_tb.io_msk[7:0]
+rp_8bit_tb.io_rdt[7:0]
+@1000200
+-I/O
+@22
+rp_8bit_tb.irq_ack[7:0]
+rp_8bit_tb.irq_req[7:0]
+rp_8bit_tb.DUT.dec[169:0]
+@800200
+-decoder
+-decoder GPR
+@28
+rp_8bit_tb.DUT.dec_gpr_we
+rp_8bit_tb.DUT.dec_gpr_ww
+@22
+rp_8bit_tb.DUT.dec_gpr_wd[15:0]
+rp_8bit_tb.DUT.dec_gpr_wa[4:0]
+rp_8bit_tb.DUT.dec_gpr_rw[4:0]
+rp_8bit_tb.DUT.dec_gpr_rb[4:0]
+@1000200
+-decoder GPR
+@800200
+-decoder ALU
+@28
+rp_8bit_tb.DUT.dec_alu_m[2:0]
+@22
+rp_8bit_tb.DUT.dec_alu_d[7:0]
+rp_8bit_tb.DUT.dec_alu_r[7:0]
+@28
+rp_8bit_tb.DUT.dec_alu_c
+@1000200
+-decoder ALU
+@800200
+-decoder MUL
+@28
+rp_8bit_tb.DUT.dec_mul_m_f
+rp_8bit_tb.DUT.dec_mul_m_d
+rp_8bit_tb.DUT.dec_mul_m_r
+@22
+rp_8bit_tb.DUT.dec_mul_d[7:0]
+rp_8bit_tb.DUT.dec_mul_r[7:0]
+@1000200
+-decoder MUL
+@800200
+-decoder SREG
+@22
+rp_8bit_tb.DUT.dec_srg_m[7:0]
+rp_8bit_tb.DUT.dec_srg_s[7:0]
+@1000200
+-decoder SREG
+@800200
+-decoder IFU
+@28
+rp_8bit_tb.DUT.dec_ifu_sk
+rp_8bit_tb.DUT.dec_ifu_be
+@22
+rp_8bit_tb.DUT.dec_ifu_ad[10:0]
+@28
+rp_8bit_tb.DUT.dec_ifu_we
+@22
+rp_8bit_tb.DUT.dec_ifu_wd[15:0]
+@1000200
+-decoder IFU
+@800200
+-decoder IOU
+@28
+rp_8bit_tb.DUT.dec_iou_we
+rp_8bit_tb.DUT.dec_iou_re
+@22
+rp_8bit_tb.DUT.dec_iou_ad[5:0]
+rp_8bit_tb.DUT.dec_iou_wd[7:0]
+rp_8bit_tb.DUT.dec_iou_ms[7:0]
+@1000200
+-decoder IOU
+@c00200
+-decoder LSU
+@28
+rp_8bit_tb.DUT.dec_lsu_en
+rp_8bit_tb.DUT.dec_lsu_we
+rp_8bit_tb.DUT.dec_lsu_st
+rp_8bit_tb.DUT.dec_lsu_sb
+@22
+rp_8bit_tb.DUT.dec_lsu_ad[12:0]
+rp_8bit_tb.DUT.dec_lsu_wd[7:0]
+@1401200
+-decoder LSU
+@c00201
+-decoder CTL
+@28
+rp_8bit_tb.DUT.dec_ctl_slp
+rp_8bit_tb.DUT.dec_ctl_brk
+rp_8bit_tb.DUT.dec_ctl_wdr
+@1401201
+-decoder CTL
+@1000200
+-decoder
+[pattern_trace] 1
+[pattern_trace] 0
