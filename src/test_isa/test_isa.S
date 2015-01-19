@@ -694,38 +694,70 @@ test_lds_16:
 ;-------------------------------------------------------------------------------
 
 init_clr:
-  clr r0
-  clr r1
-  clr r2
-  clr r3
-  clr r4
-  clr r5
-  clr r6
-  clr r7
-  clr r8
-  clr r9
-  clr r10
-  clr r11
-  clr r12
-  clr r13
-  clr r14
-  clr r15
-  clr r16
-  clr r17
-  clr r18
-  clr r19
-  clr r20
-  clr r21
-  clr r22
-  clr r23
-  clr r24
-  clr r25
-  clr r26
-  clr r27
-  clr r28
-  clr r29
-  clr r30
-  clr r31
+;  clr r0
+;  clr r1
+;  clr r2
+;  clr r3
+;  clr r4
+;  clr r5
+;  clr r6
+;  clr r7
+;  clr r8
+;  clr r9
+;  clr r10
+;  clr r11
+;  clr r12
+;  clr r13
+;  clr r14
+;  clr r15
+;  clr r16
+;  clr r17
+;  clr r18
+;  clr r19
+;  clr r20
+;  clr r21
+;  clr r22
+;  clr r23
+;  clr r24
+;  clr r25
+;  clr r26
+;  clr r27
+;  clr r28
+;  clr r29
+;  clr r30
+;  clr r31
+  ldi r16,0x00
+  ldi r17,0x00
+  ldi r18,0x00
+  ldi r19,0x00
+  ldi r20,0x00
+  ldi r21,0x00
+  ldi r22,0x00
+  ldi r23,0x00
+  ldi r24,0x00
+  ldi r25,0x00
+  ldi r26,0x00
+  ldi r27,0x00
+  ldi r28,0x00
+  ldi r29,0x00
+  ldi r30,0x00
+  ldi r31,0x00
+  mov r0 ,r16
+  mov r1 ,r17
+  mov r2 ,r18
+  mov r3 ,r19
+  mov r4 ,r20
+  mov r5 ,r21
+  mov r6 ,r22
+  mov r7 ,r23
+  mov r8 ,r24
+  mov r9 ,r25
+  mov r10,r26
+  mov r11,r27
+  mov r12,r28
+  mov r13,r29
+  mov r14,r30
+  mov r15,r31
   ret
 
 init_const:
