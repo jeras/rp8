@@ -431,7 +431,7 @@ unique casez (pw)
   16'b1001_00??_????_0001: begin dec = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{ADW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ez, Rd}, CTL }; end // Z+
   16'b1001_00??_????_0010: begin dec = '{ '{C1, C1, alu_t[16-1:0], DZ, DZ, RX}, '{SBW, Rd, K0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, Rd}, CTL }; end // -Z
   // I/O instructions
-  //                                    {  gpr                                                  iou                                }
+  //                                    {  gpr                                            iou                                }
   //                                    {  {we, ww, wd, wa, rw, rb}                       {we, re, ad, wd, ms    }           }
   16'b1011_0???_????_????: begin dec = '{ '{C1, C0, id, db, RX, RX}, ALU, MUL, SRG, IFU, '{C0, C1, a , KX, KX    }, LSU, CTL }; end // IN
   16'b1011_1???_????_????: begin dec = '{ '{C0, C0, WX, RX, db, RX}, ALU, MUL, SRG, IFU, '{C1, C0, a , Rd, KF    }, LSU, CTL }; end // OUT
@@ -594,22 +594,21 @@ assign bp_adr = dec.ifu.be ? dec.ifu.ad : pc + 'd1;
 // program memory enable
 assign bp_vld = ~ifu_rst;
 
-// program write enable
-assign bp_wen = 1'b0;
-
 // TODO: this should be more complex
+// TODO: some skip code should probably be here
 assign stall = 1'b0;
 
-// TODO exception code should be here too
+// program memory write enable
+always_ff @(posedge clk, posedge rst)
+if (rst) bp_wen <= 1'b0;
+else     bp_wen <= dec.ifu.we;
 
-//// instruction fetch unit decode structure
-//typedef struct packed {
-//  logic           sk; // skip
-//  logic           be; // branch enable
-//  logic [PAW-1:0] ad; // address
-//  logic           we; // write enable (for SPM instruction)
-//  logic  [16-1:0] wd; // write data   (for SPM instruction)
-//} ifu_dec_t;
+// program memory write data
+always_ff @(posedge clk)
+bp_wdt <= dec.ifu.wd;
+
+
+// TODO exception code should be here too
 
 ////////////////////////////////////////////////////////////////////////////////
 // status register access
