@@ -1,6 +1,6 @@
 MODELSIM_BIN=$(HOME)/altera/14.1/modelsim_ase/bin
 
-RTL=../rtl/rp_8bit.sv ../rtl/rp_8bit_gpio.sv
+RTL=../rtl/rp_8bit.sv ../rtl/rp_8bit_gpio.sv ../rtl/mem.sv
 TBN=../tbn/rp_8bit_disasm.sv ../tbn/rp_8bit_tb.sv
 
 all: modelsim

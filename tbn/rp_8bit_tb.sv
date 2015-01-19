@@ -130,15 +130,15 @@ end
 
 mem #(
   .FN ("test_isa.vmem"),
-  .SZ (0:2**PAW-1),
+  .SZ (2**PAW-1),
   .DW (16)
-)(
+) bp_mem (
   .clk (clk),
   .ena (bp_ena),
   .wen (bp_wen),
   .adr (bp_adr),
   .wdt (bp_wdt),
-  .rdt (bp_rdt),
+  .rdt (bp_rdt)
 );
 
 string str;
@@ -157,15 +157,15 @@ end
 ////////////////////////////////////////////////////////////////////////////////
 
 mem #(
-  .SZ (0:2**DAW-1),
+  .SZ (2**DAW-1),
   .DW (8)
-)(
+) bd_mem (
   .clk (clk),
   .ena (bd_ena),
   .wen (bd_wen),
   .adr (bd_adr),
   .wdt (bd_wdt),
-  .rdt (bd_rdt),
+  .rdt (bd_rdt)
 );
 
 ////////////////////////////////////////////////////////////////////////////////
