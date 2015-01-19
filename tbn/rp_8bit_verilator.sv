@@ -88,7 +88,7 @@ rp_8bit #(
 
 mem #(
   .FN ("test_isa.vmem"),
-  .SZ (0:2**PAW-1),
+  .SZ (2**PAW-1),
   .DW (16)
 ) bp_mem (
   .clk (clk),
@@ -96,7 +96,7 @@ mem #(
   .wen (bp_wen),
   .adr (bp_adr),
   .wdt (bp_wdt),
-  .rdt (bp_rdt),
+  .rdt (bp_rdt)
 );
 
 //string str;
@@ -116,7 +116,7 @@ mem #(
 
 mem #(
   .FN ("test_isa.vmem"),
-  .SZ (0:2**PAW-1),
+  .SZ (2**PAW-1),
   .DW (16)
 ) bd_mem (
   .clk (clk),
@@ -124,22 +124,7 @@ mem #(
   .wen (bd_wen),
   .adr (bd_adr),
   .wdt (bd_wdt),
-  .rdt (bd_rdt),
-);
-
-module #(
-  // 1kB by default
-  string       FN = ""          // initialization file name
-  int unsigned SZ = 2**10,      // memory size in words
-  int unsigned AW = $clog2(SZ), // address width
-  int unsigned DW = 8           // data width
-) mem (
-  input logic           clk, // clock
-  input logic           ena, // write or read enable
-  input logic           wen, // write enable
-  input logic  [AW-1:0] adr, // address
-  input logic  [DW-1:0] wdt, // write data
-  output logic [DW-1:0] rdt  // read data
+  .rdt (bd_rdt)
 );
 
 ////////////////////////////////////////////////////////////////////////////////
