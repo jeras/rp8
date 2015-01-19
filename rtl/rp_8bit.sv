@@ -45,7 +45,7 @@ module rp_8bit #(
   output logic           io_ren, // read  enable
   output logic   [6-1:0] io_adr, // address
   output logic   [8-1:0] io_wdt, // write data
-  input  logic   [8-1:0] io_msk, // write mask
+  output logic   [8-1:0] io_msk, // write mask
   input  logic   [8-1:0] io_rdt, // read data
   // interrupt
   input  logic [IRW-1:0] irq_req,
@@ -394,7 +394,7 @@ casez (pw)
   16'b1001_0111_????_????: begin dec = '{ '{C1, C1, alu_r, di, di, RX}, '{SBW, Rw, kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // SBIW
   // bit manipulation
   16'b1111_101?_????_0???: begin dec = '{ '{C0, CX, WX                                      , RX, db, RX}, ALU, MUL, '{{CX,Rd_b,6'hxx}, 8'h40}, IFU, IOU, LSU, CTL }; end // SBT
-  16'b1111_100?_????_0???: begin dec = '{ '{C1, C0, {2{Rd & ~b2o(b) | {8{sreg.t}} & b20(b)}}, db, db, RX}, ALU, MUL, SRG                      , IFU, IOU, LSU, CTL }; end // BLD  // TODO: ALU could be used
+  16'b1111_100?_????_0???: begin dec = '{ '{C1, C0, {2{Rd & ~b2o(b) | {8{sreg.t}} & b2o(b)}}, db, db, RX}, ALU, MUL, SRG                      , IFU, IOU, LSU, CTL }; end // BLD  // TODO: ALU could be used
 
   /* TODO: SLEEP is not implemented */
   /* TODO: BREAK is not implemented */
@@ -489,7 +489,7 @@ endcase
 // ALU mode selection
 // TODO optimize mode encoding to allign with opcode bits for ADD/SUB
 always_comb
-case (alu.md)
+case (dec.alu.m)
   ADD: begin  alu_s = alu_b;  alu_r = alu_t[8-1:0];                 end
   SUB: begin  alu_s = alu_b;  alu_r = alu_t[8-1:0];                 end
   ADW: begin  alu_s = alu_w;  alu_r = 'x;                           end
@@ -680,8 +680,8 @@ function void dump_state_core (
 );
 /*verilator public*/
   dump_gpr  = gpr.idx;
-  dump_pc   = PC;
-  dump_sp   = SP;
+  dump_pc   = pc;
+  dump_sp   = sp;
   dump_sreg = sreg;
 endfunction: dump_state_core
 

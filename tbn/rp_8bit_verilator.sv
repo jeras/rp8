@@ -55,30 +55,38 @@ cyc++;
 ////////////////////////////////////////////////////////////////////////////////
 
 rp_8bit #(
-  .BI_IW (BI_IW),
-  .BI_AW (BI_AW),
-  .BD_AW (BD_AW)
+  .IRW (IRW),
+  .PAW (PAW),
+  .DAW (DAW)
 ) DUT (
   // system signals
   .clk     (clk),
   .rst     (rst),
-  // instruction bus
-  .pmem_ce (pmem_ce),
-  .pmem_a  (pmem_a ),
-  .pmem_d  (pmem_d ),
+  // program bus
+  .bp_vld  (bp_vld),
+  .bp_wen  (bp_wen),
+  .bp_adr  (bp_adr),
+  .bp_wdt  (bp_wdt),
+  .bp_rdt  (bp_rdt),
+  .bp_npc  (bp_npc),
+  .bp_jmp  (bp_jmp),
+  .bp_rdy  (bp_rdy),
   // data bus
-  .dmem_we (dmem_we),
-  .dmem_a  (dmem_a ),
-  .dmem_di (dmem_di),
-  .dmem_do (dmem_do),
-  // peripheral bus
-  .io_re   (io_re  ),
-  .io_we   (io_we  ),
-  .io_a    (io_a   ),
-  .io_do   (io_do  ),
-  .io_di   (io_di  ),
-  // interrupt
-  .irq     (irq    ),
+  .bd_req  (bd_req),
+  .bd_wen  (bd_wen),
+  .bd_adr  (bd_adr),
+  .bd_wdt  (bd_wdt),
+  .bd_rdt  (bd_rdt),
+  .bd_ack  (bd_ack),
+  // I/O peripheral bus
+  .io_wen  (io_wen),
+  .io_ren  (io_ren),
+  .io_adr  (io_adr),
+  .io_wdt  (io_wdt),
+  .io_msk  (io_msk),
+  .io_rdt  (io_rdt),
+  // interrupts
+  .irq_req (irq_req),
   .irq_ack (irq_ack)
 );
 
@@ -92,7 +100,7 @@ mem #(
   .DW (16)
 ) bp_mem (
   .clk (clk),
-  .ena (bp_ena),
+  .ena (bp_vld),
   .wen (bp_wen),
   .adr (bp_adr),
   .wdt (bp_wdt),
@@ -103,7 +111,7 @@ mem #(
 //bit [0:32-1] [8-1:0] asm;
 //
 //always_comb begin
-//  str = rp_8bit_disasm::disasm(pmem_d);
+//  str = rp_8bit_disasm::disasm(bp_rdt);
 //  asm = '0;
 //  for (int i=0; i<str.len(); i++) begin
 //    asm [i] = (8)'(str[i]);
@@ -120,7 +128,7 @@ mem #(
   .DW (16)
 ) bd_mem (
   .clk (clk),
-  .ena (bd_ena),
+  .ena (bd_req),
   .wen (bd_wen),
   .adr (bd_adr),
   .wdt (bd_wdt),
@@ -146,27 +154,27 @@ end
 // interrupts
 ////////////////////////////////////////////////////////////////////////////////
 
-assign irq = '0;
+assign irq_req = '0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // DPI
 ////////////////////////////////////////////////////////////////////////////////
 
-function void dump_state_pmem (
-  output int dump_pmem_a,
-  output int dump_pmem_ce
+function void dump_state_bp (
+  output int dump_bp_adr,
+  output int dump_bp_vld
 );
 /*verilator public*/
-  dump_pmem_a  = pmem_a ;
-  dump_pmem_ce = pmem_ce;
-endfunction: dump_state_pmem
+  dump_bp_adr = bp_adr;
+  dump_bp_vld = bp_vld;
+endfunction: dump_state_bp
 
 function void dump_state_io (
-  output bit [64-1:0] [8-1:0] dump_iomem
+  output bit [64-1:0] [8-1:0] dump_io_mem
 );
   /*verilator public*/
   for (int unsigned i=0; i<64; i++)
-    dump_iomem[i] = iomem[i];
+    dump_io_mem[i] = io_mem[i];
 endfunction: dump_state_io
 
 endmodule: rp_8bit_verilator
