@@ -154,7 +154,7 @@ if (rst) begin
   for (int unsigned i=0; i<64; i++)
     io_mem[io_adr] <= 8'h00;
 end else begin
-  if (io_wen) io_mem[io_wdt] <= io_wdt;
+  if (io_wen) io_mem[io_wdt] <= io_wdt & io_msk | io_mem[io_adr] & ~io_msk;
   if (io_ren) io_rdt <= io_mem[io_adr];
 end
 
