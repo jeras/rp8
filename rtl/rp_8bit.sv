@@ -132,6 +132,7 @@ typedef struct packed {
 
 // arithmetic logic unit decode structure
 typedef struct packed {
+  // TODO: check if a different encoding might be more optimal, better aligned to instruction decoder
   enum logic [3-1:0] {
     ADD = 3'b000, // addition
     SUB = 3'b001, // subtraction
@@ -283,7 +284,10 @@ logic  [8-1:0] rampz;
 logic  [8-1:0] eind ;
 
 // extended addressing registers
-logic [24-1:0] ex, ey, ez, ed, ea;
+logic [24-1:0] ed, ex, ey, ez, ea;
+
+// load store unit
+ifu_ptr_t      lsu_pc;    // program counter
 
 ////////////////////////////////////////////////////////////////////////////////
 // register addresses and immediates
@@ -478,9 +482,14 @@ unique casez (pw)
   16'b1101_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // RCALL
   16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, Rw            , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
   16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, Rw            , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // ICALL
-  // TODO
-//  JMP / CALL
-//  16'b1001_0101_000?_1000: begin dec = '{}; end // RET / RETI
+  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, ez            , C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
+  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, ez            , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // EICALL
+  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C1, C0, C1, {pw[8:4],pw[0],pw}, C0, WX}, IOU, LSU                          , CTL }; end // JMP
+  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C1, C0, C1, {pw[8:4],pw[0],pw}, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // CALL
+  // TODO pw (program word) and pr (program register) are not the same
+  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C0, C0, C1, lsu_pc        , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RET
+  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C0, C0, C1, lsu_pc        , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RETI
+  // TODO, add interrupt status to ifu_cfg_t
   // branches
   //                                    {       alu                           ifu                                                 }
   //                                    {       {m  , d , r , c }             {ii. sk, be, ad            , we, wd}                }
@@ -526,7 +535,7 @@ assign Rs = {Rd[3:0], Rd[7:4]};
 // adder
 // TODO optimize adder
 always_comb
-casez (dec.alu.m)
+unique casez (dec.alu.m)
   3'b??0: alu_t = dec.alu.d + dec.alu.r + dec.alu.c;
   3'b??1: alu_t = dec.alu.d - dec.alu.r - dec.alu.c;
 endcase
@@ -534,7 +543,7 @@ endcase
 // ALU mode selection
 // TODO optimize mode encoding to allign with opcode bits for ADD/SUB
 always_comb
-case (dec.alu.m)
+unique case (dec.alu.m)
   ADD: begin  alu_s = alu_sb;  alu_rb = alu_t[8-1:0];                 alu_rw = 'x;             end
   SUB: begin  alu_s = alu_sb;  alu_rb = alu_t[8-1:0];                 alu_rw = 'x;             end
   ADW: begin  alu_s = alu_sw;  alu_rb = 'x;                           alu_rw = alu_t[16-1:0];  end
@@ -647,7 +656,7 @@ always_ff @ (posedge clk, posedge rst)
 if (rst)  sreg <= 8'b00000000;
 else if (~stall) begin
   if (dec.iou.we) begin
-    case (dec.iou.ad)
+    unique case (dec.iou.ad)
       IOA_RAMPD: rampd      <= dec.iou.wd;
       IOA_RAMPX: rampx      <= dec.iou.wd;
       IOA_RAMPY: rampy      <= dec.iou.wd;
@@ -673,7 +682,7 @@ assign io_msk = dec.iou.ms;
 // I/O read access
 always_comb
 if (dec.iou.we) begin
-  case (dec.iou.ad)
+  unique case (dec.iou.ad)
     IOA_RAMPD: id = rampd     ;
     IOA_RAMPX: id = rampx     ;
     IOA_RAMPY: id = rampy     ;
@@ -692,10 +701,10 @@ end
 
 // SP incrementing decrementing is done here
 
+assign ed = {rampd, pw}; // extended direct address
 assign ex = {rampx, Rw};
 assign ey = {rampy, Rw};
 assign ez = {rampz, Rw};
-assign ed = {rampd, pw}; // extended direct address
 assign ea = alu_t;
 
 ////////////////////////////////////////////////////////////////////////////////
