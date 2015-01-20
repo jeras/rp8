@@ -49,7 +49,11 @@ module rp_8bit #(
   input  logic   [8-1:0] io_rdt, // read data
   // interrupt
   input  logic [IRW-1:0] irq_req,
-  output logic [IRW-1:0] irq_ack
+  output logic [IRW-1:0] irq_ack,
+  // control outputs
+  output logic           ctl_slp, // sleep
+  output logic           ctl_brk, // break
+  output logic           ctl_wdr  // watch dog reset
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -360,6 +364,12 @@ always_comb
 unique casez (pw)
   // no operation, same as default
   16'b0000_0000_0000_0000: begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // NOP
+  // control instructions
+  //                                    {                                     ctl          }
+  //                                    {                                     {slp brk wdr}}
+  16'b1001_0101_1000_1000: begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, '{C1, C0, C0} }; end // SLEEP
+  16'b1001_0101_1001_1000: begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, '{C0, C1, C0} }; end // BREAK
+  16'b1001_0101_1010_1000: begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, '{C0, C0, C1} }; end // WDR
   // arithmetic
   //                                    {  gpr                                alu                          srg                                }
   //                                    {  {we, ww, wd        , wa, rw, rb}   {m  , d , r , c     }        {s    , m    }                     }
@@ -414,9 +424,6 @@ unique casez (pw)
   16'b1111_101?_????_0???: begin dec = '{ '{C0, CX, WX                                      , RX, db, RX}, ALU, MUL, '{{CX,Rd_b,6'hxx}, 8'h40}, IFU, IOU, LSU, CTL }; end // SBT
   16'b1111_100?_????_0???: begin dec = '{ '{C1, C0, {2{Rd & ~b2o(b) | {8{sreg.t}} & b2o(b)}}, db, db, RX}, ALU, MUL, SRG                      , IFU, IOU, LSU, CTL }; end // BLD  // TODO: ALU could be used
 
-  /* TODO: SLEEP is not implemented */
-  /* TODO: BREAK is not implemented */
-  /* TODO: WDR is not implemented */
   // TODO: separate load from store instructions
 //  16'b1001_00??_????_1111, // PUSH/POP
 //  16'b1001_00??_????_1111, // PUSH/POP
@@ -669,6 +676,14 @@ assign ex = {rampx, Rw};
 assign ey = {rampy, Rw};
 assign ez = {rampz, Rw};
 assign ed = {rampd, pw}; // extended direct address
+
+////////////////////////////////////////////////////////////////////////////////
+// control outputs
+////////////////////////////////////////////////////////////////////////////////
+
+assign ctl_slp = dec.ctl.slp; // sleep
+assign ctl_brk = dec.ctl.brk; // break
+assign ctl_wdr = dec.ctl.wdr; // watch dog reset
 
 ////////////////////////////////////////////////////////////////////////////////
 // exceptions

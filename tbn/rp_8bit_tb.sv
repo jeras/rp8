@@ -63,6 +63,10 @@ logic   [8-1:0] io_rdt; // read data
 // interrupts
 logic [IRW-1:0] irq_req;
 logic [IRW-1:0] irq_ack;
+// control
+logic           ctl_slp; // sleep
+logic           ctl_brk; // break
+logic           ctl_wdr; // watch dog reset
 
 rp_8bit #(
   .IRW (IRW),
@@ -97,7 +101,11 @@ rp_8bit #(
   .io_rdt  (io_rdt),
   // interrupts
   .irq_req (irq_req),
-  .irq_ack (irq_ack)
+  .irq_ack (irq_ack),
+  // control
+  .ctl_slp (ctl_slp),
+  .ctl_brk (ctl_brk),
+  .ctl_wdr (ctl_wdr)
 );
 
 ////////////////////////////////////////////////////////////////////////////////
