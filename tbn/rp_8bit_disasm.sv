@@ -127,9 +127,9 @@ function automatic string disasm (
             4'b1001: str = $sformatf ("ld   r%0d,Y+"    , Rd);  // Load Indirect from Data Space to Register using Index Y: Post incremented
             4'b1010: str = $sformatf ("ld   r%0d,-Y"    , Rd);  // Load Indirect from Data Space to Register using Index Y: Pre decremented
             4'b1011: str = $sformatf ("undefined");             // TODO: check
-            4'b1100: str = $sformatf ("undefined");             // TODO: check
-            4'b1101: str = $sformatf ("undefined");             // TODO: check
-            4'b1110: str = $sformatf ("undefined");             // TODO: check
+            4'b1100: str = $sformatf ("ld   r%0d,X"     , Rr);  // Load Indirect from Data Space to Register using Index X: Unchanged
+            4'b1101: str = $sformatf ("ld   r%0d,X+"    , Rr);  // Load Indirect from Data Space to Register using Index X: Post incremented
+            4'b1110: str = $sformatf ("ld   r%0d,-X"    , Rr);  // Load Indirect from Data Space to Register using Index X: Pre decremented
             4'b1111: str = $sformatf ("pop  r%0d"       , Rd);  // Pop Register from Stack
           endcase
         1'b1:
