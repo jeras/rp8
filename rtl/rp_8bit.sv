@@ -34,12 +34,12 @@ module rp_8bit #(
   input  logic           bp_jmp, // debug jump request
   input  logic           bp_rdy, // ready (read data, new PC, debug jump request)
   // data bus
-  output logic           bd_req,
-  output logic           bd_wen,
-  output logic [DAW-1:0] bd_adr,
-  output logic   [8-1:0] bd_wdt,
-  input  logic   [8-1:0] bd_rdt,
-  input  logic           bd_ack,
+  output logic           bd_req, // request
+  output logic           bd_wen, // write enable
+  output logic [DAW-1:0] bd_adr, // address
+  output logic   [8-1:0] bd_wdt, // write data
+  input  logic   [8-1:0] bd_rdt, // read  data
+  input  logic           bd_ack, // acknowledge
   // I/O peripheral bus
   output logic           io_wen, // write enable
   output logic           io_ren, // read  enable
@@ -255,12 +255,17 @@ logic  [8-1:0] id;
 
 // core state registers
 ifu_ptr_t      pc;    // program counter
+ifu_ptr_t      pcn;   // program counter next (PC+1)
 logic [16-1:0] sp;    // stack pointer
 sreg_t         sreg;  // status register
 gpr_t          gpr;   // register file
 
 // various sources of core stall
 logic          stall;
+logic          stall_ifu;
+logic          stall_lsu;
+logic          stall_lsu_cmb;
+logic          stall_lsu_reg;
 
 // core state machine
 logic          writeback;
@@ -474,25 +479,25 @@ unique casez (pw)
   16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU               , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRC
   16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU               , MUL, SRG, '{C0,  Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRS
   // flow control
-  //                                    {  gpr                        alu                           ifu                                             lsu                               }
-  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d , r , c }             {ii, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
-  16'b1100_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0]    , C0, WX}, IOU, LSU                          , CTL }; end // RJMP
-  16'b1101_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0]    , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // RCALL
-  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
-  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // ICALL
-  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, ez                , C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
-  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, ez                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // EICALL
-  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, LSU                          , CTL }; end // JMP
-  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // CALL
+  //                                    {  gpr                        alu                            ifu                                             lsu                               }
+  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d  , r , c }             {ii, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
+  16'b1100_????_????_????: begin dec = '{ GPR                      , '{ADW, pcn, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0]    , C0, WX}, IOU, LSU                          , CTL }; end // RJMP
+  16'b1101_????_????_????: begin dec = '{ GPR                      , '{ADW, pcn, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0]    , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // RCALL
+  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
+  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // ICALL
+  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, ez                , C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
+  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, ez                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // EICALL
+  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, LSU                          , CTL }; end // JMP
+  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // CALL
   // TODO pw (program word) and pr (program register) are not the same
-  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C0, C0, C1, lsu_pc            , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RET
-  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C0, C0, C1, lsu_pc            , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RETI
+  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C0, C0, C1, lsu_pc            , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RET
+  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C0, C0, C1, lsu_pc            , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RETI
   // TODO, add interrupt status to ifu_cfg_t
   // branches
-  //                                    {       alu                           ifu                                                 }
-  //                                    {       {m  , d , r , c }             {ii. sk, be, ad            , we, wd}                }
-  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, pc, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
-  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, pc, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
+  //                                    {       alu                            ifu                                                 }
+  //                                    {       {m  , d  , r , c }             {ii. sk, be, ad            , we, wd}                }
+  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, pcn, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
+  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, pcn, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
 
 //  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
   // no operation, same as NOP
@@ -503,6 +508,9 @@ endcase
 ////////////////////////////////////////////////////////////////////////////////
 // register file access
 ////////////////////////////////////////////////////////////////////////////////
+
+// stall can be caused by ALU (not in this implementation) IFU or LSU
+assign stall = stall_ifu | stall_lsu;
 
 // GPR write access
 always_ff @ (posedge clk)
@@ -624,14 +632,17 @@ if (rst)         pc <= '1;
 else if (bp_rdy) pc <= bp_jmp ? bp_npc : bp_adr;
 
 // program address
-assign bp_adr = dec.ifu.be ? dec.ifu.ad : pc + 'd1;
+assign bp_adr = dec.ifu.be ? dec.ifu.ad : pcn;
+
+// program counter increment
+assign pcn = pc + 'd1;
 
 // program memory enable
 assign bp_vld = ~ifu_rst;
 
 // TODO: this should be more complex
 // TODO: some skip code should probably be here
-assign stall = 1'b0;
+assign stall_ifu = 1'b0;
 
 // program memory write enable
 always_ff @(posedge clk, posedge rst)
@@ -659,8 +670,17 @@ if (dec.ifu.ii) pr <= pi;
 
 // SPR write access
 always_ff @ (posedge clk, posedge rst)
-if (rst)  sreg <= 8'b00000000;
-else if (~stall) begin
+if (rst) begin
+  rampd      <= 8'h00;
+  rampx      <= 8'h00;
+  rampy      <= 8'h00;
+  rampz      <= 8'h00;
+  eind       <= 8'h00;
+  sp[8*0+:8] <= 8'h00;
+  sp[8*1+:8] <= 8'h00;
+  sreg       <= 8'h00;
+  sreg       <= 8'h00;
+end else if (~stall) begin
   if (dec.iou.we) begin
     unique case (dec.iou.ad)
       IOA_RAMPD: rampd      <= dec.iou.wd;
@@ -673,8 +693,10 @@ else if (~stall) begin
       IOA_SREG : sreg       <= dec.iou.wd;
     endcase
   end else begin
-    sreg <= (dec.srg.s & dec.srg.m) | (sreg & ~dec.srg.m);
     // TODO access to extended registers and SP
+    // SP incrementing/decrementing
+    // SREG is updated by aritmetic/logic and dedicated instructions
+    sreg <= (dec.srg.s & dec.srg.m) | (sreg & ~dec.srg.m);
   end
 end
 
@@ -701,19 +723,45 @@ if (dec.iou.we) begin
   endcase
 end
 
-////////////////////////////////////////////////////////////////////////////////
-// load/store unit
-////////////////////////////////////////////////////////////////////////////////
-
-
-
-// SP incrementing decrementing is done here
-
+// TODO: add comment
 assign ed = {rampd, pw}; // extended direct address
 assign ex = {rampx, Rw};
 assign ey = {rampy, Rw};
 assign ez = {rampz, Rw};
 assign ea = alu_t;
+
+////////////////////////////////////////////////////////////////////////////////
+// load/store unit
+////////////////////////////////////////////////////////////////////////////////
+
+always_ff @(posedge clk, posedge rst)
+if (rst) begin
+  bd_req <= 1'b0;
+end else begin
+  bd_req <= dec.lsu.en;
+end
+
+always_ff @(posedge clk)
+if (dec.lsu.en) begin
+  bd_wen <= dec.lsu.we;
+  bd_adr <= dec.lsu.st ? sp         : dec.lsu.ad;
+  if (dec.lsu.we)
+  bd_wdt <= dec.lsu.sb ? pc[0*8+:8] : dec.lsu.wd;
+end
+
+// stall on instructions reading from memory load/pull/ret
+// TODO: reading should stall only if a dirty register is accessed or if there is a writeback conflict
+
+assign stall_lsu = stall_lsu_cmb | stall_lsu_reg;
+
+assign stall_lsu_cmb = dec.lsu.en & ~dec.lsu.we;
+
+always_ff @(posedge clk, posedge rst)
+if (rst) begin
+  stall_lsu_reg <= 1'b0;
+end else begin
+  stall_lsu_reg <= stall_lsu_cmb;
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // control outputs
