@@ -347,6 +347,14 @@ logic  [8-1:0] rampy;
 logic  [8-1:0] rampz;
 logic  [6-1:0] eind ;
 
+// instruction fetch unit status
+logic ifu_blk; // block
+logic ifu_con; // continue
+
+// load store unit status
+logic lsu_blk; // block
+logic lsu_con; // continue
+
 // extended data memory direct/indirect addressing
 lsu_adr_t      ed, ex, ey, ez; // register concatenations
 lsu_adr_t      ea;             // output from ALU
@@ -634,9 +642,6 @@ assign mul_s.c = mul_t[15];
 // core state machine
 ////////////////////////////////////////////////////////////////////////////////
 
-logic lsu_blk; // block
-logic lsu_con; // continue
-
 // instruction fetch state machine
 always_ff @(posedge clk, posedge rst)
 if (rst) stm_sts <= RST;
@@ -669,7 +674,8 @@ assign bp_vld = (stm_sts != RST) & ~stl;
 
 // TODO: this should be more complex
 // TODO: some skip code should probably be here
-assign stl_ifu = 1'b0;
+assign ifu_blk = 1'b0;
+assign ifu_con = 1'b1;
 
 // program memory write enable
 always_ff @(posedge clk, posedge rst)
