@@ -182,9 +182,9 @@ int main(int argc, char **argv, char **env) {
       // set reset
       top->rst = 0;
       // check if a new instruction is beeing executed
-      uint32_t dump_pmem_a ;
-      uint32_t dump_pmem_ce;
-      top->v->     dump_state_pmem  (dump_pmem_a, dump_pmem_ce);
+      uint32_t dump_bp_adr;
+      uint32_t dump_bp_vld;
+      top->v->     dump_state_bp  (dump_bp_adr, dump_bp_vld);
       // DUT internal state
       top->v->DUT->dump_state_core (dump.gpr.word, dump.pc, dump.sp, dump.sreg_precast);
       top->v->     dump_state_io   (dump.io.word);
@@ -197,8 +197,8 @@ int main(int argc, char **argv, char **env) {
         // simavr should process another instruction
         avr_state = avr_run (avr);
       }
-      prev_pc = dump_pmem_a ;
-      prev_ce = dump_pmem_ce;
+      prev_pc = dump_bp_adr ;
+      prev_ce = dump_bp_vld;
     }
 
     // dump variables into VCD file and toggle clock

@@ -103,7 +103,7 @@ rp_8bit #(
 ////////////////////////////////////////////////////////////////////////////////
 
 mem #(
-  .FN ("test_isa.vmem"),
+//  .FN ("test_isa.vmem"),
   .SZ (2**PAW),
   .DW (16)
 ) bp_mem (
@@ -114,6 +114,9 @@ mem #(
   .wdt (bp_wdt),
   .rdt (bp_rdt)
 );
+
+initial
+$readmemh("test_isa.vmem", bp_mem.mem);
 
 //string str;
 //bit [0:32-1] [8-1:0] asm;
@@ -131,7 +134,6 @@ mem #(
 ////////////////////////////////////////////////////////////////////////////////
 
 mem #(
-  .FN ("test_isa.vmem"),
   .SZ (2**PAW),
   .DW (16)
 ) bd_mem (
