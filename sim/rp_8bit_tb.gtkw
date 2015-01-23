@@ -1,10 +1,10 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Fri Jan 23 07:18:10 2015
+[*] Fri Jan 23 09:13:32 2015
 [*]
 [dumpfile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.vcd"
-[dumpfile_mtime] "Wed Jan 21 19:52:13 2015"
-[dumpfile_size] 180091
+[dumpfile_mtime] "Fri Jan 23 09:08:33 2015"
+[dumpfile_size] 182630
 [savefile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.gtkw"
 [timestart] 0
 [size] 1855 1176
@@ -14,7 +14,7 @@
 [sst_width] 242
 [signals_width] 246
 [sst_expanded] 1
-[sst_vpaned_height] 365
+[sst_vpaned_height] 364
 @24
 rp_8bit_tb.IRW[31:0]
 rp_8bit_tb.PAW[31:0]
@@ -29,11 +29,12 @@ rp_8bit_tb.asm[255:0]
 @28
 rp_8bit_tb.bp_vld
 rp_8bit_tb.bp_wen
-@23
-rp_8bit_tb.bp_adr[10:0]
 @22
+rp_8bit_tb.bp_adr[10:0]
 rp_8bit_tb.bp_wdt[15:0]
+@23
 rp_8bit_tb.bp_rdt[15:0]
+@22
 rp_8bit_tb.bp_npc[10:0]
 @28
 rp_8bit_tb.bp_jmp
@@ -86,8 +87,8 @@ rp_8bit_tb.DUT.dec_gpr_rb[4:0]
 @28
 rp_8bit_tb.DUT.dec_alu_m[2:0]
 @22
-rp_8bit_tb.DUT.dec_alu_d[15:0]
-rp_8bit_tb.DUT.dec_alu_r[15:0]
+rp_8bit_tb.DUT.dec_alu_d[23:0]
+rp_8bit_tb.DUT.dec_alu_r[23:0]
 @28
 rp_8bit_tb.DUT.dec_alu_c
 @1000200
@@ -113,10 +114,11 @@ rp_8bit_tb.DUT.dec_srg_s[7:0]
 @800200
 -decoder IFU
 @28
+rp_8bit_tb.DUT.dec_ifu_ii
 rp_8bit_tb.DUT.dec_ifu_sk
 rp_8bit_tb.DUT.dec_ifu_be
 @22
-rp_8bit_tb.DUT.dec_ifu_ad[10:0]
+rp_8bit_tb.DUT.dec_ifu_ad[21:0]
 @28
 rp_8bit_tb.DUT.dec_ifu_we
 @22
@@ -142,7 +144,7 @@ rp_8bit_tb.DUT.dec_lsu_we
 rp_8bit_tb.DUT.dec_lsu_st
 rp_8bit_tb.DUT.dec_lsu_sb
 @22
-rp_8bit_tb.DUT.dec_lsu_ad[12:0]
+rp_8bit_tb.DUT.dec_lsu_ad[23:0]
 rp_8bit_tb.DUT.dec_lsu_wd[7:0]
 rp_8bit_tb.DUT.dec_lsu_dr[4:0]
 @1000200
@@ -158,7 +160,6 @@ rp_8bit_tb.DUT.dec_ctl_wdr
 @1000200
 -decoder
 @22
-rp_8bit_tb.DUT.pc[23:0]
 rp_8bit_tb.DUT.Kl[11:0]
 rp_8bit_tb.DUT.pw[15:0]
 @c00022
@@ -422,5 +423,10 @@ rp_8bit_tb.DUT.gpr[255:0]
 (255)rp_8bit_tb.DUT.gpr[255:0]
 @1401200
 -group_end
+@22
+rp_8bit_tb.DUT.sp[15:0]
+rp_8bit_tb.DUT.pc[21:0]
+rp_8bit_tb.DUT.pcn[21:0]
+rp_8bit_tb.DUT.pcs[21:0]
 [pattern_trace] 1
 [pattern_trace] 0

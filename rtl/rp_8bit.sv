@@ -104,7 +104,7 @@ typedef union packed {
 
 // program memory pointer
 typedef struct packed {
-  logic [8-1:0] e;
+  logic [6-1:0] e;
   logic [8-1:0] h;
   logic [8-1:0] l;
 } ifu_ptr_t;
@@ -122,12 +122,12 @@ typedef struct packed {logic i, t, h, s, v, n, z, c;} sreg_t;
 // general purpose registers decode structure
 typedef struct packed {
   // write access
-  logic           we; // write enable
-  logic           ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
-  logic  [16-1:0] wd; // write data 16 bit
-  logic   [5-1:0] wa; // write address 
-  logic   [5-1:0] rw; // read word (16 bit) address
-  logic   [5-1:0] rb; // read byte (8 bit) address
+  logic          we; // write enable
+  logic          ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
+  logic [16-1:0] wd; // write data 16 bit
+  logic  [5-1:0] wa; // write address 
+  logic  [5-1:0] rw; // read word (16 bit) address
+  logic  [5-1:0] rb; // read byte (8 bit) address
 } gpr_dec_t;
 
 // arithmetic logic unit decode structure
@@ -143,9 +143,9 @@ typedef struct packed {
     EOR = 3'b110, // logic eor
     SHR = 3'b111  // shift right
   } m;               // alu modes
-  logic  [AW-1:0] d; // destination operand value
-  logic  [AW-1:0] r; // source      operand value
-  logic           c; // carry input
+  logic [24-1:0] d; // destination operand value
+  logic [24-1:0] r; // source      operand value
+  logic          c; // carry input
 } alu_dec_t;
 
 // multiplier decode structure
@@ -155,51 +155,51 @@ typedef struct packed {
     logic d; // destination (0 - unsigned, 1 - signed)
     logic r; // source      (0 - unsigned, 1 - signed)
   } m;               // adder modes
-  logic   [8-1:0] d; // destination operand value
-  logic   [8-1:0] r; // source      operand value
+  logic  [8-1:0] d; // destination operand value
+  logic  [8-1:0] r; // source      operand value
 } mul_dec_t;
 
 // status register decode structure
 typedef struct packed {
-  sreg_t          s; // status
-  sreg_t          m; // mask
+  sreg_t         s; // status
+  sreg_t         m; // mask
 } srg_dec_t;
 
 // instruction fetch unit decode structure
 typedef struct packed {
-  logic           ii; // instruction immediate
-  logic           sk; // skip
-  logic           be; // branch enable
-  logic [PAW-1:0] ad; // address
-  logic           we; // write enable (for SPM instruction)
-  logic  [16-1:0] wd; // write data   (for SPM instruction)
+  logic          ii; // instruction immediate
+  logic          sk; // skip
+  logic          be; // branch enable
+  logic [22-1:0] ad; // address
+  logic          we; // write enable (for SPM instruction)
+  logic [16-1:0] wd; // write data   (for SPM instruction)
 } ifu_dec_t;
 
 // input/output unit decode structure
 typedef struct packed {
-  logic           we; // write enable
-  logic           re; // read  enable
-  logic   [6-1:0] ad; // address
-  logic   [8-1:0] wd; // write data
-  logic   [8-1:0] ms; // write mask
+  logic          we; // write enable
+  logic          re; // read  enable
+  logic  [6-1:0] ad; // address
+  logic  [8-1:0] wd; // write data
+  logic  [8-1:0] ms; // write mask
 } iou_dec_t;
 
 // load/store unit decode structure
 typedef struct packed {
-  logic           en; // enable
-  logic           we; // write enable
-  logic           st; // stack push/pop
-  logic           sb; // subroutine/interrupt call/return
-  logic [DAW-1:0] ad; // address
-  logic   [8-1:0] wd; // write data
-  logic   [5-1:0] dr; // destination register (if not PC)
+  logic          en; // enable
+  logic          we; // write enable
+  logic          st; // stack push/pop
+  logic          sb; // subroutine/interrupt call/return
+  logic [24-1:0] ad; // address
+  logic  [8-1:0] wd; // write data
+  logic  [5-1:0] dr; // destination register (if not PC)
 } lsu_dec_t;
 
 // control decode structure
 typedef struct packed {
-  logic           slp; // sleep
-  logic           brk; // break
-  logic           wdr; // watchdog reset
+  logic          slp; // sleep
+  logic          brk; // break
+  logic          wdr; // watchdog reset
 } ctl_dec_t;
 
 // entire decode structure
@@ -256,6 +256,7 @@ logic  [8-1:0] id;
 // core state registers
 ifu_ptr_t      pc;    // program counter
 ifu_ptr_t      pcn;   // program counter next (PC+1)
+ifu_ptr_t      pcs;   // program counter from stack
 logic [16-1:0] sp;    // stack pointer
 sreg_t         sreg;  // status register
 gpr_t          gpr;   // register file
@@ -271,7 +272,7 @@ logic          stall_lsu_reg;
 logic          writeback;
 
 // ALU results
-logic [AW-0:0] alu_t ; // result (full width plus carry)
+logic [24-0:0] alu_t ; // result (full width plus carry)
 logic  [8-1:0] alu_rb; // result for byte operations ( 8 bit)
 logic [16-1:0] alu_rw; // result for word operations (16 bit)
 sreg_t         alu_sb; // status for byte operations ( 8 bit)
@@ -288,13 +289,13 @@ logic  [8-1:0] rampd;
 logic  [8-1:0] rampx;
 logic  [8-1:0] rampy;
 logic  [8-1:0] rampz;
-logic  [8-1:0] eind ;
+logic  [6-1:0] eind ;
 
-// extended addressing registers
-logic [24-1:0] ed, ex, ey, ez, ea;
-
-// load store unit
-ifu_ptr_t      lsu_pc;    // program counter
+// extended data memory direct/indirect addressing
+lsu_ptr_t      ed, ex, ey, ez; // register concatenations
+lsu_ptr_t      ea;             // output from ALU
+// extended program memory indirect addressing
+ifu_ptr_t      ei;
 
 ////////////////////////////////////////////////////////////////////////////////
 // register addresses and immediates
@@ -360,13 +361,13 @@ assign Rd_b = Rd[b];
 ////////////////////////////////////////////////////////////////////////////////
 
 // constants for idling units
-localparam gpr_dec_t GPR = '{we: C0, ww: C0, wd: WX, wa: 5'hxx, rb: RX, rw: RX};
+localparam gpr_dec_t GPR = '{we: C0, ww: C0, wd: WX, wa: RX, rb: RX, rw: RX};
 localparam alu_dec_t ALU = '{m: 3'bxxx, d: KX, r: KX, c: CX};
 localparam mul_dec_t MUL = '{m: 3'bxxx, d: KX, r: KX};
 localparam srg_dec_t SRG = '{s: KX, m: K0};
-localparam ifu_dec_t IFU = '{ii: C0, sk: C0, be: C0, ad: {PAW{CX}}, we: C0, wd: WX};
+localparam ifu_dec_t IFU = '{ii: C0, sk: C0, be: C0, ad: 22'hx, we: C0, wd: WX};
 localparam iou_dec_t IOU = '{we: C0, re: C0, ad: 6'hxx, wd: KX, ms: KX};
-localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: {DAW{CX}}, wd: KX, dr: RX};
+localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: 24'hx, wd: KX, dr: RX};
 localparam ctl_dec_t CTL = '{slp: C0, brk: C0, wdr: C0};
 
 always_comb
@@ -479,25 +480,25 @@ unique casez (pw)
   16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU               , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRC
   16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU               , MUL, SRG, '{C0,  Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , KX, KX}, LSU, CTL }; end // SBRS
   // flow control
-  //                                    {  gpr                        alu                            ifu                                             lsu                               }
-  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d  , r , c }             {ii, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
-  16'b1100_????_????_????: begin dec = '{ GPR                      , '{ADW, pcn, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0]    , C0, WX}, IOU, LSU                          , CTL }; end // RJMP
-  16'b1101_????_????_????: begin dec = '{ GPR                      , '{ADW, pcn, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0]    , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // RCALL
-  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
-  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // ICALL
-  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, ez                , C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
-  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU                , MUL, SRG, '{C0, C0, C1, ez                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // EICALL
-  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, LSU                          , CTL }; end // JMP
-  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // CALL
+  //                                    {  gpr                        alu                           ifu                                             lsu                               }
+  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d , r , c }             {ii, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
+  16'b1100_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, WX}, IOU, LSU                          , CTL }; end // RJMP
+  16'b1101_????_????_????: begin dec = '{ GPR                      , '{ADW, pc, Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // RCALL
+  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
+  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, Rw                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // ICALL
+  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, ei                , C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
+  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU               , MUL, SRG, '{C0, C0, C1, ei                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // EICALL
+  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, LSU                          , CTL }; end // JMP
+  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, KX, RX}, CTL }; end // CALL
   // TODO pw (program word) and pr (program register) are not the same
-  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C0, C0, C1, lsu_pc            , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RET
-  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU                , MUL, SRG, '{C0, C0, C1, lsu_pc            , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RETI
+  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C0, C0, C1, pcs               , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RET
+  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU               , MUL, SRG, '{C0, C0, C1, pcs               , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, KX, RX}, CTL }; end // RETI
   // TODO, add interrupt status to ifu_cfg_t
   // branches
-  //                                    {       alu                            ifu                                                 }
-  //                                    {       {m  , d  , r , c }             {ii. sk, be, ad            , we, wd}                }
-  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, pcn, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
-  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, pcn, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[PAW-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
+  //                                    {       alu                           ifu                                                }
+  //                                    {       {m  , d , r , c }             {ii. sk, be, ad           , we, wd}                }
+  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, pc, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
+  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, pc, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
 
 //  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
   // no operation, same as NOP
@@ -629,13 +630,13 @@ end
 // - on clock it stores the address of the current instruction, or debugger jump
 always_ff @(posedge clk, posedge rst)
 if (rst)         pc <= '1;
-else if (bp_rdy) pc <= bp_jmp ? bp_npc : bp_adr;
+else if (bp_vld) pc <= bp_jmp ? bp_npc : bp_adr;
 
 // program address
 assign bp_adr = dec.ifu.be ? dec.ifu.ad : pcn;
 
 // program counter increment
-assign pcn = pc + 'd1;
+assign pcn = pc + 22'd1;
 
 // program memory enable
 assign bp_vld = ~ifu_rst;
@@ -676,8 +677,8 @@ if (rst) begin
   rampy      <= 8'h00;
   rampz      <= 8'h00;
   eind       <= 8'h00;
-  sp[8*0+:8] <= 8'h00;
-  sp[8*1+:8] <= 8'h00;
+  sp[8*0+:8] <= 8'hff;
+  sp[8*1+:8] <= 8'hff;
   sreg       <= 8'h00;
   sreg       <= 8'h00;
 end else if (~stall) begin
@@ -723,12 +724,15 @@ if (dec.iou.we) begin
   endcase
 end
 
-// TODO: add comment
+// extended data memory addresses
 assign ed = {rampd, pw}; // extended direct address
-assign ex = {rampx, Rw};
-assign ey = {rampy, Rw};
-assign ez = {rampz, Rw};
-assign ea = alu_t;
+assign ex = {rampx, Rw}; // extended indirect address using X pointer
+assign ey = {rampy, Rw}; // extended indirect address using Y pointer
+assign ez = {rampz, Rw}; // extended indirect address using Z pointer
+assign ea = alu_t;       // extended indirect address comming from ALU
+
+// extended instruction memory address
+assign ei = {eind , Rw}; // extended indirect address using Z pointer
 
 ////////////////////////////////////////////////////////////////////////////////
 // load/store unit
@@ -744,9 +748,9 @@ end
 always_ff @(posedge clk)
 if (dec.lsu.en) begin
   bd_wen <= dec.lsu.we;
-  bd_adr <= dec.lsu.st ? sp         : dec.lsu.ad;
+  bd_adr <= dec.lsu.st ? sp    : dec.lsu.ad;
   if (dec.lsu.we)
-  bd_wdt <= dec.lsu.sb ? pc[0*8+:8] : dec.lsu.wd;
+  bd_wdt <= dec.lsu.sb ? pcn.l : dec.lsu.wd;
 end
 
 // stall on instructions reading from memory load/pull/ret
@@ -853,51 +857,51 @@ endfunction: dump_state_core
 /* verilator lint_off UNUSED */
 
 // general purpose registers decode structure
-logic           dec_gpr_we; // write enable
-logic           dec_gpr_ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
-logic  [16-1:0] dec_gpr_wd; // write data 16 bit
-logic   [5-1:0] dec_gpr_wa; // write address 
-logic   [5-1:0] dec_gpr_rw; // read address for word (16 bit)
-logic   [5-1:0] dec_gpr_rb; // read address for byte (8 bit)
+logic          dec_gpr_we; // write enable
+logic          dec_gpr_ww; // write word (0 - 8 bit mode, 1 - 16 bit mode)
+logic [16-1:0] dec_gpr_wd; // write data 16 bit
+logic  [5-1:0] dec_gpr_wa; // write address 
+logic  [5-1:0] dec_gpr_rw; // read address for word (16 bit)
+logic  [5-1:0] dec_gpr_rb; // read address for byte (8 bit)
 // arithmetic logic unit decode structure
-logic   [3-1:0] dec_alu_m; // alu modes
-logic  [AW-1:0] dec_alu_d; // destination operand value
-logic  [AW-1:0] dec_alu_r; // source      operand value
-logic           dec_alu_c; // carry input
+logic  [3-1:0] dec_alu_m; // alu modes
+logic [24-1:0] dec_alu_d; // destination operand value
+logic [24-1:0] dec_alu_r; // source      operand value
+logic          dec_alu_c; // carry input
 // multiplier decode structure
-logic           dec_mul_m_f; // fractional
-logic           dec_mul_m_d; // destination (0 - unsigned, 1 - signed)
-logic           dec_mul_m_r; // source      (0 - unsigned, 1 - signed)
-logic   [8-1:0] dec_mul_d; // destination operand value
-logic   [8-1:0] dec_mul_r; // source      operand value
+logic          dec_mul_m_f; // fractional
+logic          dec_mul_m_d; // destination (0 - unsigned, 1 - signed)
+logic          dec_mul_m_r; // source      (0 - unsigned, 1 - signed)
+logic  [8-1:0] dec_mul_d; // destination operand value
+logic  [8-1:0] dec_mul_r; // source      operand value
 // status register decode structure
-sreg_t          dec_srg_s; // status
-sreg_t          dec_srg_m; // mask
+sreg_t         dec_srg_s; // status
+sreg_t         dec_srg_m; // mask
 // instruction fetch unit decode structure
-logic           dec_ifu_ii; // instruction immediate
-logic           dec_ifu_sk; // skip
-logic           dec_ifu_be; // branch enable
-logic [PAW-1:0] dec_ifu_ad; // address
-logic           dec_ifu_we; // write enable (for SPM instruction)
-logic  [16-1:0] dec_ifu_wd; // write data   (for SPM instruction)
+logic          dec_ifu_ii; // instruction immediate
+logic          dec_ifu_sk; // skip
+logic          dec_ifu_be; // branch enable
+logic [22-1:0] dec_ifu_ad; // address
+logic          dec_ifu_we; // write enable (for SPM instruction)
+logic [16-1:0] dec_ifu_wd; // write data   (for SPM instruction)
 // input/output unit decode structure
-logic           dec_iou_we; // write enable
-logic           dec_iou_re; // read  enable
-logic   [6-1:0] dec_iou_ad; // address
-logic   [8-1:0] dec_iou_wd; // write data
-logic   [8-1:0] dec_iou_ms; // write mask
+logic          dec_iou_we; // write enable
+logic          dec_iou_re; // read  enable
+logic  [6-1:0] dec_iou_ad; // address
+logic  [8-1:0] dec_iou_wd; // write data
+logic  [8-1:0] dec_iou_ms; // write mask
 // load/store unit decode structure
-logic           dec_lsu_en; // enable
-logic           dec_lsu_we; // write enable
-logic           dec_lsu_st; // stack push/pop
-logic           dec_lsu_sb; // subroutine/interrupt call/return
-logic [DAW-1:0] dec_lsu_ad; // address
-logic   [8-1:0] dec_lsu_wd; // write data
-logic   [5-1:0] dec_lsu_dr; // destination register (if not PC)
+logic          dec_lsu_en; // enable
+logic          dec_lsu_we; // write enable
+logic          dec_lsu_st; // stack push/pop
+logic          dec_lsu_sb; // subroutine/interrupt call/return
+logic [24-1:0] dec_lsu_ad; // address
+logic  [8-1:0] dec_lsu_wd; // write data
+logic  [5-1:0] dec_lsu_dr; // destination register (if not PC)
 // control decode structure
-logic           dec_ctl_slp; // sleep
-logic           dec_ctl_brk; // break
-logic           dec_ctl_wdr; // watchdog reset
+logic          dec_ctl_slp; // sleep
+logic          dec_ctl_brk; // break
+logic          dec_ctl_wdr; // watchdog reset
 
 assign {dec_gpr_we,
         dec_gpr_ww,
