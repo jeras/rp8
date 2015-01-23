@@ -104,7 +104,7 @@ rp_8bit #(
 
 mem #(
   .FN ("test_isa.vmem"),
-  .SZ (2**PAW-1),
+  .SZ (2**PAW),
   .DW (16)
 ) bp_mem (
   .clk (clk),
@@ -132,7 +132,7 @@ mem #(
 
 mem #(
   .FN ("test_isa.vmem"),
-  .SZ (2**PAW-1),
+  .SZ (2**PAW),
   .DW (16)
 ) bd_mem (
   .clk (clk),
