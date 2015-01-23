@@ -17,10 +17,11 @@
  */
 
 module rp_8bit #(
-  parameter int unsigned IRW =  8, // interrupt request width
-  parameter int unsigned PAW = 11, // 16 bit words
-  parameter int unsigned DAW = 13, //  8 bit bytes
-  parameter int unsigned SAW = DAW //  8 bit bytes
+  parameter int unsigned IRW =  8,  // interrupt request width
+  parameter int unsigned PAW = 11,  // program address width (16 bit words)
+  parameter int unsigned DAW = 13,  // data    address width ( 8 bit bytes)
+  parameter int unsigned SAW = DAW, // stack   address width (can be less then DAW)
+  parameter bit [16-1:0] SPR = '1   // stack pointer reset value
 )(
   // system signals
   input  logic           clk,
