@@ -1,4 +1,4 @@
-.set SUBISA, 0b1000
+.set SUBISA, 0b00010
 
 ;-------------------------------------------------------------------------------
 ; table defining availability of instructions for various ISA subsets

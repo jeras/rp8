@@ -1,4 +1,4 @@
-MMCU=avr31
+MMCU=avr6
 
 all:
 	#avr-gcc -mmcu=atmega128 -Wall -Os -o test_isa.elf test_isa.S
