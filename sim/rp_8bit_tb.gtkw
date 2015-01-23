@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Mon Jan 19 21:33:38 2015
+[*] Fri Jan 23 07:18:10 2015
 [*]
 [dumpfile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.vcd"
-[dumpfile_mtime] "Mon Jan 19 21:31:19 2015"
-[dumpfile_size] 177895
+[dumpfile_mtime] "Wed Jan 21 19:52:13 2015"
+[dumpfile_size] 180091
 [savefile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.gtkw"
 [timestart] 0
-[size] 1434 1132
+[size] 1855 1176
 [pos] -1 -1
-*-11.475519 850 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-9.475519 3850 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] rp_8bit_tb.
 [sst_width] 242
 [signals_width] 246
 [sst_expanded] 1
-[sst_vpaned_height] 349
+[sst_vpaned_height] 365
 @24
 rp_8bit_tb.IRW[31:0]
 rp_8bit_tb.PAW[31:0]
@@ -29,8 +29,9 @@ rp_8bit_tb.asm[255:0]
 @28
 rp_8bit_tb.bp_vld
 rp_8bit_tb.bp_wen
-@22
+@23
 rp_8bit_tb.bp_adr[10:0]
+@22
 rp_8bit_tb.bp_wdt[15:0]
 rp_8bit_tb.bp_rdt[15:0]
 rp_8bit_tb.bp_npc[10:0]
@@ -133,7 +134,7 @@ rp_8bit_tb.DUT.dec_iou_wd[7:0]
 rp_8bit_tb.DUT.dec_iou_ms[7:0]
 @1401200
 -decoder IOU
-@c00200
+@800200
 -decoder LSU
 @28
 rp_8bit_tb.DUT.dec_lsu_en
@@ -143,7 +144,8 @@ rp_8bit_tb.DUT.dec_lsu_sb
 @22
 rp_8bit_tb.DUT.dec_lsu_ad[12:0]
 rp_8bit_tb.DUT.dec_lsu_wd[7:0]
-@1401200
+rp_8bit_tb.DUT.dec_lsu_dr[4:0]
+@1000200
 -decoder LSU
 @c00200
 -decoder CTL
@@ -159,9 +161,9 @@ rp_8bit_tb.DUT.dec_ctl_wdr
 rp_8bit_tb.DUT.pc[23:0]
 rp_8bit_tb.DUT.Kl[11:0]
 rp_8bit_tb.DUT.pw[15:0]
-@c00023
+@c00022
 rp_8bit_tb.DUT.gpr[255:0]
-@29
+@28
 (0)rp_8bit_tb.DUT.gpr[255:0]
 (1)rp_8bit_tb.DUT.gpr[255:0]
 (2)rp_8bit_tb.DUT.gpr[255:0]
@@ -418,7 +420,7 @@ rp_8bit_tb.DUT.gpr[255:0]
 (253)rp_8bit_tb.DUT.gpr[255:0]
 (254)rp_8bit_tb.DUT.gpr[255:0]
 (255)rp_8bit_tb.DUT.gpr[255:0]
-@1401201
+@1401200
 -group_end
 [pattern_trace] 1
 [pattern_trace] 0
