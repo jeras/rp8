@@ -149,7 +149,7 @@ assign bp_jmp = 1'b0;
 
 mem #(
   .SZ (2**DAW),
-  .DW (16)
+  .DW (8)
 ) bd_mem (
   .clk (clk),
   .ena (bd_req),
@@ -170,7 +170,7 @@ if (rst) begin
   for (int unsigned i=0; i<64; i++)
     io_mem[io_adr] <= 8'h00;
 end else begin
-  if (io_wen) io_mem[io_wdt] <= io_wdt & io_msk | io_mem[io_adr] & ~io_msk;
+  if (io_wen) io_mem[io_adr] <= io_wdt & io_msk | io_mem[io_adr] & ~io_msk;
   if (io_ren) io_rdt <= io_mem[io_adr];
 end
 
