@@ -164,9 +164,9 @@
 
 ; TODO check if this 16 bit register targets are correct
 .set CL_16, 2
-.set CH_16, 10
-.set DL_16, 4
-.set DH_16, 12
+.set CH_16, 18
+.set DL_16, 10
+.set DH_16, 24
 
 ;-------------------------------------------------------------------------------
 ; main is calling instruction tests one by one

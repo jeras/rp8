@@ -462,6 +462,7 @@ unique casez (pw)
   // register moves
   //                                    {  gpr                                                              }
   //                                    {  {we, ww, wd     , wa, rw, rb}                                    }
+  16'b0000_0001_????_????: begin dec = '{ '{C1, C1, Rw     , dw, rw, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // MOVW
   16'b0010_11??_????_????: begin dec = '{ '{C1, C0, {2{Rr}}, db, db, rb}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // MOV
   16'b1110_????_????_????: begin dec = '{ '{C1, C0, {2{kb}}, dh, RX, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // LDI
   16'b1001_010?_????_0010: begin dec = '{ '{C1, C0, {2{Rs}}, db, db, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // SWAP
