@@ -53,7 +53,7 @@ logic           ctl_wdr; // watch dog reset
 
 int unsigned cyc = 0;
 always_ff @ (posedge clk)
-cyc++;
+cyc <= cyc+1;
 
 ////////////////////////////////////////////////////////////////////////////////
 // RTL DUT instance

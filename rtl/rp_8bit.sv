@@ -344,7 +344,7 @@ logic  [8-1:0] Rs; // nibble swap of Rd
 logic  [8-1:0] id;
 
 // ALU results
-logic [24-0:0] alu_t ; // result (full width plus carry)
+logic [24-1:0] alu_t ; // result (full width plus carry)
 logic  [8-1:0] alu_rb; // result for byte operations ( 8 bit)
 logic [16-1:0] alu_rw; // result for word operations (16 bit)
 sreg_t         alu_sb; // status for byte operations ( 8 bit)
@@ -599,8 +599,8 @@ assign Rs = {Rd[3:0], Rd[7:4]};
 // TODO optimize adder
 always_comb
 unique casez (dec.alu.m)
-  3'b??0: alu_t = dec.alu.d + dec.alu.r + dec.alu.c;
-  3'b??1: alu_t = dec.alu.d - dec.alu.r - dec.alu.c;
+  3'b??0: alu_t = dec.alu.d + dec.alu.r + 24'(dec.alu.c);
+  3'b??1: alu_t = dec.alu.d - dec.alu.r - 24'(dec.alu.c);
 endcase
 
 // ALU mode selection
@@ -671,7 +671,7 @@ end
 // - on clock it stores the address of the current instruction, or debugger jump
 always_ff @(posedge clk, posedge rst)
 if (rst)         pc <= '1;
-else if (bp_vld) pc <= bp_jmp ? bp_npc : bp_adr;
+else if (bp_vld) pc <= bp_jmp ? ifu_adr_t'(bp_npc) : ifu_adr_t'(bp_adr);
 
 // program counter increment
 assign pcn = pc + 22'd1;
@@ -684,7 +684,7 @@ assign stl = lsu_blk & ~lsu_con;
 ////////////////////////////////////////////////////////////////////////////////
 
 // program address
-assign bp_adr = dec.ifu.be ? dec.ifu.ad : pcn;
+assign bp_adr = dec.ifu.be ? dec.ifu.ad [PAW-1:0] : pcn [PAW-1:0];
 
 // program memory enable
 assign bp_vld = (stm_sts != RST) & ~stl;
@@ -730,19 +730,19 @@ if (rst) begin
   rampx      <= 8'h00;
   rampy      <= 8'h00;
   rampz      <= 8'h00;
-  eind       <= 8'h00;
+  eind       <= 6'h00;
   sp[8*0+:8] <= 8'hff;
   sp[8*1+:8] <= 8'hff;
   sreg       <= 8'h00;
   sreg       <= 8'h00;
 end else if (~stl) begin
   if (dec.iou.we) begin
-    unique case (dec.iou.ad)
+    case (dec.iou.ad)
       IOA_RAMPD: rampd      <= dec.iou.wd;
       IOA_RAMPX: rampx      <= dec.iou.wd;
       IOA_RAMPY: rampy      <= dec.iou.wd;
       IOA_RAMPZ: rampz      <= dec.iou.wd;
-      IOA_EIND : eind       <= dec.iou.wd;
+      IOA_EIND : eind       <= dec.iou.wd[6-1:0];
       IOA_SPL  : sp[8*0+:8] <= dec.iou.wd;
       IOA_SPH  : sp[8*1+:8] <= dec.iou.wd;
       IOA_SREG : sreg       <= dec.iou.wd;
@@ -778,7 +778,7 @@ if (dec.iou.we) begin
     IOA_RAMPX: id = rampx     ;
     IOA_RAMPY: id = rampy     ;
     IOA_RAMPZ: id = rampz     ;
-    IOA_EIND : id = eind      ;
+    IOA_EIND : id = 8'(eind)  ;
     IOA_SPL  : id = sp[8*0+:8];
     IOA_SPH  : id = sp[8*1+:8];
     IOA_SREG : id = sreg      ;
@@ -810,13 +810,14 @@ end
 always_ff @(posedge clk)
 if (dec.lsu.en & ~lsu_con) begin
   bd_wen <= dec.lsu.we;
-  bd_adr <= dec.lsu.st ? (dec.lsu.we ? sp : spi) : dec.lsu.ad;
+  bd_adr <= dec.lsu.st ? (dec.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(dec.lsu.ad);
   if (dec.lsu.we)
   bd_wdt <= dec.lsu.sb ? pcn.l : dec.lsu.wd;
 end
 
 // PC after a return
-assign pcs = bd_rdt;
+// TODO, this should be extended to support 2 and 3 byte PC
+assign pcs = ifu_adr_t'(bd_rdt);
 
 // stall on instructions reading from memory load/pull/ret
 // TODO: reading should stall only if a dirty register is accessed or if there is a writeback conflict
@@ -908,8 +909,8 @@ function void dump_state_core (
 );
 /*verilator public*/
   dump_gpr  = gpr.idx;
-  dump_pc   = pc;
-  dump_sp   = sp;
+  dump_pc   = {10'd0, pc};
+  dump_sp   = {16'd0, sp};
   dump_sreg = sreg;
 endfunction: dump_state_core
 
