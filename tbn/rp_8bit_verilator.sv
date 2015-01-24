@@ -120,6 +120,14 @@ mem #(
 initial
 $readmemh("test_isa.vmem", bp_mem.mem);
 
+// TODO: for now there will be no delays on the program bus
+always @ (posedge clk)
+bp_rdy <= bp_vld;
+
+// TODO, debugger code is not yet available
+assign bp_npc = 'x;
+assign bp_jmp = 1'b0;
+
 //string str;
 //bit [0:32-1] [8-1:0] asm;
 //
