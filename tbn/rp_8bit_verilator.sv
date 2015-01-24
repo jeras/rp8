@@ -11,10 +11,14 @@ module rp_8bit_verilator (
 // local signals
 ////////////////////////////////////////////////////////////////////////////////
 
-localparam int unsigned IRW =  8; // bus instruction - interrupt width
-localparam int unsigned PAW = 11; // bus instruction - address   width
-localparam int unsigned DAW = 13; // bus data        - address   width
-localparam bit [16-1:0] SPR = 16'h10ff;
+//localparam int unsigned IRW =  8; // bus instruction - interrupt width
+//localparam int unsigned PAW = 11; // bus instruction - address   width
+//localparam int unsigned DAW = 13; // bus data        - address   width
+//localparam bit [16-1:0] SPR = 16'h10ff;
+localparam IRW =  8; // bus instruction - interrupt width
+localparam PAW = 11; // bus instruction - address   width
+localparam DAW = 13; // bus data        - address   width
+localparam SPR = 16'h10ff;
 
 // system signals
 logic           clk; // clock
@@ -144,7 +148,7 @@ assign bp_jmp = 1'b0;
 ////////////////////////////////////////////////////////////////////////////////
 
 mem #(
-  .SZ (2**PAW),
+  .SZ (2**DAW),
   .DW (16)
 ) bd_mem (
   .clk (clk),

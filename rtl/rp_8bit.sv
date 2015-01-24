@@ -21,7 +21,8 @@ module rp_8bit #(
   parameter int unsigned PAW = 11,  // program address width (16 bit words)
   parameter int unsigned DAW = 13,  // data    address width ( 8 bit bytes)
   parameter int unsigned SAW = DAW, // stack   address width (can be less then DAW)
-  parameter bit [16-1:0] SPR = '1   // stack pointer reset value
+//  parameter bit [16-1:0] SPR = 16'hffff   // stack pointer reset value
+  parameter bit [16-1:0] SPR = 16'h10ff   // stack pointer reset value
 )(
   // system signals
   input  logic           clk,
@@ -731,8 +732,8 @@ if (rst) begin
   rampy      <= 8'h00;
   rampz      <= 8'h00;
   eind       <= 6'h00;
-  sp[8*0+:8] <= 8'hff;
-  sp[8*1+:8] <= 8'hff;
+  sp[8*0+:8] <= SPR[8*0+:8];
+  sp[8*1+:8] <= SPR[8*1+:8];
   sreg       <= 8'h00;
   sreg       <= 8'h00;
 end else if (~stl) begin
