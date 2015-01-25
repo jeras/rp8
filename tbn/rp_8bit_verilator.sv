@@ -11,10 +11,10 @@ module rp_8bit_verilator (
 // local signals
 ////////////////////////////////////////////////////////////////////////////////
 
-localparam int unsigned IRW =  8; // bus instruction - interrupt width
-localparam int unsigned PAW = 11; // bus instruction - address   width
-localparam int unsigned DAW = 13; // bus data        - address   width
-localparam bit [16-1:0] SPR = 16'h10ff;
+localparam IRW =  8; // bus instruction - interrupt width
+localparam PAW = 11; // bus instruction - address   width
+localparam DAW = 13; // bus data        - address   width
+localparam SPR = 16'h10ff;
 
 // system signals
 logic           clk; // clock
@@ -62,8 +62,8 @@ cyc <= cyc+1;
 rp_8bit #(
   .IRW (IRW),
   .PAW (PAW),
-  .DAW (DAW),
-  .SPR (SPR)
+  .DAW (DAW)
+//  .SPR (SPR)
 ) DUT (
   // system signals
   .clk     (clk),
@@ -117,8 +117,8 @@ mem #(
   .rdt (bp_rdt)
 );
 
-initial
-$readmemh("test_isa.vmem", bp_mem.mem);
+//initial
+//$readmemh("test_isa.vmem", bp_mem.mem);
 
 // TODO: for now there will be no delays on the program bus
 always @ (posedge clk)
