@@ -466,6 +466,9 @@ unique casez (pw)
   16'b1001_010?_????_0110: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SHR, feb(Rd), feb(B0), C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // LSR
   16'b1001_010?_????_0111: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SHR, feb(Rd), feb(B0), sreg.c}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // ROR
   16'b1001_010?_????_0101: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SHR, feb(Rd), feb(B0), Rd[7] }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // ASR
+  // 16 bit addition
+  16'b1001_0110_????_????: begin dec = '{ '{C1, C1, alu_rw     , di, di, RX}, '{ADW, few(Rw), kw     , C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // ADIW
+  16'b1001_0111_????_????: begin dec = '{ '{C1, C1, alu_rw     , di, di, RX}, '{SBW, few(Rw), kw     , C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // SBIW
   // multiplication
   //                                    {  gpr                                mul                       srg                                }
   //                                    {  {we, ww, wd   , wa, rw, rb}        {m{f , d , r }, d , r }   {s    , m    }                     }
@@ -482,15 +485,12 @@ unique casez (pw)
   16'b0010_11??_????_????: begin dec = '{ '{C1, C0, {2{Rr}}, db, db, rb}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // MOV
   16'b1110_????_????_????: begin dec = '{ '{C1, C0, {2{kb}}, dh, RX, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // LDI
   16'b1001_010?_????_0010: begin dec = '{ '{C1, C0, {2{Rs}}, db, db, RX}, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // SWAP
-  // bit manipulation
+  // SREG bit manipulation
   //                                    {                 srg                                    }
   //                                    {                 {s , m           }                     }
   16'b1001_0100_0???_1000: begin dec = '{ GPR, ALU, MUL, '{BF, b2o(pw[6:4])}, IFU, IOU, LSU, CTL }; end // BSET // create a common source instead of two b2o functions
   16'b1001_0100_1???_1000: begin dec = '{ GPR, ALU, MUL, '{B0, b2o(pw[6:4])}, IFU, IOU, LSU, CTL }; end // BCLR
-  // 16-24 bit adder
-  16'b1001_0110_????_????: begin dec = '{ '{C1, C1, alu_rw, di, di, RX}, '{ADW, few(Rw), kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // ADIW
-  16'b1001_0111_????_????: begin dec = '{ '{C1, C1, alu_rw, di, di, RX}, '{SBW, few(Rw), kw, C0}, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // SBIW
-  // bit manipulation
+  // GPR bit manipulation
   16'b1111_101?_????_0???: begin dec = '{ '{C0, CX, WX                                      , RX, db, RX}, ALU, MUL, '{{CX,Rd_b,6'hxx}, 8'h40}, IFU, IOU, LSU, CTL }; end // SBT
   16'b1111_100?_????_0???: begin dec = '{ '{C1, C0, {2{Rd & ~b2o(b) | {8{sreg.t}} & b2o(b)}}, db, db, RX}, ALU, MUL, SRG                      , IFU, IOU, LSU, CTL }; end // BLD  // TODO: ALU could be used
   // stack access
@@ -563,7 +563,7 @@ unique casez (pw)
 //  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
   // no operation, same as NOP
   // TODO: it might make sense to assign X
-  default:                 begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // NOP
+  default:                 begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end
 endcase
 
 ////////////////////////////////////////////////////////////////////////////////
