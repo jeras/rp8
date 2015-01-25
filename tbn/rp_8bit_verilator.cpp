@@ -8,10 +8,10 @@
 // accessing public variables/functions
 #include "Vrp_8bit_verilator_rp_8bit_verilator.h"
 #include "Vrp_8bit_verilator_rp_8bit.h"
-// simavr includes
-#include "sim_avr.h"
-#include "sim_elf.h"
-//#include "sim_core.h"
+//// simavr includes
+//#include "sim_avr.h"
+//#include "sim_elf.h"
+////#include "sim_core.h"
 
 // verilator public function access
 typedef struct {
@@ -29,31 +29,31 @@ typedef struct {
   } io;
 } dump_t;
 
-void print_state_avrsim (avr_t * avr) {
-  uint32_t sp  =  (avr->data[32+0x3d] << 0)
-               |  (avr->data[32+0x3e] << 8);
-  uint8_t sreg = ((avr->sreg[0] & 0x01) << 0)
-               | ((avr->sreg[1] & 0x01) << 1)
-               | ((avr->sreg[2] & 0x01) << 2)
-               | ((avr->sreg[3] & 0x01) << 3)
-               | ((avr->sreg[4] & 0x01) << 4)
-               | ((avr->sreg[5] & 0x01) << 5)
-               | ((avr->sreg[6] & 0x01) << 6)
-               | ((avr->sreg[7] & 0x01) << 7);
-  printf("avrsim -> ");
-  printf("pc = %06x ", avr->pc/2);
-  printf("sp = %06x ", sp);
-  printf("sreg = %02x ", sreg);
-  printf("r[31:0] = {");
-  for (int i=32-1; i>=0; i--)
-    printf("%02x", avr->data[i]);
-  printf("} ");
-  printf("io[63:0] = {");
-  for (int i=64-1; i>=0; i--)
-    printf("%02x", avr->data[32+i]);
-  printf("} ");
-  printf("\n");
-}
+//void print_state_avrsim (avr_t * avr) {
+//  uint32_t sp  =  (avr->data[32+0x3d] << 0)
+//               |  (avr->data[32+0x3e] << 8);
+//  uint8_t sreg = ((avr->sreg[0] & 0x01) << 0)
+//               | ((avr->sreg[1] & 0x01) << 1)
+//               | ((avr->sreg[2] & 0x01) << 2)
+//               | ((avr->sreg[3] & 0x01) << 3)
+//               | ((avr->sreg[4] & 0x01) << 4)
+//               | ((avr->sreg[5] & 0x01) << 5)
+//               | ((avr->sreg[6] & 0x01) << 6)
+//               | ((avr->sreg[7] & 0x01) << 7);
+//  printf("avrsim -> ");
+//  printf("pc = %06x ", avr->pc/2);
+//  printf("sp = %06x ", sp);
+//  printf("sreg = %02x ", sreg);
+//  printf("r[31:0] = {");
+//  for (int i=32-1; i>=0; i--)
+//    printf("%02x", avr->data[i]);
+//  printf("} ");
+//  printf("io[63:0] = {");
+//  for (int i=64-1; i>=0; i--)
+//    printf("%02x", avr->data[32+i]);
+//  printf("} ");
+//  printf("\n");
+//}
 
 void print_state_avrrtl (
   dump_t *dump
@@ -73,71 +73,71 @@ void print_state_avrrtl (
   printf("\n");
 }
 
-int compare_state (
-  unsigned int cyc,
-  avr_t *avr,
-  dump_t *dump,
-  uint32_t prev_pc
-) {
-  unsigned int error = 0;
-  // simavr internal state
-  uint32_t sp  =  (avr->data[32+0x3d] << 0)
-               |  (avr->data[32+0x3e] << 8);
-  uint8_t sreg = ((avr->sreg[0] & 0x01) << 0)
-               | ((avr->sreg[1] & 0x01) << 1)
-               | ((avr->sreg[2] & 0x01) << 2)
-               | ((avr->sreg[3] & 0x01) << 3)
-               | ((avr->sreg[4] & 0x01) << 4)
-               | ((avr->sreg[5] & 0x01) << 5)
-               | ((avr->sreg[6] & 0x01) << 6)
-               | ((avr->sreg[7] & 0x01) << 7);
-  // TODO: a faster comparison might be done by casting to 64bit)
-  // compare PC
-  if (prev_pc != avr->pc/2) {
-    printf ("ERROR: PC mismatch - rtl: 0x%06x, sim: 0x%06x\n", prev_pc, avr->pc/2);
-    error++;
-  }
-  // compare SP
-  if (dump->sp != sp) {
-    printf ("ERROR: SP mismatch - rtl: 0x%06x, sim: 0x%06x\n", dump->sp, sp);
-    error++;
-  }
-  // compare SP
-  if (dump->sreg != sreg) {
-    printf ("ERROR: SREG mismatch - rtl: 0x%02x, sim: 0x%02x\n", dump->sreg, sreg);
-    error++;
-  }
-  // compare GPR
-  for (unsigned int i=0; i<32; i++) {
-    if (dump->gpr.byte[i] != avr->data[i]) {
-      printf ("ERROR: GPR[0x%02x] mismatch\n", i);
-      error++;
-    }
-  }
-  // compare IO
-//  for (unsigned int i=0; i<64; i++) {
-//    if (dump->io.byte[i] != avr->data[32+i]) {
-//      printf ("ERROR: I/O[0x%02x] mismatch\n", i);
-//      error++;
-//    }
+//int compare_state (
+//  unsigned int cyc,
+//  avr_t *avr,
+//  dump_t *dump,
+//  uint32_t prev_pc
+//) {
+//  unsigned int error = 0;
+//  // simavr internal state
+//  uint32_t sp  =  (avr->data[32+0x3d] << 0)
+//               |  (avr->data[32+0x3e] << 8);
+//  uint8_t sreg = ((avr->sreg[0] & 0x01) << 0)
+//               | ((avr->sreg[1] & 0x01) << 1)
+//               | ((avr->sreg[2] & 0x01) << 2)
+//               | ((avr->sreg[3] & 0x01) << 3)
+//               | ((avr->sreg[4] & 0x01) << 4)
+//               | ((avr->sreg[5] & 0x01) << 5)
+//               | ((avr->sreg[6] & 0x01) << 6)
+//               | ((avr->sreg[7] & 0x01) << 7);
+//  // TODO: a faster comparison might be done by casting to 64bit)
+//  // compare PC
+//  if (prev_pc != avr->pc/2) {
+//    printf ("ERROR: PC mismatch - rtl: 0x%06x, sim: 0x%06x\n", prev_pc, avr->pc/2);
+//    error++;
 //  }
-  // compare RAM
-  // TODO simulator should report the changed address
+//  // compare SP
+//  if (dump->sp != sp) {
+//    printf ("ERROR: SP mismatch - rtl: 0x%06x, sim: 0x%06x\n", dump->sp, sp);
+//    error++;
+//  }
+//  // compare SP
+//  if (dump->sreg != sreg) {
+//    printf ("ERROR: SREG mismatch - rtl: 0x%02x, sim: 0x%02x\n", dump->sreg, sreg);
+//    error++;
+//  }
+//  // compare GPR
 //  for (unsigned int i=0; i<32; i++) {
 //    if (dump->gpr.byte[i] != avr->data[i]) {
-//      printf ("ERROR: GPR[%02d] mismatch", i);
+//      printf ("ERROR: GPR[0x%02x] mismatch\n", i);
 //      error++;
 //    }
 //  }
-
-  // debug print
-  if (error) {
-    printf ("cyc = %d\n", cyc);
-    print_state_avrsim (avr);
-    print_state_avrrtl (dump);
-  }
-  return (error);
-}
+//  // compare IO
+////  for (unsigned int i=0; i<64; i++) {
+////    if (dump->io.byte[i] != avr->data[32+i]) {
+////      printf ("ERROR: I/O[0x%02x] mismatch\n", i);
+////      error++;
+////    }
+////  }
+//  // compare RAM
+//  // TODO simulator should report the changed address
+////  for (unsigned int i=0; i<32; i++) {
+////    if (dump->gpr.byte[i] != avr->data[i]) {
+////      printf ("ERROR: GPR[%02d] mismatch", i);
+////      error++;
+////    }
+////  }
+//
+//  // debug print
+//  if (error) {
+//    printf ("cyc = %d\n", cyc);
+//    print_state_avrsim (avr);
+//    print_state_avrrtl (dump);
+//  }
+//  return (error);
+//}
 
 int main(int argc, char **argv, char **env) {
   // verilator initialization
@@ -156,18 +156,18 @@ int main(int argc, char **argv, char **env) {
   uint32_t prev_pc = 0;
   uint32_t prev_ce = 0;
 
-  // AVR simulator initialization
-  avr_t *avr = NULL;
-  // load firmware
-  elf_firmware_t fw;
-  elf_read_firmware ("test_isa.elf", &fw);
-  // initialize structure and load firmware
-  avr = avr_make_mcu_by_name ("atmega128");
-  //avr = avr_make_mcu_by_name (fw.mmcu);
-  avr_init (avr);
-  avr_load_firmware (avr, &fw);
-  //
-  int avr_state = cpu_Running;
+//  // AVR simulator initialization
+//  avr_t *avr = NULL;
+//  // load firmware
+//  elf_firmware_t fw;
+//  elf_read_firmware ("test_isa.elf", &fw);
+//  // initialize structure and load firmware
+//  avr = avr_make_mcu_by_name ("atmega128");
+//  //avr = avr_make_mcu_by_name (fw.mmcu);
+//  avr_init (avr);
+//  avr_load_firmware (avr, &fw);
+//  //
+//  int avr_state = cpu_Running;
 
   // initialize simulation inputs
   top->clk = 1;
@@ -192,13 +192,13 @@ int main(int argc, char **argv, char **env) {
       
       // only make compatisons, when RTL requests a new instruction,
       // so the execution of the last one is finished
-      if (prev_ce) {
-        compare_state (cyc, avr, &dump, prev_pc);
-        // simavr should process another instruction
-        avr_state = avr_run (avr);
-      }
-      prev_pc = dump_bp_adr ;
-      prev_ce = dump_bp_vld;
+//      if (prev_ce) {
+//        compare_state (cyc, avr, &dump, prev_pc);
+//        // simavr should process another instruction
+//        avr_state = avr_run (avr);
+//      }
+//      prev_pc = dump_bp_adr ;
+//      prev_ce = dump_bp_vld;
     }
 
     // dump variables into VCD file and toggle clock
