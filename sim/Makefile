@@ -18,7 +18,6 @@ verilator: copy_test_isa
 	verilator -Wall --cc --trace --exe ../tbn/rp_8bit_verilator.cpp --top-module rp_8bit_verilator \
 	-Wno-fatal \
         -y ../tbn/ \
-        -y /home/izi/Workplace/rp_8bit/tbn \
 	-CFLAGS -I/usr/local/include/simavr/ \
 	-LDFLAGS -lsimavr \
 	../tbn/rp_8bit_verilator.sv \
