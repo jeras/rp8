@@ -378,6 +378,7 @@ logic          ifu_blk; // block
 logic          ifu_con; // continue
 
 // load store unit status
+logic          lsu_req;
 logic          lsu_blk; // block
 logic          lsu_con; // continue
 
@@ -760,7 +761,7 @@ end else begin
   end else begin
     // TODO access to extended registers and SP
     // SP incrementing/decrementing
-    if (dec.lsu.en & dec.lsu.st) begin
+    if (lsu_req) begin
       if (dec.lsu.we)  sp <= spd;
       else             sp <= spi;
     end
@@ -812,43 +813,46 @@ assign ei = {eind , Rw}; // extended indirect address using Z pointer
 
 localparam PCN = 2;
 
-logic [1:0] bd_cnt; // transfer counter (used for pushing PC to stack)
-logic [23:8] bd_buf;
+logic [1:0] lsu_cnt; // transfer counter (used for pushing PC to stack)
+logic [1:0] lsu_cnn; // transfer counter (used for pushing PC to stack)
+logic [23:8] lsu_buf;
 
+assign lsu_req = dec.lsu.en & (dec.lsu.we ? 1'b1 : (dec.lsu.sb ? lsu_cnn <= PCN : ~bd_req));
 
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
   bd_req <= 1'b0;
-  bd_cnt <= '0;
+  lsu_cnt <= '0;
 end else begin
-  bd_req <= dec.lsu.en & (dec.lsu.we ? 1'b1 : ~lsu_con);
+  bd_req <= lsu_req;
   // transfer counter
-  // TODO: generalize for 3 byte PC
   if (dec.lsu.en & dec.lsu.sb)
-  bd_cnt <= (bd_cnt + 1) % PCN;
+  lsu_cnt <= lsu_cnn % PCN;
 end
 
+assign lsu_cnn = lsu_cnt + 1;
+
 always_ff @(posedge clk)
-if (dec.lsu.en & (dec.lsu.we ? 1'b1 : ~lsu_con)) begin
+if (lsu_req) begin
   bd_wen <= dec.lsu.we;
 //bd_adr <= dec.lsu.st ? (dec.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(dec.lsu.ad);
 // Verilator: Unsupported: Size-changing cast on non-basic data type
   bd_adr <= dec.lsu.st ? (dec.lsu.we ? sp : spi) : DAW'(dec.lsu.ad);
   if (dec.lsu.we)
-  bd_wdt <= dec.lsu.sb ? pcn [bd_cnt*8+:8] : dec.lsu.wd;
+  bd_wdt <= dec.lsu.sb ? pcn [lsu_cnt*8+:8] : dec.lsu.wd;
   // write identification
-  bd_wid <= dec.lsu.sb ? {1'b1, 3'b0, 2'(dec.lsu.we ? bd_cnt : PCN - 1 - bd_cnt)}
+  bd_wid <= dec.lsu.sb ? {1'b1, 3'b0, 2'(dec.lsu.we ? lsu_cnt : PCN - 1 - lsu_cnt)}
                        : {1'b0, dec.lsu.dr};
 end
 
 // PC after a return
 // TODO, this should be extended to support 2 and 3 byte PC
-assign pcs = {bd_buf, bd_rdt} & 24'h00ffff;
+assign pcs = {lsu_buf, bd_rdt} & 24'h00ffff;
 
 always_ff @(posedge clk)
 if (bd_ren) begin
-  if (bd_rid == 6'h21)  bd_buf[15: 8] <= bd_rdt;
-  if (bd_rid == 6'h22)  bd_buf[23:16] <= bd_rdt;
+  if (bd_rid == 6'h21)  lsu_buf[15: 8] <= bd_rdt;
+  if (bd_rid == 6'h22)  lsu_buf[23:16] <= bd_rdt;
 end
 
 // stall on instructions reading from memory load/pull/ret
@@ -858,12 +862,8 @@ end
 assign lsu_blk = dec.lsu.en & (~dec.lsu.we | (dec.lsu.sb & PCN>1));
 
 // LSU continue
-always_ff @(posedge clk, posedge rst)
-if (rst) begin
-  lsu_con <= 1'b0;
-end else begin
-  lsu_con <= ~lsu_con & (~dec.lsu.we ? bd_req : lsu_blk);
-end
+assign lsu_con = dec.lsu.en & (dec.lsu.we ?          (dec.lsu.sb ? lsu_cnn == PCN   : 1'b1)
+                                          : bd_ren & (dec.lsu.sb ? bd_rid == 6'h20 : 1'b1));
 
 ////////////////////////////////////////////////////////////////////////////////
 // control outputs
