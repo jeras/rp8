@@ -115,19 +115,25 @@ typedef union packed {
   } nam;
 } gpr_t;
 
-// program memory address
+// program counter type (program memory address)
 typedef struct packed {
   logic [6-1:0] e;
   logic [8-1:0] h;
   logic [8-1:0] l;
-} ifu_adr_t;
+} pc_t;
 
-// data memory address
+// load/store type (data memory address)
 typedef struct packed {
   logic [8-1:0] e;
   logic [8-1:0] h;
   logic [8-1:0] l;
-} lsu_adr_t;
+} ls_t;
+
+// stack pointer (data memory address)
+typedef struct packed {
+  logic [8-1:0] h;
+  logic [8-1:0] l;
+} sp_t;
 
 // general purpose register address
 typedef logic [5-1:0] gpr_adr_t;
@@ -199,7 +205,7 @@ typedef struct packed {
   logic          ii; // instruction immediate
   logic          sk; // skip
   logic          be; // branch enable
-  ifu_adr_t      ad; // address
+  pc_t           ad; // address
   logic          we; // write enable (for SPM instruction)
   logic [16-1:0] wd; // write data   (for SPM instruction)
 } ifu_dec_t;
@@ -254,9 +260,9 @@ localparam int unsigned MAW = PAW > DAW ? PAW : DAW;
 localparam int unsigned AW = MAW > 16 ? MAW : 16;
 
 // program (instruction fetch) address mask
-localparam ifu_adr_t PAM = (1<<PAW)-1;
+localparam pc_t PAM = (1<<PAW)-1;
 // data (load/store) address mask
-localparam ifu_adr_t DAM = (1<<DAW)-1;
+localparam pc_t DAM = (1<<DAW)-1;
 // stack address mask
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -288,12 +294,12 @@ localparam iou_adr_t IOA_SREG  = 6'h30 + 6'h0f;
 stm_t stm_sts; // current state
 
 // core state registers
-ifu_adr_t      pc;    // program counter
-ifu_adr_t      pcn;   // program counter next (PC+1)
-ifu_adr_t      pcs;   // program counter from stack
-logic [16-1:0] sp;    // stack pointer
-logic [16-1:0] spi;   // stack pointer increment
-logic [16-1:0] spd;   // stack pointer decrement
+pc_t           pc;    // program counter
+pc_t           pcn;   // program counter next (PC+1)
+pc_t           pcs;   // program counter from stack
+sp_t           sp;    // stack pointer
+sp_t           spi;   // stack pointer increment
+sp_t           spd;   // stack pointer decrement
 sreg_t         sreg;  // status register
 gpr_t          gpr;   // register file
 
@@ -365,18 +371,18 @@ logic  [8-1:0] rampz;
 logic  [6-1:0] eind ;
 
 // instruction fetch unit status
-logic ifu_blk; // block
-logic ifu_con; // continue
+logic          ifu_blk; // block
+logic          ifu_con; // continue
 
 // load store unit status
-logic lsu_blk; // block
-logic lsu_con; // continue
+logic          lsu_blk; // block
+logic          lsu_con; // continue
 
 // extended data memory direct/indirect addressing
-lsu_adr_t      ed, ex, ey, ez; // register concatenations
-lsu_adr_t      ea;             // output from ALU
+ls_t           ed, ex, ey, ez; // register concatenations
+ls_t           ea;             // output from ALU
 // extended program memory indirect addressing
-ifu_adr_t      ei;
+pc_t           ei;
 
 ////////////////////////////////////////////////////////////////////////////////
 // register addresses and immediates
@@ -421,12 +427,12 @@ assign Rd_b = Rd[b];
 
 // constants for idling units
 localparam gpr_dec_t GPR = '{we: C0, ww: C0, wd: WX, wa: RX, rb: RX, rw: RX};
-localparam alu_dec_t ALU = '{m: 3'bxxx, d: 24'hx, r: 24'hx, c: CX};
+localparam alu_dec_t ALU = '{m: 3'bxxx, d: EX, r: EX, c: CX};
 localparam mul_dec_t MUL = '{m: 3'bxxx, d: BX, r: BX};
 localparam srg_dec_t SRG = '{s: BX, m: B0};
 localparam ifu_dec_t IFU = '{ii: C0, sk: C0, be: C0, ad: 22'hx, we: C0, wd: WX};
 localparam iou_dec_t IOU = '{we: C0, re: C0, ad: 6'hxx, wd: BX, ms: BX};
-localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: 24'hx, wd: BX, dr: RX};
+localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: EX, wd: BX, dr: RX};
 localparam ctl_dec_t CTL = '{slp: C0, brk: C0, wdr: C0};
 
 always_comb
@@ -672,7 +678,7 @@ end
 // - on clock it stores the address of the current instruction, or debugger jump
 always_ff @(posedge clk, posedge rst)
 if (rst)         pc <= '1;
-else if (bp_vld) pc <= bp_jmp ? ifu_adr_t'(bp_npc) : ifu_adr_t'(bp_adr);
+else if (bp_vld) pc <= bp_jmp ? pc_t'(bp_npc) : pc_t'(bp_adr);
 
 // program counter increment
 assign pcn = pc + 22'd1;
@@ -727,26 +733,26 @@ else if (dec.ifu.ii | stl) pr <= pi;
 // SPR write access
 always_ff @ (posedge clk, posedge rst)
 if (rst) begin
-  rampd      <= 8'h00;
-  rampx      <= 8'h00;
-  rampy      <= 8'h00;
-  rampz      <= 8'h00;
-  eind       <= 6'h00;
-  sp[8*0+:8] <= SPR[8*0+:8];
-  sp[8*1+:8] <= SPR[8*1+:8];
-  sreg       <= 8'h00;
-  sreg       <= 8'h00;
+  rampd <= 8'h00;
+  rampx <= 8'h00;
+  rampy <= 8'h00;
+  rampz <= 8'h00;
+  eind  <= 6'h00;
+  sp.l  <= SPR[8*0+:8];
+  sp.h  <= SPR[8*1+:8];
+  sreg  <= 8'h00;
+  sreg  <= 8'h00;
 end else if (~stl) begin
   if (dec.iou.we) begin
     case (dec.iou.ad)
-      IOA_RAMPD: rampd      <= dec.iou.wd;
-      IOA_RAMPX: rampx      <= dec.iou.wd;
-      IOA_RAMPY: rampy      <= dec.iou.wd;
-      IOA_RAMPZ: rampz      <= dec.iou.wd;
-      IOA_EIND : eind       <= dec.iou.wd[6-1:0];
-      IOA_SPL  : sp[8*0+:8] <= dec.iou.wd;
-      IOA_SPH  : sp[8*1+:8] <= dec.iou.wd;
-      IOA_SREG : sreg       <= dec.iou.wd;
+      IOA_RAMPD: rampd <= dec.iou.wd;
+      IOA_RAMPX: rampx <= dec.iou.wd;
+      IOA_RAMPY: rampy <= dec.iou.wd;
+      IOA_RAMPZ: rampz <= dec.iou.wd;
+      IOA_EIND : eind  <= dec.iou.wd[6-1:0];
+      IOA_SPL  : sp.l  <= dec.iou.wd;
+      IOA_SPH  : sp.h  <= dec.iou.wd;
+      IOA_SREG : sreg  <= dec.iou.wd;
     endcase
   end else begin
     // TODO access to extended registers and SP
@@ -775,15 +781,15 @@ assign io_msk = dec.iou.ms;
 always_comb
 if (dec.iou.we) begin
   unique case (dec.iou.ad)
-    IOA_RAMPD: id = rampd     ;
-    IOA_RAMPX: id = rampx     ;
-    IOA_RAMPY: id = rampy     ;
-    IOA_RAMPZ: id = rampz     ;
-    IOA_EIND : id = 8'(eind)  ;
-    IOA_SPL  : id = sp[8*0+:8];
-    IOA_SPH  : id = sp[8*1+:8];
-    IOA_SREG : id = sreg      ;
-    default  : id = io_rdt    ;
+    IOA_RAMPD: id = rampd;
+    IOA_RAMPX: id = rampx;
+    IOA_RAMPY: id = rampy;
+    IOA_RAMPZ: id = rampz;
+    IOA_EIND : id = 8'(eind);
+    IOA_SPL  : id = sp.l;
+    IOA_SPH  : id = sp.h;
+    IOA_SREG : id = sreg;
+    default  : id = io_rdt;
   endcase
 end
 
@@ -811,22 +817,26 @@ end
 always_ff @(posedge clk)
 if (dec.lsu.en & ~lsu_con) begin
   bd_wen <= dec.lsu.we;
-  bd_adr <= dec.lsu.st ? (dec.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(dec.lsu.ad);
+//bd_adr <= dec.lsu.st ? (dec.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(dec.lsu.ad);
+// Verilator: Unsupported: Size-changing cast on non-basic data type
+  bd_adr <= dec.lsu.st ? (dec.lsu.we ? sp : spi) : DAW'(dec.lsu.ad);
   if (dec.lsu.we)
   bd_wdt <= dec.lsu.sb ? pcn.l : dec.lsu.wd;
 end
 
 // PC after a return
 // TODO, this should be extended to support 2 and 3 byte PC
-assign pcs = ifu_adr_t'(bd_rdt);
+assign pcs = pc_t'(bd_rdt);
+
+
 
 // stall on instructions reading from memory load/pull/ret
 // TODO: reading should stall only if a dirty register is accessed or if there is a writeback conflict
 
-// LSU stall request
+// LSU block
 assign lsu_blk = dec.lsu.en & ~dec.lsu.we;
 
-// LSU continue grant
+// LSU continue
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
   lsu_con <= 1'b0;
@@ -948,7 +958,7 @@ sreg_t         dec_srg_m; // mask
 logic          dec_ifu_ii; // instruction immediate
 logic          dec_ifu_sk; // skip
 logic          dec_ifu_be; // branch enable
-ifu_adr_t      dec_ifu_ad; // address
+pc_t           dec_ifu_ad; // address
 logic          dec_ifu_we; // write enable (for SPM instruction)
 logic [16-1:0] dec_ifu_wd; // write data   (for SPM instruction)
 // input/output unit decode structure
@@ -962,7 +972,7 @@ logic          dec_lsu_en; // enable
 logic          dec_lsu_we; // write enable
 logic          dec_lsu_st; // stack push/pop
 logic          dec_lsu_sb; // subroutine/interrupt call/return
-lsu_adr_t      dec_lsu_ad; // address
+ls_t           dec_lsu_ad; // address
 logic  [8-1:0] dec_lsu_wd; // write data
 gpr_adr_t      dec_lsu_dr; // destination register (if not PC)
 // control decode structure
