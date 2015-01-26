@@ -37,8 +37,11 @@ logic           bp_rdy; // ready (read data, new PC, debug jump request)
 logic           bd_req;
 logic           bd_wen;
 logic [DAW-1:0] bd_adr;
+logic   [6-1:0] bd_wid;
 logic   [8-1:0] bd_wdt;
 logic   [8-1:0] bd_rdt;
+logic   [6-1:0] bd_rid;
+logic           bd_ren;
 logic           bd_ack;
 // I/O peripheral bus
 logic           io_wen; // write enable
@@ -47,7 +50,7 @@ logic   [6-1:0] io_adr; // address
 logic   [8-1:0] io_wdt; // write data
 logic   [8-1:0] io_msk; // write mask
 logic   [8-1:0] io_rdt; // read data
-// interrupt
+// interrupts
 logic [IRW-1:0] irq_req;
 logic [IRW-1:0] irq_ack;
 // control
@@ -85,8 +88,11 @@ rp_8bit #(
   .bd_req  (bd_req),
   .bd_wen  (bd_wen),
   .bd_adr  (bd_adr),
+  .bd_wid  (bd_wid),
   .bd_wdt  (bd_wdt),
   .bd_rdt  (bd_rdt),
+  .bd_rid  (bd_rid),
+  .bd_ren  (bd_ren),
   .bd_ack  (bd_ack),
   // I/O peripheral bus
   .io_wen  (io_wen),
@@ -132,6 +138,10 @@ bp_rdy <= bp_vld;
 assign bp_npc = 'x;
 assign bp_jmp = 1'b0;
 
+////////////////////////////////////////////////////////////////////////////////
+// instruction decoder
+////////////////////////////////////////////////////////////////////////////////
+
 //string str;
 //bit [0:32-1] [8-1:0] asm;
 //
@@ -147,6 +157,7 @@ assign bp_jmp = 1'b0;
 // data memory
 ////////////////////////////////////////////////////////////////////////////////
 
+// synchronous RAM
 mem #(
   .SZ (2**DAW),
   .DW (8)
@@ -158,6 +169,15 @@ mem #(
   .wdt (bd_wdt),
   .rdt (bd_rdt)
 );
+
+// read identification
+always_ff @(posedge clk)
+if (bd_req & ~bd_wen) bd_rid <= bd_wid;
+
+// read enable
+always_ff @(posedge clk, posedge rst)
+if (rst)  bd_ren <= 1'b0;
+else      bd_ren <= bd_req & ~bd_wen;
 
 ////////////////////////////////////////////////////////////////////////////////
 // periphery

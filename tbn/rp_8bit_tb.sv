@@ -3,9 +3,14 @@
 
 module rp_8bit_tb;
 
-localparam IRW =  8; // bus instruction - interrupt width
-localparam PAW = 11; // bus instruction - address   width
-localparam DAW = 13; // bus data        - address   width
+////////////////////////////////////////////////////////////////////////////////
+// local signals
+////////////////////////////////////////////////////////////////////////////////
+
+localparam int unsigned IRW =  8; // bus instruction - interrupt width
+localparam int unsigned PAW = 11; // bus instruction - address   width
+localparam int unsigned DAW = 13; // bus data        - address   width
+localparam bit [16-1:0] SPR = 16'h10ff;
 
 // test class
 class test_class;
@@ -50,8 +55,11 @@ logic           bp_rdy; // ready (read data, new PC, debug jump request)
 logic           bd_req;
 logic           bd_wen;
 logic [DAW-1:0] bd_adr;
+logic   [6-1:0] bd_wid;
 logic   [8-1:0] bd_wdt;
 logic   [8-1:0] bd_rdt;
+logic   [6-1:0] bd_rid;
+logic           bd_ren;
 logic           bd_ack;
 // I/O peripheral bus
 logic           io_wen; // write enable
@@ -68,10 +76,19 @@ logic           ctl_slp; // sleep
 logic           ctl_brk; // break
 logic           ctl_wdr; // watch dog reset
 
+int unsigned cyc = 0;
+always_ff @ (posedge clk)
+cyc <= cyc+1;
+
+////////////////////////////////////////////////////////////////////////////////
+// RTL DUT instance
+////////////////////////////////////////////////////////////////////////////////
+
 rp_8bit #(
   .IRW (IRW),
   .PAW (PAW),
-  .DAW (DAW)
+  .DAW (DAW),
+  .SPR (SPR)
 ) DUT (
   // system signals
   .clk     (clk),
@@ -89,8 +106,11 @@ rp_8bit #(
   .bd_req  (bd_req),
   .bd_wen  (bd_wen),
   .bd_adr  (bd_adr),
+  .bd_wid  (bd_wid),
   .bd_wdt  (bd_wdt),
   .bd_rdt  (bd_rdt),
+  .bd_rid  (bd_rid),
+  .bd_ren  (bd_ren),
   .bd_ack  (bd_ack),
   // I/O peripheral bus
   .io_wen  (io_wen),
@@ -176,6 +196,7 @@ end
 // data memory
 ////////////////////////////////////////////////////////////////////////////////
 
+// synchronous RAM
 mem #(
   .SZ (2**DAW),
   .DW (8)
@@ -187,6 +208,15 @@ mem #(
   .wdt (bd_wdt),
   .rdt (bd_rdt)
 );
+
+// read identification
+always_ff @(posedge clk)
+if (bd_req & ~bd_wen) bd_rid <= bd_wid;
+
+// read enable
+always_ff @(posedge clk, posedge rst)
+if (rst)  bd_ren <= 1'b0;
+else      bd_ren <= bd_req & ~bd_wen;
 
 ////////////////////////////////////////////////////////////////////////////////
 // periphery

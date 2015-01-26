@@ -38,10 +38,13 @@ module rp_8bit #(
   input  logic           bp_rdy, // ready (read data, new PC, debug jump request)
   // data bus
   output logic           bd_req, // request
-  output logic           bd_wen, // write enable
   output logic [DAW-1:0] bd_adr, // address
+  output logic           bd_wen, // write enable
+  output logic   [6-1:0] bd_wid, // write identification
   output logic   [8-1:0] bd_wdt, // write data
-  input  logic   [8-1:0] bd_rdt, // read  data
+  input  logic   [8-1:0] bd_rdt, // read data
+  input  logic   [6-1:0] bd_rid, // read identification
+  input  logic           bd_ren, // read enable
   input  logic           bd_ack, // acknowledge
   // I/O peripheral bus
   output logic           io_wen, // write enable
@@ -742,8 +745,8 @@ if (rst) begin
   sp.h  <= SPR[8*1+:8];
   sreg  <= 8'h00;
   sreg  <= 8'h00;
-end else if (~stl) begin
-  if (dec.iou.we) begin
+end else begin
+  if (~stl & dec.iou.we) begin
     case (dec.iou.ad)
       IOA_RAMPD: rampd <= dec.iou.wd;
       IOA_RAMPX: rampx <= dec.iou.wd;
@@ -807,41 +810,59 @@ assign ei = {eind , Rw}; // extended indirect address using Z pointer
 // load/store unit
 ////////////////////////////////////////////////////////////////////////////////
 
+localparam PCN = 2;
+
+logic [1:0] bd_cnt; // transfer counter (used for pushing PC to stack)
+logic [23:8] bd_buf;
+
+
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
   bd_req <= 1'b0;
+  bd_cnt <= '0;
 end else begin
-  bd_req <= dec.lsu.en & ~lsu_con;
+  bd_req <= dec.lsu.en & (dec.lsu.we ? 1'b1 : ~lsu_con);
+  // transfer counter
+  // TODO: generalize for 3 byte PC
+  if (dec.lsu.en & dec.lsu.sb)
+  bd_cnt <= (bd_cnt + 1) % PCN;
 end
 
 always_ff @(posedge clk)
-if (dec.lsu.en & ~lsu_con) begin
+if (dec.lsu.en & (dec.lsu.we ? 1'b1 : ~lsu_con)) begin
   bd_wen <= dec.lsu.we;
 //bd_adr <= dec.lsu.st ? (dec.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(dec.lsu.ad);
 // Verilator: Unsupported: Size-changing cast on non-basic data type
   bd_adr <= dec.lsu.st ? (dec.lsu.we ? sp : spi) : DAW'(dec.lsu.ad);
   if (dec.lsu.we)
-  bd_wdt <= dec.lsu.sb ? pcn.l : dec.lsu.wd;
+  bd_wdt <= dec.lsu.sb ? pcn [bd_cnt*8+:8] : dec.lsu.wd;
+  // write identification
+  bd_wid <= dec.lsu.sb ? {1'b1, 3'b0, 2'(dec.lsu.we ? bd_cnt : PCN - 1 - bd_cnt)}
+                       : {1'b0, dec.lsu.dr};
 end
 
 // PC after a return
 // TODO, this should be extended to support 2 and 3 byte PC
-assign pcs = pc_t'(bd_rdt);
+assign pcs = {bd_buf, bd_rdt} & 24'h00ffff;
 
-
+always_ff @(posedge clk)
+if (bd_ren) begin
+  if (bd_rid == 6'h21)  bd_buf[15: 8] <= bd_rdt;
+  if (bd_rid == 6'h22)  bd_buf[23:16] <= bd_rdt;
+end
 
 // stall on instructions reading from memory load/pull/ret
 // TODO: reading should stall only if a dirty register is accessed or if there is a writeback conflict
 
 // LSU block
-assign lsu_blk = dec.lsu.en & ~dec.lsu.we;
+assign lsu_blk = dec.lsu.en & (~dec.lsu.we | (dec.lsu.sb & PCN>1));
 
 // LSU continue
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
   lsu_con <= 1'b0;
 end else begin
-  lsu_con <= bd_req & ~bd_wen & ~lsu_con;
+  lsu_con <= ~lsu_con & (~dec.lsu.we ? bd_req : lsu_blk);
 end
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Fri Jan 23 09:13:32 2015
+[*] Mon Jan 26 13:47:08 2015
 [*]
 [dumpfile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.vcd"
-[dumpfile_mtime] "Fri Jan 23 09:08:33 2015"
-[dumpfile_size] 182630
+[dumpfile_mtime] "Mon Jan 26 13:46:12 2015"
+[dumpfile_size] 150465
 [savefile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_tb.gtkw"
-[timestart] 0
-[size] 1855 1176
+[timestart] 3103
+[size] 1301 744
 [pos] -1 -1
-*-9.475519 3850 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-8.766689 3950 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] rp_8bit_tb.
 [sst_width] 242
 [signals_width] 246
 [sst_expanded] 1
-[sst_vpaned_height] 364
+[sst_vpaned_height] 147
 @24
 rp_8bit_tb.IRW[31:0]
 rp_8bit_tb.PAW[31:0]
@@ -32,9 +32,7 @@ rp_8bit_tb.bp_wen
 @22
 rp_8bit_tb.bp_adr[10:0]
 rp_8bit_tb.bp_wdt[15:0]
-@23
 rp_8bit_tb.bp_rdt[15:0]
-@22
 rp_8bit_tb.bp_npc[10:0]
 @28
 rp_8bit_tb.bp_jmp
@@ -48,9 +46,13 @@ rp_8bit_tb.bd_req
 rp_8bit_tb.bd_wen
 @22
 rp_8bit_tb.bd_adr[12:0]
+rp_8bit_tb.DUT.bd_wid[5:0]
 rp_8bit_tb.bd_wdt[7:0]
 rp_8bit_tb.bd_rdt[7:0]
+@23
+#{bd_rid[5:0]} rp_8bit_tb.DUT.bd_rid[5] rp_8bit_tb.DUT.bd_rid[4] rp_8bit_tb.DUT.bd_rid[3] rp_8bit_tb.DUT.bd_rid[2] rp_8bit_tb.DUT.bd_rid[1] rp_8bit_tb.DUT.bd_rid[0]
 @28
+rp_8bit_tb.DUT.bd_ren
 rp_8bit_tb.bd_ack
 @1000200
 -data
@@ -428,5 +430,10 @@ rp_8bit_tb.DUT.sp[15:0]
 rp_8bit_tb.DUT.pc[21:0]
 rp_8bit_tb.DUT.pcn[21:0]
 rp_8bit_tb.DUT.pcs[21:0]
+rp_8bit_tb.DUT.bd_buf[23:8]
+@28
+rp_8bit_tb.DUT.bd_cnt[1:0]
+rp_8bit_tb.DUT.lsu_blk
+rp_8bit_tb.DUT.lsu_con
 [pattern_trace] 1
 [pattern_trace] 0
