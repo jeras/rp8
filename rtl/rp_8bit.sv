@@ -144,6 +144,12 @@ typedef logic [5-1:0] gpr_adr_t;
 // I/O space address
 typedef logic [6-1:0] iou_adr_t;
 
+// data transfer identification
+typedef struct packed {
+  logic         m; // mode (0 - GPR, 1 - PC)
+  logic [5-1:0] i; // index (R[31:0] or PC[2:0])
+} id_t;
+
 // status register
 typedef struct packed {logic i, t, h, s, v, n, z, c;} sreg_t;
 
@@ -268,6 +274,9 @@ localparam pc_t PAM = (1<<PAW)-1;
 localparam pc_t DAM = (1<<DAW)-1;
 // stack address mask
 
+// TODO
+localparam bit [2-1:0] PCN = 2'd2;
+
 ////////////////////////////////////////////////////////////////////////////////
 // AVR architecture constants
 ////////////////////////////////////////////////////////////////////////////////
@@ -379,8 +388,10 @@ logic          ifu_con; // continue
 
 // load store unit status
 logic          lsu_req;
-logic          lsu_blk; // block
-logic          lsu_con; // continue
+logic          lsu_blk; // block execution
+logic          lsu_end; // transfer counter end
+logic  [2-1:0] lsu_cnt; // transfer counter (used for pushing PC to stack)
+logic [24-1:8] lsu_buf; // temporary buffer for PC value during CALL/RET
 
 // extended data memory direct/indirect addressing
 ls_t           ed, ex, ey, ez; // register concatenations
@@ -688,7 +699,7 @@ else if (bp_vld) pc <= bp_jmp ? pc_t'(bp_npc) : pc_t'(bp_adr);
 assign pcn = pc + 22'd1;
 
 // stall can be caused by ALU (not in this implementation), IFU or LSU
-assign stl = lsu_blk & ~lsu_con;
+assign stl = lsu_blk;
 
 ////////////////////////////////////////////////////////////////////////////////
 // instruction fetch unit
@@ -811,26 +822,24 @@ assign ei = {eind , Rw}; // extended indirect address using Z pointer
 // load/store unit
 ////////////////////////////////////////////////////////////////////////////////
 
-localparam PCN = 2;
-
-logic [1:0] lsu_cnt; // transfer counter (used for pushing PC to stack)
-logic [1:0] lsu_cnn; // transfer counter (used for pushing PC to stack)
-logic [23:8] lsu_buf;
-
-assign lsu_req = dec.lsu.en & (dec.lsu.we ? 1'b1 : (dec.lsu.sb ? lsu_cnn <= PCN : ~bd_req));
-
-always_ff @(posedge clk, posedge rst)
-if (rst) begin
-  bd_req <= 1'b0;
-  lsu_cnt <= '0;
+// LSU request
+always_comb
+if (dec.lsu.sb) begin
+  lsu_req = dec.lsu.en & (dec.lsu.we ? 1'b1 : ~(bd_req & (bd_wid ==? 6'b1?_??00)) & ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
 end else begin
-  bd_req <= lsu_req;
-  // transfer counter
-  if (dec.lsu.en & dec.lsu.sb)
-  lsu_cnt <= lsu_cnn % PCN;
+  lsu_req = dec.lsu.en & (dec.lsu.we ? 1'b1 :  ~bd_req                                                                 );
 end
 
-assign lsu_cnn = lsu_cnt + 1;
+always_ff @(posedge clk, posedge rst)
+if (rst)           lsu_cnt <= 2'd0;
+else if (lsu_req)  lsu_cnt <= lsu_end ? 2'd0 : lsu_cnt + 2'd1;
+
+// end of load store sequence, only soubroutine calls returns are longer then one byte transfer
+assign lsu_end = lsu_cnt == PCN - 2'd1;
+
+always_ff @(posedge clk, posedge rst)
+if (rst)  bd_req <= 1'b0;
+else      bd_req <= lsu_req;
 
 always_ff @(posedge clk)
 if (lsu_req) begin
@@ -841,8 +850,12 @@ if (lsu_req) begin
   if (dec.lsu.we)
   bd_wdt <= dec.lsu.sb ? pcn [lsu_cnt*8+:8] : dec.lsu.wd;
   // write identification
-  bd_wid <= dec.lsu.sb ? {1'b1, 3'b0, 2'(dec.lsu.we ? lsu_cnt : PCN - 1 - lsu_cnt)}
-                       : {1'b0, dec.lsu.dr};
+  if (dec.lsu.sb) begin
+    bd_wid <= dec.lsu.we ? {1'b1, 3'b000,              lsu_cnt}
+                         : {1'b1, 3'b000, PCN - 2'd1 - lsu_cnt};
+  end else begin
+    bd_wid <= {1'b0, dec.lsu.dr};
+  end
 end
 
 // PC after a return
@@ -851,19 +864,20 @@ assign pcs = {lsu_buf, bd_rdt} & 24'h00ffff;
 
 always_ff @(posedge clk)
 if (bd_ren) begin
-  if (bd_rid == 6'h21)  lsu_buf[15: 8] <= bd_rdt;
-  if (bd_rid == 6'h22)  lsu_buf[23:16] <= bd_rdt;
+  if (bd_rid ==? 6'b1?_??01)  lsu_buf[15: 8] <= bd_rdt;
+  if (bd_rid ==? 6'b1?_??10)  lsu_buf[23:16] <= bd_rdt;
 end
 
 // stall on instructions reading from memory load/pull/ret
 // TODO: reading should stall only if a dirty register is accessed or if there is a writeback conflict
 
 // LSU block
-assign lsu_blk = dec.lsu.en & (~dec.lsu.we | (dec.lsu.sb & PCN>1));
-
-// LSU continue
-assign lsu_con = dec.lsu.en & (dec.lsu.we ?          (dec.lsu.sb ? lsu_cnn == PCN   : 1'b1)
-                                          : bd_ren & (dec.lsu.sb ? bd_rid == 6'h20 : 1'b1));
+always_comb
+if (dec.lsu.sb) begin
+  lsu_blk = dec.lsu.en & (dec.lsu.we ? ~lsu_end : ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
+end else begin
+  lsu_blk = dec.lsu.en & (dec.lsu.we ? 1'b0     :  ~bd_ren                           );
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // control outputs

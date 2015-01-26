@@ -177,7 +177,7 @@ int main(int argc, char **argv, char **env) {
   // compare_state (avr, &dump);
   printf("RESET\n");
   // run simulation for 100 clock periods
-  for (int unsigned cyc=0; cyc<10; cyc++) {
+  for (int unsigned cyc=0; cyc<1024; cyc++) {
     if (cyc>=2) {
       // set reset
       top->rst = 0;
