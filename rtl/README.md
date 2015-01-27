@@ -2,7 +2,7 @@ NOTE, TODO: most of the listed configuration options are not yet implemented, fo
 
 ## Core configurations:
 
-The rp_8bit core can be configured to support some standard subsets of the full instruction set, program and data address space sizes can also be configured.
+The `rp8` core can be configured to support some standard subsets of the full instruction set, program and data address space sizes can also be configured.
 
 The next table specifies configuration options supported by the `gcc-avr` compiler.
 

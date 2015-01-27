@@ -1,4 +1,4 @@
-package rp_8bit_disasm;
+package avr_disasm;
 
 // TODO check proper syntax for constants and displacements
 
@@ -319,4 +319,4 @@ function automatic string disasm (
   return (str);
 endfunction: disasm
 
-endpackage: rp_8bit_disasm
+endpackage: avr_disasm

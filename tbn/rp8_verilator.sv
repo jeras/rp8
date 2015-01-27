@@ -1,42 +1,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-module rp_8bit_tb;
+module rp8_verilator (
+  // ststem signals
+  input logic clk,
+  input logic rst
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 // local signals
 ////////////////////////////////////////////////////////////////////////////////
 
-localparam int unsigned IRW =  8; // bus instruction - interrupt width
-localparam int unsigned PAW = 11; // bus instruction - address   width
-localparam int unsigned DAW = 13; // bus data        - address   width
-localparam bit [16-1:0] SPR = 16'h10ff;
-
-// test class
-class test_class;
-  rand bit [16-1:0] code;
-
-  constraint valid {
-    code inside {
-      16'b0000_0000_0000_0000,  // NOP
-      16'b0000_0001_????_????,  // MOVW
-      16'b0000_0010_????_????,  // MULS
-      16'b0000_0011_????_????,  // MULSU FMUL FMULS FMULSU
-      16'b0000_01??_????_????,  // CPC  
-      16'b0000_10??_????_????,  // SBC  
-      16'b0000_11??_????_????,  // ADD  
-      16'b0001_00??_????_????,  // CPSE 
-      16'b0001_01??_????_????,  // CP   
-      16'b0001_10??_????_????,  // SUB  
-      16'b0001_11??_????_????,  // ADC  
-      16'b0010_00??_????_????,  // AND  
-      16'b0010_01??_????_????,  // EOR  
-      16'b0010_10??_????_????,  // OR   
-      16'b0010_11??_????_????  // MOV  
-      
-    };
-  }
-endclass: test_class
+//localparam int unsigned IRW =  8; // bus instruction - interrupt width
+//localparam int unsigned PAW = 11; // bus instruction - address   width
+//localparam int unsigned DAW = 13; // bus data        - address   width
+//localparam bit [16-1:0] SPR = 16'h10ff;
+localparam IRW =  8; // bus instruction - interrupt width
+localparam PAW = 11; // bus instruction - address   width
+localparam DAW = 13; // bus data        - address   width
+localparam SPR = 16'h10ff;
 
 // system signals
 logic           clk; // clock
@@ -84,7 +66,7 @@ cyc <= cyc+1;
 // RTL DUT instance
 ////////////////////////////////////////////////////////////////////////////////
 
-rp_8bit #(
+rp8 #(
   .IRW (IRW),
   .PAW (PAW),
   .DAW (DAW),
@@ -129,35 +111,11 @@ rp_8bit #(
 );
 
 ////////////////////////////////////////////////////////////////////////////////
-// clocking
-////////////////////////////////////////////////////////////////////////////////
-
-initial    clk = 1'b1;
-always #50 clk = ~clk;
-
-////////////////////////////////////////////////////////////////////////////////
-
-test_class test_instance;
-
-initial begin
-  test_instance = new();
-  rst = 1'b1;
-  repeat (2) @ (posedge clk);
-  rst = 1'b0;
-  repeat (1024) begin
-//    test_instance.randomize();
-//    $display ("%016b", test_instance.code);
-    @ (posedge clk);
-  end
-  $finish;
-end
-
-////////////////////////////////////////////////////////////////////////////////
 // instruction memory
 ////////////////////////////////////////////////////////////////////////////////
 
 mem #(
-  .FN ("test_isa.vmem"),
+//  .FN ("test_isa.vmem"),
   .SZ (2**PAW),
   .DW (16)
 ) bp_mem (
@@ -168,6 +126,9 @@ mem #(
   .wdt (bp_wdt),
   .rdt (bp_rdt)
 );
+
+initial
+$readmemh("test_isa.vmem", bp_mem.mem);
 
 // TODO: for now there will be no delays on the program bus
 always @ (posedge clk)
@@ -181,16 +142,16 @@ assign bp_jmp = 1'b0;
 // instruction decoder
 ////////////////////////////////////////////////////////////////////////////////
 
-string str;
-bit [0:32-1] [8-1:0] asm;
-
-always_comb begin
-  str = rp_8bit_disasm::disasm(bp_rdt);
-  asm = '0;
-  for (int i=0; i<str.len(); i++) begin
-    asm [i] = (8)'(str[i]);
-  end
-end
+//string str;
+//bit [0:32-1] [8-1:0] asm;
+//
+//always_comb begin
+//  str = avr_disasm::disasm(bp_rdt);
+//  asm = '0;
+//  for (int i=0; i<str.len(); i++) begin
+//    asm [i] = (8)'(str[i]);
+//  end
+//end
 
 ////////////////////////////////////////////////////////////////////////////////
 // data memory
@@ -240,12 +201,24 @@ end
 assign irq_req = '0;
 
 ////////////////////////////////////////////////////////////////////////////////
-// waveforms
+// DPI
 ////////////////////////////////////////////////////////////////////////////////
 
-initial begin
-  $dumpfile("rp_8bit_tb.vcd");
-  $dumpvars(0, rp_8bit_tb);
-end
+function void dump_state_bp (
+  output int dump_bp_adr,
+  output int dump_bp_vld
+);
+/*verilator public*/
+  dump_bp_adr = bp_adr;
+  dump_bp_vld = bp_vld;
+endfunction: dump_state_bp
 
-endmodule: rp_8bit_tb
+function void dump_state_io (
+  output bit [64-1:0] [8-1:0] dump_io_mem
+);
+  /*verilator public*/
+  for (int unsigned i=0; i<64; i++)
+    dump_io_mem[i] = io_mem[i];
+endfunction: dump_state_io
+
+endmodule: rp8_verilator

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module rp_8bit #(
+module rp8 #(
   parameter int unsigned IRW =  8,  // interrupt request width
   parameter int unsigned PAW = 11,  // program address width (16 bit words)
   parameter int unsigned DAW = 13,  // data    address width ( 8 bit bytes)
@@ -98,13 +98,13 @@ endfunction: b2o
 // extend byte
 // TODO: undefined bits are causing trouble in ALU
 function logic [24-1:0] feb (input logic [8-1:0] b);
-  feb = {15'bx, 1'b0, b};
+  feb = {15'b0, 1'b0, b};
 endfunction: feb
 
 // extend word
 // TODO: undefined bits are causing trouble in ALU
 function logic [24-1:0] few (input logic [16-1:0] w);
-  few = {7'bx, 1'b0, w};
+  few = {7'b0, 1'b0, w};
 endfunction: few
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1129,4 +1129,4 @@ assign GPR_R31 = gpr.idx[31];
 
 /* verilator lint_on UNUSED */
 
-endmodule: rp_8bit
+endmodule: rp8

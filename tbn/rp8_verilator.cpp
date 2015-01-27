@@ -1,13 +1,13 @@
 // verilator includes
-#include "Vrp_8bit_verilator.h"
+#include "Vrp8_verilator.h"
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 // DPI interface
 //#include "svdpi.h"
-//#include "Vrp_8bit_verilator__Dpi.h"
+//#include "Vrp8_verilator__Dpi.h"
 // accessing public variables/functions
-#include "Vrp_8bit_verilator_rp_8bit_verilator.h"
-#include "Vrp_8bit_verilator_rp_8bit.h"
+#include "Vrp8_verilator_rp8_verilator.h"
+#include "Vrp8_verilator_rp8.h"
 // simavr includes
 #include "sim_avr.h"
 #include "sim_elf.h"
@@ -143,12 +143,12 @@ int main(int argc, char **argv, char **env) {
   // verilator initialization
   Verilated::commandArgs(argc, argv);
   // init top verilog instance
-  Vrp_8bit_verilator* top = new Vrp_8bit_verilator;
+  Vrp8_verilator* top = new Vrp8_verilator;
   // init trace dump
   Verilated::traceEverOn(true);
   VerilatedVcdC* tfp = new VerilatedVcdC;
   top->trace (tfp, 99);
-  tfp->open ("rp_8bit_verilator.vcd");
+  tfp->open ("rp8_verilator.vcd");
 
   dump_t dump;
 

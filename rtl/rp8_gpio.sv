@@ -1,6 +1,6 @@
 /*
- * rp_8bit (8 bit risc processor, AVR compatible)
- * rp_8bit_gpio (GPIO peripheral)
+ * rp8 (8 bit risc processor, AVR compatible)
+ * rp8_gpio (GPIO peripheral)
  * Copyright (C) 2014 Iztok Jeras
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module rp_8bit_gpio #(
+module rp8_gpio #(
   int unsigned PDW = 8,     // port data width
   bit [6-1:0]  ADR = 6'h00  // I/O address
   
@@ -72,4 +72,4 @@ case (io_re)
   default: io_dr = 'x;
 endcase
 
-endmodule: rp_8bit_gpio
+endmodule: rp8_gpio
