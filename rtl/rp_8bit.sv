@@ -642,11 +642,14 @@ endcase
 // status for ( 8 bit byte operations)
 assign alu_sb.i = 1'bx;
 assign alu_sb.t = 1'bx;
-assign alu_sb.h = dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] & ~alu_rb[3] | ~alu_rb[3] & dec.alu.d[3];
+assign alu_sb.h = (dec.alu.m == SUB) ? ~dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] &  alu_rb[3] |  alu_rb[3] & ~dec.alu.d[3]
+                                     :  dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] & ~alu_rb[3] | ~alu_rb[3] &  dec.alu.d[3];
 assign alu_sb.s = alu_sb.n ^ alu_sb.v;
-assign alu_sb.v = dec.alu.d[7] & dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] & ~dec.alu.r[7] & alu_rb[7];
+assign alu_sb.v = (dec.alu.m == SUB) ? dec.alu.d[7] & ~dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] &  dec.alu.r[7] & alu_rb[7]
+                                     : dec.alu.d[7] &  dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] & ~dec.alu.r[7] & alu_rb[7];
 assign alu_sb.n = alu_rb[7];
-assign alu_sb.z = (dec.alu.m == SUB) ? ~|alu_rb & sreg.z : ~|alu_rb;
+assign alu_sb.z = (dec.alu.m == SUB) ? ~|alu_rb & sreg.z
+                                     : ~|alu_rb;
 assign alu_sb.c = (dec.alu.m == SHR) ? dec.alu.d[0] : alu_t[8];
 
 // status for (16 bit word operations)
