@@ -142,7 +142,7 @@ test_class test_instance;
 initial begin
   test_instance = new();
   rst = 1'b1;
-  repeat (4) @ (posedge clk);
+  repeat (2) @ (posedge clk);
   rst = 1'b0;
   repeat (1024) begin
 //    test_instance.randomize();
