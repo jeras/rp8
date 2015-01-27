@@ -646,7 +646,7 @@ assign alu_sb.h = dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] & ~alu_rb[3] | ~alu
 assign alu_sb.s = alu_sb.n ^ alu_sb.v;
 assign alu_sb.v = dec.alu.d[7] & dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] & ~dec.alu.r[7] & alu_rb[7];
 assign alu_sb.n = alu_rb[7];
-assign alu_sb.z = ~|alu_rb;
+assign alu_sb.z = (dec.alu.m == SUB) ? ~|alu_rb & sreg.z : ~|alu_rb;
 assign alu_sb.c = (dec.alu.m == SHR) ? dec.alu.d[0] : alu_t[8];
 
 // status for (16 bit word operations)
@@ -1053,6 +1053,73 @@ assign {dec_gpr_we,
         dec_ctl_slp,
         dec_ctl_brk,
         dec_ctl_wdr} = dec;
+
+logic [8-1:0] GPR_R00;
+logic [8-1:0] GPR_R01;
+logic [8-1:0] GPR_R02;
+logic [8-1:0] GPR_R03;
+logic [8-1:0] GPR_R04;
+logic [8-1:0] GPR_R05;
+logic [8-1:0] GPR_R06;
+logic [8-1:0] GPR_R07;
+logic [8-1:0] GPR_R08;
+logic [8-1:0] GPR_R09;
+logic [8-1:0] GPR_R10;
+logic [8-1:0] GPR_R11;
+logic [8-1:0] GPR_R12;
+logic [8-1:0] GPR_R13;
+logic [8-1:0] GPR_R14;
+logic [8-1:0] GPR_R15;
+logic [8-1:0] GPR_R16;
+logic [8-1:0] GPR_R17;
+logic [8-1:0] GPR_R18;
+logic [8-1:0] GPR_R19;
+logic [8-1:0] GPR_R20;
+logic [8-1:0] GPR_R21;
+logic [8-1:0] GPR_R22;
+logic [8-1:0] GPR_R23;
+logic [8-1:0] GPR_R24;
+logic [8-1:0] GPR_R25;
+logic [8-1:0] GPR_R26;
+logic [8-1:0] GPR_R27;
+logic [8-1:0] GPR_R28;
+logic [8-1:0] GPR_R29;
+logic [8-1:0] GPR_R30;
+logic [8-1:0] GPR_R31;
+
+assign GPR_R00 = gpr.idx[00];
+assign GPR_R01 = gpr.idx[01];
+assign GPR_R02 = gpr.idx[02];
+assign GPR_R03 = gpr.idx[03];
+assign GPR_R04 = gpr.idx[04];
+assign GPR_R05 = gpr.idx[05];
+assign GPR_R06 = gpr.idx[06];
+assign GPR_R07 = gpr.idx[07];
+assign GPR_R08 = gpr.idx[08];
+assign GPR_R09 = gpr.idx[09];
+assign GPR_R10 = gpr.idx[10];
+assign GPR_R11 = gpr.idx[11];
+assign GPR_R12 = gpr.idx[12];
+assign GPR_R13 = gpr.idx[13];
+assign GPR_R14 = gpr.idx[14];
+assign GPR_R15 = gpr.idx[15];
+assign GPR_R16 = gpr.idx[16];
+assign GPR_R17 = gpr.idx[17];
+assign GPR_R18 = gpr.idx[18];
+assign GPR_R19 = gpr.idx[19];
+assign GPR_R20 = gpr.idx[20];
+assign GPR_R21 = gpr.idx[21];
+assign GPR_R22 = gpr.idx[22];
+assign GPR_R23 = gpr.idx[23];
+assign GPR_R24 = gpr.idx[24];
+assign GPR_R25 = gpr.idx[25];
+assign GPR_R26 = gpr.idx[26];
+assign GPR_R27 = gpr.idx[27];
+assign GPR_R28 = gpr.idx[28];
+assign GPR_R29 = gpr.idx[29];
+assign GPR_R30 = gpr.idx[30];
+assign GPR_R31 = gpr.idx[31];
+
 
 /* verilator lint_on UNUSED */
 
