@@ -210,7 +210,9 @@ function void dump_state_bp (
 );
 /*verilator public*/
   dump_bp_adr = bp_adr;
-  dump_bp_vld = bp_vld;
+  // TODO: this is a workaround, since the reference C model is not reading instructions which are skipped
+  dump_bp_vld = bp_vld & ~(DUT.dec.ifu.sk | DUT.ifu_sts.skp & ~DUT.ifu_sts.ign & DUT.dec.ifu.ii);
+  //dump_bp_vld = bp_vld;
 endfunction: dump_state_bp
 
 function void dump_state_io (

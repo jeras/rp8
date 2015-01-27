@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Tue Jan 27 16:00:22 2015
+[*] Tue Jan 27 19:21:44 2015
 [*]
 [dumpfile] "/home/izi/Workplace/rp8/sim/rp8_tb.vcd"
-[dumpfile_mtime] "Tue Jan 27 15:58:39 2015"
-[dumpfile_size] 1005503
+[dumpfile_mtime] "Tue Jan 27 19:12:29 2015"
+[dumpfile_size] 1008389
 [savefile] "/home/izi/Workplace/rp8/sim/rp8_tb.gtkw"
-[timestart] 25896
-[size] 1301 744
+[timestart] 26090
+[size] 1855 1176
 [pos] -1 -1
-*-8.244481 26500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-7.244481 26600 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] rp8_tb.
 [sst_width] 223
 [signals_width] 246
 [sst_expanded] 1
-[sst_vpaned_height] 147
+[sst_vpaned_height] 253
 @24
 rp8_tb.IRW[31:0]
 rp8_tb.PAW[31:0]
@@ -43,9 +43,8 @@ rp8_tb.bp_rdy
 -program
 @800200
 -data
-@29
-rp8_tb.bd_req
 @28
+rp8_tb.bd_req
 rp8_tb.bd_wen
 @22
 rp8_tb.bd_adr[12:0]
@@ -87,16 +86,18 @@ rp8_tb.DUT.dec_gpr_rw[4:0]
 rp8_tb.DUT.dec_gpr_rb[4:0]
 @1401200
 -decoder GPR
-@c00200
+@800200
 -decoder ALU
 @28
 rp8_tb.DUT.dec_alu_m[2:0]
+@29
+rp8_tb.DUT.dec_alu_z
 @22
 rp8_tb.DUT.dec_alu_d[23:0]
 rp8_tb.DUT.dec_alu_r[23:0]
 @28
 rp8_tb.DUT.dec_alu_c
-@1401200
+@1000200
 -decoder ALU
 @c00200
 -decoder MUL
@@ -440,6 +441,23 @@ rp8_tb.DUT.ifu_sts[1:0]
 @28
 (0)rp8_tb.DUT.ifu_sts[1:0]
 (1)rp8_tb.DUT.ifu_sts[1:0]
+@1001200
+-group_end
+@22
+rp8_tb.DUT.GPR_R16[7:0]
+rp8_tb.DUT.GPR_R17[7:0]
+rp8_tb.DUT.alu_rb[7:0]
+@800022
+rp8_tb.DUT.alu_s[7:0]
+@28
+(0)rp8_tb.DUT.alu_s[7:0]
+(1)rp8_tb.DUT.alu_s[7:0]
+(2)rp8_tb.DUT.alu_s[7:0]
+(3)rp8_tb.DUT.alu_s[7:0]
+(4)rp8_tb.DUT.alu_s[7:0]
+(5)rp8_tb.DUT.alu_s[7:0]
+(6)rp8_tb.DUT.alu_s[7:0]
+(7)rp8_tb.DUT.alu_s[7:0]
 @1001200
 -group_end
 [pattern_trace] 1
