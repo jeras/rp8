@@ -1,19 +1,19 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Tue Jan 27 11:44:04 2015
+[*] Tue Jan 27 13:43:17 2015
 [*]
-[dumpfile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_verilator.vcd"
-[dumpfile_mtime] "Tue Jan 27 11:40:33 2015"
-[dumpfile_size] 693357
-[savefile] "/home/izi/Workplace/rp_8bit/sim/rp_8bit_verilator.gtkw"
-[timestart] 0
+[dumpfile] "/home/izi/Workplace/rp8/sim/rp8_verilator.vcd"
+[dumpfile_mtime] "Tue Jan 27 13:42:24 2015"
+[dumpfile_size] 246102
+[savefile] "/home/izi/Workplace/rp8/sim/rp8_verilator.gtkw"
+[timestart] 390
 [size] 1000 716
 [pos] 603 0
-*-3.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-5.000000 438 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.v.
 [sst_width] 223
-[signals_width] 126
+[signals_width] 163
 [sst_expanded] 1
 [sst_vpaned_height] 252
 @28
@@ -52,5 +52,7 @@ TOP.v.bd_ren
 TOP.v.bd_ack
 @1000200
 -data
+@22
+TOP.v.DUT.sreg[7:0]
 [pattern_trace] 1
 [pattern_trace] 0
