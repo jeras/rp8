@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Tue Jan 27 11:44:08 2015
+[*] Tue Jan 27 16:00:22 2015
 [*]
 [dumpfile] "/home/izi/Workplace/rp8/sim/rp8_tb.vcd"
-[dumpfile_mtime] "Tue Jan 27 11:42:33 2015"
-[dumpfile_size] 893169
+[dumpfile_mtime] "Tue Jan 27 15:58:39 2015"
+[dumpfile_size] 1005503
 [savefile] "/home/izi/Workplace/rp8/sim/rp8_tb.gtkw"
-[timestart] 0
+[timestart] 25896
 [size] 1301 744
 [pos] -1 -1
-*-9.244481 7250 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-8.244481 26500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] rp8_tb.
 [sst_width] 223
 [signals_width] 246
@@ -22,7 +22,7 @@ rp8_tb.DAW[31:0]
 @28
 rp8_tb.clk
 rp8_tb.rst
-@25
+@24
 rp8_tb.cyc[31:0]
 @820
 rp8_tb.asm[255:0]
@@ -43,8 +43,9 @@ rp8_tb.bp_rdy
 -program
 @800200
 -data
-@28
+@29
 rp8_tb.bd_req
+@28
 rp8_tb.bd_wen
 @22
 rp8_tb.bd_adr[12:0]
@@ -115,7 +116,7 @@ rp8_tb.DUT.dec_srg_m[7:0]
 rp8_tb.DUT.dec_srg_s[7:0]
 @1401200
 -decoder SREG
-@c00200
+@800200
 -decoder IFU
 @28
 rp8_tb.DUT.dec_ifu_ii
@@ -127,7 +128,7 @@ rp8_tb.DUT.dec_ifu_ad[21:0]
 rp8_tb.DUT.dec_ifu_we
 @22
 rp8_tb.DUT.dec_ifu_wd[15:0]
-@1401200
+@1000200
 -decoder IFU
 @c00200
 -decoder IOU
@@ -434,5 +435,12 @@ rp8_tb.DUT.pcn[21:0]
 rp8_tb.DUT.pcs[21:0]
 @28
 rp8_tb.DUT.lsu_blk
+@800028
+rp8_tb.DUT.ifu_sts[1:0]
+@28
+(0)rp8_tb.DUT.ifu_sts[1:0]
+(1)rp8_tb.DUT.ifu_sts[1:0]
+@1001200
+-group_end
 [pattern_trace] 1
 [pattern_trace] 0

@@ -383,6 +383,12 @@ logic  [6-1:0] eind ;
 logic          ifu_blk; // block
 logic          ifu_con; // continue
 
+// instruction fetch status
+struct packed {
+  logic skp; // skip   next instruction (but check its length)
+  logic ign; // ignore next instruction (second part of 32bit instruction to skip)
+} ifu_sts;
+
 // load store unit status
 logic          lsu_req;
 logic          lsu_blk; // block execution
@@ -554,7 +560,7 @@ unique casez (pw)
   // skips
   //                                    {  gpr                        alu                                     ifu                                iou                            }
   //                                    {  {we, ww, wd, wa, rw, rb}   {m  , d      , r      , c }             {ii, sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
-  16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{SUB, feb(Rd), feb(Rr), C0}, MUL, SRG, '{C0,  alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
+  16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{SUB, feb(Rd), feb(Rr), C0}, MUL, SRG, '{C0, ~alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
   16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU                         , MUL, SRG, '{C0, ~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBIC
   16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU                         , MUL, SRG, '{C0,  io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBIS
   16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                         , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBRC
@@ -588,7 +594,7 @@ unique casez (pw)
 endcase
 
 // command might come directly from the decoder or is specified otherwise
-assign cmd = dec;
+assign cmd = ifu_sts.ign ? NOP : dec;
 
 ////////////////////////////////////////////////////////////////////////////////
 // register file access
@@ -707,6 +713,15 @@ assign pcn = pc + 22'd1;
 
 // stall can be caused by ALU (not in this implementation), IFU or LSU
 assign stl = lsu_blk;
+
+// skip request for next instruction, which might be 1 or 2 words long
+always_ff @(posedge clk, posedge rst)
+if (rst) begin
+  ifu_sts <= '0;
+end else begin
+  if (~stl)  ifu_sts.skp <= ifu_sts.skp ? (ifu_sts.ign ? 1'b0 : dec.ifu.ii) : dec.ifu.sk;
+  if (~stl)  ifu_sts.ign <= ifu_sts.skp ? (ifu_sts.ign ? 1'b0 : dec.ifu.ii) : 1'b0;
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // instruction fetch unit
