@@ -328,7 +328,8 @@ logic [16-1:0] pi; // input
 logic [16-1:0] pr; // registered
 
 // decoder structure
-dec_t          dec;
+dec_t          dec; // decoder (output from the instruction decoder)
+dec_t          cmd; // command (decoded instruction being currenly executed)
 
 // destination/source register address for:
 gpr_adr_t      db, rb; // full space bytes (used by MOV and arithmetic)
@@ -445,11 +446,13 @@ localparam ifu_dec_t IFU = '{ii: C0, sk: C0, be: C0, ad: 22'hx, we: C0, wd: WX};
 localparam iou_dec_t IOU = '{we: C0, re: C0, ad: 6'hxx, wd: BX, ms: BX};
 localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: EX, wd: BX, dr: RX};
 localparam ctl_dec_t CTL = '{slp: C0, brk: C0, wdr: C0};
+// idle command
+localparam     dec_t NOP = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL };
 
 always_comb
 unique casez (pw)
   // no operation, same as default
-  16'b0000_0000_0000_0000: begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end // NOP
+  16'b0000_0000_0000_0000: begin dec = NOP; end // NOP
   // control instructions
   //                                    {                                     ctl          }
   //                                    {                                     {slp brk wdr}}
@@ -578,10 +581,14 @@ unique casez (pw)
   16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, {2'b00,pc}, Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
 
 //  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
-  // no operation, same as NOP
   // TODO: it might make sense to assign X
-  default:                 begin dec = '{ GPR, ALU, MUL, SRG, IFU, IOU, LSU, CTL }; end
+  //default:                 begin dec = 'x; end
+  // no operation, same as NOP
+  default:                 begin dec = NOP; end
 endcase
+
+// command might come directly from the decoder or is specified otherwise
+assign cmd = dec;
 
 ////////////////////////////////////////////////////////////////////////////////
 // register file access
@@ -592,19 +599,19 @@ always_ff @ (posedge clk)
 if (writeback) begin
   // TODO, add writeback option from load/store unit
 end else if (~stl) begin
-  if (dec.gpr.we) begin
+  if (cmd.gpr.we) begin
     // TODO recode this, so it is appropriate for a register file or at least optimized
-    if (dec.gpr.ww) gpr [{dec.gpr.wa[5-1:1], 1'b0}+:2] <= dec.gpr.wd;
-    else            gpr [ dec.gpr.wa                 ] <= dec.gpr.wd[8-1:0];
+    if (cmd.gpr.ww) gpr [{cmd.gpr.wa[5-1:1], 1'b0}+:2] <= cmd.gpr.wd;
+    else            gpr [ cmd.gpr.wa                 ] <= cmd.gpr.wd[8-1:0];
   end
 end
 
 // read word access
-assign Rw = gpr [{dec.gpr.rw[5-1:1], 1'b0}+:2];
-assign Rd = gpr [ dec.gpr.rw                 ];
+assign Rw = gpr [{cmd.gpr.rw[5-1:1], 1'b0}+:2];
+assign Rd = gpr [ cmd.gpr.rw                 ];
 
 // read byte access
-assign Rr = gpr [ dec.gpr.rb];
+assign Rr = gpr [ cmd.gpr.rb];
 
 // swap of Rd
 assign Rs = {Rd[3:0], Rd[7:4]};
@@ -616,45 +623,45 @@ assign Rs = {Rd[3:0], Rd[7:4]};
 // adder
 // TODO optimize adder
 always_comb
-unique casez (dec.alu.m)
-  3'b??0: alu_t = dec.alu.d + dec.alu.r + 24'(dec.alu.c);
-  3'b??1: alu_t = dec.alu.d - dec.alu.r - 24'(dec.alu.c);
+unique casez (cmd.alu.m)
+  3'b??0: alu_t = cmd.alu.d + cmd.alu.r + 24'(cmd.alu.c);
+  3'b??1: alu_t = cmd.alu.d - cmd.alu.r - 24'(cmd.alu.c);
 endcase
 
 // ALU mode selection
 // TODO optimize mode encoding to allign with opcode bits for ADD/SUB
 always_comb
-unique case (dec.alu.m)
+unique case (cmd.alu.m)
   ADD: begin  alu_s = alu_sb;  alu_rb = alu_t[8-1:0];                         alu_rw = 'x;             end
   SUB: begin  alu_s = alu_sb;  alu_rb = alu_t[8-1:0];                         alu_rw = 'x;             end
   ADW: begin  alu_s = alu_sw;  alu_rb = 'x;                                   alu_rw = alu_t[16-1:0];  end
   SBW: begin  alu_s = alu_sw;  alu_rb = 'x;                                   alu_rw = alu_t[16-1:0];  end
-  AND: begin  alu_s = alu_sb;  alu_rb = dec.alu.d[8-1:0] & dec.alu.r[8-1:0];  alu_rw = 'x;             end
-  OR : begin  alu_s = alu_sb;  alu_rb = dec.alu.d[8-1:0] | dec.alu.r[8-1:0];  alu_rw = 'x;             end
-  EOR: begin  alu_s = alu_sb;  alu_rb = dec.alu.d[8-1:0] ^ dec.alu.r[8-1:0];  alu_rw = 'x;             end
-  SHR: begin  alu_s = alu_sb;  alu_rb = {dec.alu.c, dec.alu.d[7:1]};          alu_rw = 'x;             end
+  AND: begin  alu_s = alu_sb;  alu_rb = cmd.alu.d[8-1:0] & cmd.alu.r[8-1:0];  alu_rw = 'x;             end
+  OR : begin  alu_s = alu_sb;  alu_rb = cmd.alu.d[8-1:0] | cmd.alu.r[8-1:0];  alu_rw = 'x;             end
+  EOR: begin  alu_s = alu_sb;  alu_rb = cmd.alu.d[8-1:0] ^ cmd.alu.r[8-1:0];  alu_rw = 'x;             end
+  SHR: begin  alu_s = alu_sb;  alu_rb = {cmd.alu.c, cmd.alu.d[7:1]};          alu_rw = 'x;             end
 endcase
 
 // status for ( 8 bit byte operations)
 assign alu_sb.i = 1'bx;
 assign alu_sb.t = 1'bx;
-assign alu_sb.h = (dec.alu.m == SUB) ? ~dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] &  alu_rb[3] |  alu_rb[3] & ~dec.alu.d[3]
-                                     :  dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] & ~alu_rb[3] | ~alu_rb[3] &  dec.alu.d[3];
+assign alu_sb.h = (cmd.alu.m == SUB) ? ~cmd.alu.d[3] & cmd.alu.r[3] | cmd.alu.r[3] &  alu_rb[3] |  alu_rb[3] & ~cmd.alu.d[3]
+                                     :  cmd.alu.d[3] & cmd.alu.r[3] | cmd.alu.r[3] & ~alu_rb[3] | ~alu_rb[3] &  cmd.alu.d[3];
 assign alu_sb.s = alu_sb.n ^ alu_sb.v;
-assign alu_sb.v = (dec.alu.m [2]) ? 1'b0 :
-                  (dec.alu.m == SUB) ? dec.alu.d[7] & ~dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] &  dec.alu.r[7] & alu_rb[7]
-                                     : dec.alu.d[7] &  dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] & ~dec.alu.r[7] & alu_rb[7];
+assign alu_sb.v = (cmd.alu.m [2]) ? 1'b0 :
+                  (cmd.alu.m == SUB) ? cmd.alu.d[7] & ~cmd.alu.r[7] & ~alu_rb[7] | ~cmd.alu.d[7] &  cmd.alu.r[7] & alu_rb[7]
+                                     : cmd.alu.d[7] &  cmd.alu.r[7] & ~alu_rb[7] | ~cmd.alu.d[7] & ~cmd.alu.r[7] & alu_rb[7];
 assign alu_sb.n = alu_rb[7];
-assign alu_sb.z = (dec.alu.m == SUB) ? ~|alu_rb & sreg.z
+assign alu_sb.z = (cmd.alu.m == SUB) ? ~|alu_rb & sreg.z
                                      : ~|alu_rb;
-assign alu_sb.c = (dec.alu.m == SHR) ? dec.alu.d[0] : alu_t[8];
+assign alu_sb.c = (cmd.alu.m == SHR) ? cmd.alu.d[0] : alu_t[8];
 
 // status for (16 bit word operations)
 assign alu_sw.i = 1'bx;
 assign alu_sw.t = 1'bx;
 assign alu_sw.h = 1'bx;
 assign alu_sw.s = alu_sw.n ^ alu_sw.v;
-assign alu_sw.v = ~dec.alu.d[15] & dec.alu.r[15];
+assign alu_sw.v = ~cmd.alu.d[15] & cmd.alu.r[15];
 assign alu_sw.n = alu_rw[15];
 assign alu_sw.z = ~|alu_rw;
 assign alu_sw.c = alu_t[16];
@@ -663,10 +670,10 @@ assign alu_sw.c = alu_t[16];
 // multiplier (8 bit * 8 bit)
 ////////////////////////////////////////////////////////////////////////////////
 
-assign mul_t = $signed({dec.mul.m.d & dec.mul.d[7], dec.mul.d})
-             * $signed({dec.mul.m.r & dec.mul.r[7], dec.mul.r});
+assign mul_t = $signed({cmd.mul.m.d & cmd.mul.d[7], cmd.mul.d})
+             * $signed({cmd.mul.m.r & cmd.mul.r[7], cmd.mul.r});
 
-assign mul_r = dec.mul.m.f ? {mul_t[14:0], C0} : mul_t[15:0];
+assign mul_r = cmd.mul.m.f ? {mul_t[14:0], C0} : mul_t[15:0];
 
 assign mul_s.i = 1'bx;
 assign mul_s.t = 1'bx;
@@ -706,7 +713,7 @@ assign stl = lsu_blk;
 ////////////////////////////////////////////////////////////////////////////////
 
 // program address
-assign bp_adr = dec.ifu.be ? dec.ifu.ad [PAW-1:0] : pcn [PAW-1:0];
+assign bp_adr = cmd.ifu.be ? cmd.ifu.ad [PAW-1:0] : pcn [PAW-1:0];
 
 // program memory enable
 assign bp_vld = (stm_sts != RST) & ~stl;
@@ -719,11 +726,11 @@ assign ifu_con = 1'b1;
 // program memory write enable
 always_ff @(posedge clk, posedge rst)
 if (rst) bp_wen <= 1'b0;
-else     bp_wen <= dec.ifu.we;
+else     bp_wen <= cmd.ifu.we;
 
 // program memory write data
 always_ff @(posedge clk)
-bp_wdt <= dec.ifu.wd;
+bp_wdt <= cmd.ifu.wd;
 
 logic ifu_vld;
 
@@ -737,7 +744,7 @@ else      ifu_vld <= bp_vld;
 
 always_ff @(posedge clk, posedge rst)
 if (rst)                   pr <= 16'h0000;
-else if (dec.ifu.ii | stl) pr <= pi;
+else if (cmd.ifu.ii | stl) pr <= pi;
 
 // TODO exception code should be here too
 
@@ -758,26 +765,26 @@ if (rst) begin
   sreg  <= 8'h00;
   sreg  <= 8'h00;
 end else begin
-  if (~stl & dec.iou.we) begin
-    case (dec.iou.ad)
-      IOA_RAMPD: rampd <= dec.iou.wd;
-      IOA_RAMPX: rampx <= dec.iou.wd;
-      IOA_RAMPY: rampy <= dec.iou.wd;
-      IOA_RAMPZ: rampz <= dec.iou.wd;
-      IOA_EIND : eind  <= dec.iou.wd[6-1:0];
-      IOA_SPL  : sp.l  <= dec.iou.wd;
-      IOA_SPH  : sp.h  <= dec.iou.wd;
-      IOA_SREG : sreg  <= dec.iou.wd;
+  if (~stl & cmd.iou.we) begin
+    case (cmd.iou.ad)
+      IOA_RAMPD: rampd <= cmd.iou.wd;
+      IOA_RAMPX: rampx <= cmd.iou.wd;
+      IOA_RAMPY: rampy <= cmd.iou.wd;
+      IOA_RAMPZ: rampz <= cmd.iou.wd;
+      IOA_EIND : eind  <= cmd.iou.wd[6-1:0];
+      IOA_SPL  : sp.l  <= cmd.iou.wd;
+      IOA_SPH  : sp.h  <= cmd.iou.wd;
+      IOA_SREG : sreg  <= cmd.iou.wd;
     endcase
   end else begin
     // TODO access to extended registers and SP
     // SP incrementing/decrementing
     if (lsu_req) begin
-      if (dec.lsu.we)  sp <= spd;
+      if (cmd.lsu.we)  sp <= spd;
       else             sp <= spi;
     end
     // SREG is updated by aritmetic/logic and dedicated instructions
-    sreg <= (dec.srg.s & dec.srg.m) | (sreg & ~dec.srg.m);
+    sreg <= (cmd.srg.s & cmd.srg.m) | (sreg & ~cmd.srg.m);
   end
 end
 
@@ -786,16 +793,16 @@ assign spi = sp + 16'd1;
 assign spd = sp - 16'd1;
 
 // I/O write access (the top 8 loactions are reserved for internal SPR)
-assign io_wen = dec.iou.we & dec.iou.ad !=? 6'b111???;
-assign io_ren = dec.iou.re & dec.iou.ad !=? 6'b111???;
-assign io_adr = dec.iou.ad;
-assign io_wdt = dec.iou.wd;
-assign io_msk = dec.iou.ms;
+assign io_wen = cmd.iou.we & cmd.iou.ad !=? 6'b111???;
+assign io_ren = cmd.iou.re & cmd.iou.ad !=? 6'b111???;
+assign io_adr = cmd.iou.ad;
+assign io_wdt = cmd.iou.wd;
+assign io_msk = cmd.iou.ms;
 
 // I/O read access
 always_comb
-if (dec.iou.we) begin
-  unique case (dec.iou.ad)
+if (cmd.iou.we) begin
+  unique case (cmd.iou.ad)
     IOA_RAMPD: id = rampd;
     IOA_RAMPX: id = rampx;
     IOA_RAMPY: id = rampy;
@@ -824,10 +831,10 @@ assign ei = {eind , Rw}; // extended indirect address using Z pointer
 
 // LSU request
 always_comb
-if (dec.lsu.sb) begin
-  lsu_req = dec.lsu.en & (dec.lsu.we ? 1'b1 : ~(bd_req & (bd_wid ==? 6'b1?_??00)) & ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
+if (cmd.lsu.sb) begin
+  lsu_req = cmd.lsu.en & (cmd.lsu.we ? 1'b1 : ~(bd_req & (bd_wid ==? 6'b1?_??00)) & ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
 end else begin
-  lsu_req = dec.lsu.en & (dec.lsu.we ? 1'b1 :  ~bd_req                                                                 );
+  lsu_req = cmd.lsu.en & (cmd.lsu.we ? 1'b1 :  ~bd_req                                                                 );
 end
 
 always_ff @(posedge clk, posedge rst)
@@ -843,18 +850,18 @@ else      bd_req <= lsu_req;
 
 always_ff @(posedge clk)
 if (lsu_req) begin
-  bd_wen <= dec.lsu.we;
-//bd_adr <= dec.lsu.st ? (dec.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(dec.lsu.ad);
+  bd_wen <= cmd.lsu.we;
+//bd_adr <= cmd.lsu.st ? (cmd.lsu.we ? DAW'(sp) : DAW'(spi)) : DAW'(cmd.lsu.ad);
 // Verilator: Unsupported: Size-changing cast on non-basic data type
-  bd_adr <= dec.lsu.st ? (dec.lsu.we ? sp : spi) : DAW'(dec.lsu.ad);
-  if (dec.lsu.we)
-  bd_wdt <= dec.lsu.sb ? pcn [lsu_cnt*8+:8] : dec.lsu.wd;
+  bd_adr <= cmd.lsu.st ? (cmd.lsu.we ? sp : spi) : DAW'(cmd.lsu.ad);
+  if (cmd.lsu.we)
+  bd_wdt <= cmd.lsu.sb ? pcn [lsu_cnt*8+:8] : cmd.lsu.wd;
   // write identification
-  if (dec.lsu.sb) begin
-    bd_wid <= dec.lsu.we ? {1'b1, 3'b000,              lsu_cnt}
+  if (cmd.lsu.sb) begin
+    bd_wid <= cmd.lsu.we ? {1'b1, 3'b000,              lsu_cnt}
                          : {1'b1, 3'b000, PCN - 2'd1 - lsu_cnt};
   end else begin
-    bd_wid <= {1'b0, dec.lsu.dr};
+    bd_wid <= {1'b0, cmd.lsu.dr};
   end
 end
 
@@ -873,19 +880,19 @@ end
 
 // LSU block
 always_comb
-if (dec.lsu.sb) begin
-  lsu_blk = dec.lsu.en & (dec.lsu.we ? ~lsu_end : ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
+if (cmd.lsu.sb) begin
+  lsu_blk = cmd.lsu.en & (cmd.lsu.we ? ~lsu_end : ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
 end else begin
-  lsu_blk = dec.lsu.en & (dec.lsu.we ? 1'b0     :  ~bd_ren                           );
+  lsu_blk = cmd.lsu.en & (cmd.lsu.we ? 1'b0     :  ~bd_ren                           );
 end
 
 ////////////////////////////////////////////////////////////////////////////////
 // control outputs
 ////////////////////////////////////////////////////////////////////////////////
 
-assign ctl_slp = dec.ctl.slp; // sleep
-assign ctl_brk = dec.ctl.brk; // break
-assign ctl_wdr = dec.ctl.wdr; // watch dog reset
+assign ctl_slp = cmd.ctl.slp; // sleep
+assign ctl_brk = cmd.ctl.brk; // break
+assign ctl_wdr = cmd.ctl.wdr; // watch dog reset
 
 ////////////////////////////////////////////////////////////////////////////////
 // exceptions
