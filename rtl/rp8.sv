@@ -112,13 +112,7 @@ endfunction: few
 ////////////////////////////////////////////////////////////////////////////////
 
 // register file structure
-typedef union packed {
-  logic [32-1:0] [8-1:0] idx;
-  struct packed {
-    logic             [16-1:0] z, y, x;
-    logic [32-2*3-1:0] [8-1:0] r;
-  } nam;
-} gpr_t;
+typedef logic [32-1:0] [8-1:0] gpr_t;
 
 // program counter type (program memory address)
 typedef struct packed {
@@ -600,17 +594,17 @@ if (writeback) begin
 end else if (~stl) begin
   if (dec.gpr.we) begin
     // TODO recode this, so it is appropriate for a register file or at least optimized
-    if (dec.gpr.ww) gpr.idx [{dec.gpr.wa[5-1:1], 1'b0}+:2] <= dec.gpr.wd;
-    else            gpr.idx [ dec.gpr.wa                 ] <= dec.gpr.wd[8-1:0];
+    if (dec.gpr.ww) gpr [{dec.gpr.wa[5-1:1], 1'b0}+:2] <= dec.gpr.wd;
+    else            gpr [ dec.gpr.wa                 ] <= dec.gpr.wd[8-1:0];
   end
 end
 
 // read word access
-assign Rw = gpr.idx [{dec.gpr.rw[5-1:1], 1'b0}+:2];
-assign Rd = gpr.idx [ dec.gpr.rw                 ];
+assign Rw = gpr [{dec.gpr.rw[5-1:1], 1'b0}+:2];
+assign Rd = gpr [ dec.gpr.rw                 ];
 
 // read byte access
-assign Rr = gpr.idx [ dec.gpr.rb];
+assign Rr = gpr [ dec.gpr.rb];
 
 // swap of Rd
 assign Rs = {Rd[3:0], Rd[7:4]};
@@ -960,7 +954,7 @@ function void dump_state_core (
   output bit          [8-1:0] dump_sreg
 );
 /*verilator public*/
-  dump_gpr  = gpr.idx;
+  dump_gpr  = gpr;
   dump_pc   = {10'd0, pc};
   dump_sp   = {16'd0, sp};
   dump_sreg = sreg;
@@ -1093,38 +1087,38 @@ logic [8-1:0] GPR_R29;
 logic [8-1:0] GPR_R30;
 logic [8-1:0] GPR_R31;
 
-assign GPR_R00 = gpr.idx[00];
-assign GPR_R01 = gpr.idx[01];
-assign GPR_R02 = gpr.idx[02];
-assign GPR_R03 = gpr.idx[03];
-assign GPR_R04 = gpr.idx[04];
-assign GPR_R05 = gpr.idx[05];
-assign GPR_R06 = gpr.idx[06];
-assign GPR_R07 = gpr.idx[07];
-assign GPR_R08 = gpr.idx[08];
-assign GPR_R09 = gpr.idx[09];
-assign GPR_R10 = gpr.idx[10];
-assign GPR_R11 = gpr.idx[11];
-assign GPR_R12 = gpr.idx[12];
-assign GPR_R13 = gpr.idx[13];
-assign GPR_R14 = gpr.idx[14];
-assign GPR_R15 = gpr.idx[15];
-assign GPR_R16 = gpr.idx[16];
-assign GPR_R17 = gpr.idx[17];
-assign GPR_R18 = gpr.idx[18];
-assign GPR_R19 = gpr.idx[19];
-assign GPR_R20 = gpr.idx[20];
-assign GPR_R21 = gpr.idx[21];
-assign GPR_R22 = gpr.idx[22];
-assign GPR_R23 = gpr.idx[23];
-assign GPR_R24 = gpr.idx[24];
-assign GPR_R25 = gpr.idx[25];
-assign GPR_R26 = gpr.idx[26];
-assign GPR_R27 = gpr.idx[27];
-assign GPR_R28 = gpr.idx[28];
-assign GPR_R29 = gpr.idx[29];
-assign GPR_R30 = gpr.idx[30];
-assign GPR_R31 = gpr.idx[31];
+assign GPR_R00 = gpr[00];
+assign GPR_R01 = gpr[01];
+assign GPR_R02 = gpr[02];
+assign GPR_R03 = gpr[03];
+assign GPR_R04 = gpr[04];
+assign GPR_R05 = gpr[05];
+assign GPR_R06 = gpr[06];
+assign GPR_R07 = gpr[07];
+assign GPR_R08 = gpr[08];
+assign GPR_R09 = gpr[09];
+assign GPR_R10 = gpr[10];
+assign GPR_R11 = gpr[11];
+assign GPR_R12 = gpr[12];
+assign GPR_R13 = gpr[13];
+assign GPR_R14 = gpr[14];
+assign GPR_R15 = gpr[15];
+assign GPR_R16 = gpr[16];
+assign GPR_R17 = gpr[17];
+assign GPR_R18 = gpr[18];
+assign GPR_R19 = gpr[19];
+assign GPR_R20 = gpr[20];
+assign GPR_R21 = gpr[21];
+assign GPR_R22 = gpr[22];
+assign GPR_R23 = gpr[23];
+assign GPR_R24 = gpr[24];
+assign GPR_R25 = gpr[25];
+assign GPR_R26 = gpr[26];
+assign GPR_R27 = gpr[27];
+assign GPR_R28 = gpr[28];
+assign GPR_R29 = gpr[29];
+assign GPR_R30 = gpr[30];
+assign GPR_R31 = gpr[31];
 
 
 /* verilator lint_on UNUSED */
