@@ -170,8 +170,8 @@ function automatic string disasm (
       const bit [8-1:0] [8-1:0] sreg = "ithsvnzc";
       b = code [6:4];
       case (code[7])
-        1'b0: str = $sformatf ("bset r%0d", b);  // Bit Set in SREG
-        1'b1: str = $sformatf ("bclr r%0d", b);  // Bit Clear in SREG
+        1'b0: str = $sformatf ("bset %d", b);  // Bit Set in SREG
+        1'b1: str = $sformatf ("bclr %d", b);  // Bit Clear in SREG
       endcase
       // Flafs: Global Interrupt/T/Half Carry/Signed/Overflow/Negative/Zero/Carry
       if (deep) begin
