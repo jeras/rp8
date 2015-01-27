@@ -116,22 +116,22 @@ typedef logic [32-1:0] [8-1:0] gpr_t;
 
 // program counter type (program memory address)
 typedef struct packed {
-  logic [6-1:0] e;
-  logic [8-1:0] h;
-  logic [8-1:0] l;
+  logic [6-1:0] e; // extended
+  logic [8-1:0] h; // high
+  logic [8-1:0] l; // low
 } pc_t;
 
 // load/store type (data memory address)
 typedef struct packed {
-  logic [8-1:0] e;
-  logic [8-1:0] h;
-  logic [8-1:0] l;
+  logic [8-1:0] e; // extended
+  logic [8-1:0] h; // high
+  logic [8-1:0] l; // low
 } ls_t;
 
 // stack pointer (data memory address)
 typedef struct packed {
-  logic [8-1:0] h;
-  logic [8-1:0] l;
+  logic [8-1:0] h; // high
+  logic [8-1:0] l; // low
 } sp_t;
 
 // general purpose register address
