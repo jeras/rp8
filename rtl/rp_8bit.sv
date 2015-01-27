@@ -96,11 +96,13 @@ function logic [8-1:0] b2o (input logic [3-1:0] b);
 endfunction: b2o
 
 // extend byte
+// TODO: undefined bits are causing trouble in ALU
 function logic [24-1:0] feb (input logic [8-1:0] b);
   feb = {15'bx, 1'b0, b};
 endfunction: feb
 
 // extend word
+// TODO: undefined bits are causing trouble in ALU
 function logic [24-1:0] few (input logic [16-1:0] w);
   few = {7'bx, 1'b0, w};
 endfunction: few
@@ -645,7 +647,8 @@ assign alu_sb.t = 1'bx;
 assign alu_sb.h = (dec.alu.m == SUB) ? ~dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] &  alu_rb[3] |  alu_rb[3] & ~dec.alu.d[3]
                                      :  dec.alu.d[3] & dec.alu.r[3] | dec.alu.r[3] & ~alu_rb[3] | ~alu_rb[3] &  dec.alu.d[3];
 assign alu_sb.s = alu_sb.n ^ alu_sb.v;
-assign alu_sb.v = (dec.alu.m == SUB) ? dec.alu.d[7] & ~dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] &  dec.alu.r[7] & alu_rb[7]
+assign alu_sb.v = (dec.alu.m [2]) ? 1'b0 :
+                  (dec.alu.m == SUB) ? dec.alu.d[7] & ~dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] &  dec.alu.r[7] & alu_rb[7]
                                      : dec.alu.d[7] &  dec.alu.r[7] & ~alu_rb[7] | ~dec.alu.d[7] & ~dec.alu.r[7] & alu_rb[7];
 assign alu_sb.n = alu_rb[7];
 assign alu_sb.z = (dec.alu.m == SUB) ? ~|alu_rb & sreg.z
