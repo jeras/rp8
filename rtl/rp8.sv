@@ -149,16 +149,6 @@ typedef struct packed {
 // status register
 typedef struct packed {logic i, t, h, s, v, n, z, c;} sreg_t;
 
-// core state machine
-typedef enum logic [3-1:0] {
-  RST = 3'b000, // reset
-  NRM = 3'b001, // normal
-  SKP = 3'b010, // skip
-  P32 = 3'b011, // instruction 32 bit long
-  STL = 3'b100, // stall
-  WBK = 3'b101  // writeback
-} stm_t;
-
 // general purpose registers decode structure
 typedef struct packed {
   // write access
@@ -208,7 +198,7 @@ typedef struct packed {
 
 // instruction fetch unit decode structure
 typedef struct packed {
-  logic          ii; // instruction immediate
+  logic          im; // immediate 
   logic          sk; // skip
   logic          be; // branch enable
   pc_t           ad; // address
@@ -299,9 +289,6 @@ localparam iou_adr_t IOA_SREG  = 6'h30 + 6'h0f;
 // local variables
 ////////////////////////////////////////////////////////////////////////////////
 
-// core state machine
-stm_t stm_sts; // current state
-
 // core state registers
 pc_t           pc;    // program counter
 pc_t           pcn;   // program counter next (PC+1)
@@ -386,12 +373,14 @@ logic          ifu_con; // continue
 
 // instruction fetch status
 struct packed {
+  logic rs; // reset status
   logic sk; // skip next instruction (but also check its length)
   logic im; // immediate, second part of 32bit instruction
 } ifu_sts;
 
 // load store unit status
-logic          lsu_req;
+logic          lsu_ena; // enable (also checks if instruction is 32bit)
+logic          lsu_req; // request (combinatorial signal used to drive registers)
 logic          lsu_blk; // block execution
 logic          lsu_end; // transfer counter end
 logic  [2-1:0] lsu_cnt; // transfer counter (used for pushing PC to stack)
@@ -449,7 +438,7 @@ localparam gpr_dec_t GPR = '{we: C0, ww: C0, wd: WX, wa: RX, rb: RX, rw: RX};
 localparam alu_dec_t ALU = '{m: 3'bxxx, z: CX, d: EX, r: EX, c: CX};
 localparam mul_dec_t MUL = '{m: 3'bxxx, d: BX, r: BX};
 localparam srg_dec_t SRG = '{s: BX, m: B0};
-localparam ifu_dec_t IFU = '{ii: C0, sk: C0, be: C0, ad: 22'hx, we: C0, wd: WX};
+localparam ifu_dec_t IFU = '{im: C0, sk: C0, be: C0, ad: 22'hx, we: C0, wd: WX};
 localparam iou_dec_t IOU = '{we: C0, re: C0, ad: 6'hxx, wd: BX, ms: BX};
 localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: EX, wd: BX, dr: RX};
 localparam ctl_dec_t CTL = '{slp: C0, brk: C0, wdr: C0};
@@ -527,7 +516,7 @@ unique casez (pw)
   16'b1001_001?_????_1111: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, IFU, IOU, '{C1, C1, C1, C0, 'x, Rd, RX}, CTL }; end // PUSH
   // load store direct (32 bit instructions)
   //                                    {  gpr                                       ifu                             lsu                               }
-  //                                    {  {we, ww, wd, wa, rw, rb}                  {ii, sk, be, ad, we, wd}        {en, we, st, sb, ad, wd, rd}      }
+  //                                    {  {we, ww, wd, wa, rw, rb}                  {im, sk, be, ad, we, wd}        {en, we, st, sb, ad, wd, rd}      }
   16'b1001_000?_????_0000: begin dec = '{ GPR                      , ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C0, C1, C0, ed, BX, db}, CTL }; end // LDS
   16'b1001_001?_????_0000: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C1, C1, C0, ed, Rd, RX}, CTL }; end // STS
   // load store indirect
@@ -560,7 +549,7 @@ unique casez (pw)
   16'b1001_1010_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a , BF, b2o(b)}, LSU, CTL }; end // SBI
   // skips
   //                                    {  gpr                        alu                                     ifu                                iou                            }
-  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , z , d      , r      , c }             {ii, sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
+  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , z , d      , r      , c }             {im, sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
   16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{EOR, C0, feb(Rd), feb(Rr), C0}, MUL, SRG, '{C0,  alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
   16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0, ~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBIC
   16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0,  io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBIS
@@ -569,7 +558,7 @@ unique casez (pw)
   // flow control
   //                                    {   alu {m  , z , d        , r , c }                                                                                               }
   //                                    {  gpr                                           ifu                                             lsu                               }
-  //                                    {  {we, ww, wd, wa, rw, rb}                      {ii, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
+  //                                    {  {we, ww, wd, wa, rw, rb}                      {im, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
   16'b1100_????_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, WX}, IOU, LSU                          , CTL }; end // RJMP
   16'b1101_????_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // RCALL
   16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, {6'h00,Rw}        , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
@@ -584,7 +573,7 @@ unique casez (pw)
   // TODO, add interrupt status to ifu_cfg_t
   // branches
   //                                    {       alu                                      ifu                                                }
-  //                                    {       {m  , z , d        , r , c }             {ii. sk, be, ad           , we, wd}                }
+  //                                    {       {m  , z , d        , r , c }             {im. sk, be, ad           , we, wd}                }
   16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
   16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
 
@@ -696,13 +685,6 @@ assign mul_s.c = mul_t[15];
 // core state machine
 ////////////////////////////////////////////////////////////////////////////////
 
-// instruction fetch state machine
-always_ff @(posedge clk, posedge rst)
-if (rst) stm_sts <= RST;
-else begin
-  stm_sts <= stl ? STL : NRM;
-end
-
 // program counter
 // - on reset it is loaded with ones so the incremented value points to zero
 // - on clock it stores the address of the current instruction, or debugger jump
@@ -717,12 +699,19 @@ assign pcn = pc + 22'd1;
 assign stl = lsu_blk;
 
 // skip request for next instruction, which might be 1 or 2 words long
+// TODO make sure this state machine does not run just after reset, a global stall might be used
 always_ff @(posedge clk, posedge rst)
 if (rst) begin
-  ifu_sts <= '0;
+  ifu_sts.rs <= C1; // activate reset bit
+  ifu_sts.sk <= C0;
+  ifu_sts.im <= C0;
 end else begin
-  if (~stl)  ifu_sts.sk <= ifu_sts.sk ? (ifu_sts.im ? 1'b0 : dec.ifu.ii) : dec.ifu.sk;
-  if (~stl)  ifu_sts.im <= ifu_sts.sk ? (ifu_sts.im ? 1'b0 : dec.ifu.ii) : 1'b0;
+  // clear reset bit immediately after reset
+  ifu_sts.rs <= C0;
+  // instruction skip
+  if (~stl)  ifu_sts.sk <= ifu_sts.sk ? (ifu_sts.im ? 1'b0 : dec.ifu.im) : dec.ifu.sk;
+  // 32 bit instructions
+  if (~stl)  ifu_sts.im <= ifu_sts.im ? 1'b0 : dec.ifu.im;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -733,7 +722,7 @@ end
 assign bp_adr = cmd.ifu.be ? cmd.ifu.ad [PAW-1:0] : pcn [PAW-1:0];
 
 // program memory enable
-assign bp_vld = (stm_sts != RST) & ~stl;
+assign bp_vld = ~ifu_sts.rs & ~stl;
 
 // TODO: this should be more complex
 // TODO: some skip code should probably be here
@@ -753,15 +742,17 @@ logic ifu_vld;
 
 // program word (just a short variable name)
 assign pi = bp_rdt;
-assign pw = (stm_sts == P32) | ~ifu_vld ? pr : pi;
+assign pw = ifu_sts.im | ~ifu_vld ? pr : pi;
 
 always_ff @(posedge clk, posedge rst)
 if (rst)  ifu_vld <= 1'b0;
 else      ifu_vld <= bp_vld;
 
 always_ff @(posedge clk, posedge rst)
-if (rst)                   pr <= 16'h0000;
-else if (cmd.ifu.ii | stl) pr <= pi;
+if (rst)                                    pr <= 16'h0000;
+else if ((cmd.ifu.im | stl) & ~ifu_sts.im)  pr <= pi;
+// TODO, use the stall signal properly here
+//else if (cmd.ifu.im | stl) pr <= pi;
 
 // TODO exception code should be here too
 
@@ -834,7 +825,7 @@ if (cmd.iou.we) begin
 end
 
 // extended data memory addresses
-assign ed = {rampd, pw}; // extended direct address
+assign ed = {rampd, pi}; // extended direct address
 assign ex = {rampx, Rw}; // extended indirect address using X pointer
 assign ey = {rampy, Rw}; // extended indirect address using Y pointer
 assign ez = {rampz, Rw}; // extended indirect address using Z pointer
@@ -847,12 +838,15 @@ assign ei = {eind , Rw}; // extended indirect address using Z pointer
 // load/store unit
 ////////////////////////////////////////////////////////////////////////////////
 
+// before starting a load store cycle, also check if the instruction is 32bit
+assign lsu_ena = ~(cmd.ifu.im & ~ifu_sts.im) & cmd.lsu.en;
+
 // LSU request
 always_comb
 if (cmd.lsu.sb) begin
-  lsu_req = cmd.lsu.en & (cmd.lsu.we ? 1'b1 : ~(bd_req & (bd_wid ==? 6'b1?_??00)) & ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
+  lsu_req = lsu_ena & (cmd.lsu.we ? 1'b1 : ~(bd_req & (bd_wid ==? 6'b1?_??00)) & ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
 end else begin
-  lsu_req = cmd.lsu.en & (cmd.lsu.we ? 1'b1 :  ~bd_req                                                                 );
+  lsu_req = lsu_ena & (cmd.lsu.we ? 1'b1 :  ~bd_req                                                                 );
 end
 
 always_ff @(posedge clk, posedge rst)
@@ -899,9 +893,9 @@ end
 // LSU block
 always_comb
 if (cmd.lsu.sb) begin
-  lsu_blk = cmd.lsu.en & (cmd.lsu.we ? ~lsu_end : ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
+  lsu_blk = lsu_ena & (cmd.lsu.we ? ~lsu_end : ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
 end else begin
-  lsu_blk = cmd.lsu.en & (cmd.lsu.we ? 1'b0     :  ~bd_ren                           );
+  lsu_blk = lsu_ena & (cmd.lsu.we ? 1'b0     :  ~bd_ren                           );
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1016,7 +1010,7 @@ logic  [8-1:0] dec_mul_r; // source      operand value
 sreg_t         dec_srg_s; // status
 sreg_t         dec_srg_m; // mask
 // instruction fetch unit decode structure
-logic          dec_ifu_ii; // instruction immediate
+logic          dec_ifu_im; // instruction immediate
 logic          dec_ifu_sk; // skip
 logic          dec_ifu_be; // branch enable
 pc_t           dec_ifu_ad; // address
@@ -1059,7 +1053,7 @@ assign {dec_gpr_we,
         dec_mul_r,
         dec_srg_s,
         dec_srg_m,
-        dec_ifu_ii,
+        dec_ifu_im,
         dec_ifu_sk,
         dec_ifu_be,
         dec_ifu_ad,

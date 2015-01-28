@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.64 (w)1999-2014 BSI
-[*] Tue Jan 27 19:21:44 2015
+[*] Wed Jan 28 15:48:03 2015
 [*]
 [dumpfile] "/home/izi/Workplace/rp8/sim/rp8_tb.vcd"
-[dumpfile_mtime] "Tue Jan 27 19:12:29 2015"
-[dumpfile_size] 1008389
+[dumpfile_mtime] "Wed Jan 28 15:46:58 2015"
+[dumpfile_size] 1049798
 [savefile] "/home/izi/Workplace/rp8/sim/rp8_tb.gtkw"
-[timestart] 26090
-[size] 1855 1176
+[timestart] 30396
+[size] 1301 744
 [pos] -1 -1
-*-7.244481 26600 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-8.244481 30700 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] rp8_tb.
 [sst_width] 223
 [signals_width] 246
@@ -90,7 +90,6 @@ rp8_tb.DUT.dec_gpr_rb[4:0]
 -decoder ALU
 @28
 rp8_tb.DUT.dec_alu_m[2:0]
-@29
 rp8_tb.DUT.dec_alu_z
 @22
 rp8_tb.DUT.dec_alu_d[23:0]
@@ -120,7 +119,7 @@ rp8_tb.DUT.dec_srg_s[7:0]
 @800200
 -decoder IFU
 @28
-rp8_tb.DUT.dec_ifu_ii
+rp8_tb.DUT.dec_ifu_im
 rp8_tb.DUT.dec_ifu_sk
 rp8_tb.DUT.dec_ifu_be
 @22
@@ -436,18 +435,15 @@ rp8_tb.DUT.pcn[21:0]
 rp8_tb.DUT.pcs[21:0]
 @28
 rp8_tb.DUT.lsu_blk
-@800028
-rp8_tb.DUT.ifu_sts[1:0]
-@28
-(0)rp8_tb.DUT.ifu_sts[1:0]
-(1)rp8_tb.DUT.ifu_sts[1:0]
+@800200
+-rp8_tb.DUT.ifu_sts
 @1001200
 -group_end
 @22
 rp8_tb.DUT.GPR_R16[7:0]
 rp8_tb.DUT.GPR_R17[7:0]
 rp8_tb.DUT.alu_rb[7:0]
-@800022
+@c00022
 rp8_tb.DUT.alu_s[7:0]
 @28
 (0)rp8_tb.DUT.alu_s[7:0]
@@ -458,7 +454,24 @@ rp8_tb.DUT.alu_s[7:0]
 (5)rp8_tb.DUT.alu_s[7:0]
 (6)rp8_tb.DUT.alu_s[7:0]
 (7)rp8_tb.DUT.alu_s[7:0]
+@1401200
+-group_end
+@800028
+rp8_tb.DUT.ifu_sts[2:0]
+@28
+(0)rp8_tb.DUT.ifu_sts[2:0]
+(1)rp8_tb.DUT.ifu_sts[2:0]
+@29
+(2)rp8_tb.DUT.ifu_sts[2:0]
 @1001200
 -group_end
+@28
+rp8_tb.DUT.stl
+rp8_tb.DUT.lsu_blk
+rp8_tb.DUT.lsu_ena
+@22
+rp8_tb.DUT.pi[15:0]
+rp8_tb.DUT.pr[15:0]
+rp8_tb.DUT.pw[15:0]
 [pattern_trace] 1
 [pattern_trace] 0
