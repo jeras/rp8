@@ -386,8 +386,8 @@ logic          ifu_con; // continue
 
 // instruction fetch status
 struct packed {
-  logic skp; // skip   next instruction (but check its length)
-  logic ign; // ignore next instruction (second part of 32bit instruction to skip)
+  logic sk; // skip next instruction (but also check its length)
+  logic im; // immediate, second part of 32bit instruction
 } ifu_sts;
 
 // load store unit status
@@ -596,7 +596,7 @@ unique casez (pw)
 endcase
 
 // command might come directly from the decoder or is specified otherwise
-assign cmd = ifu_sts.skp ? NOP : dec;
+assign cmd = ifu_sts.sk ? NOP : dec;
 
 ////////////////////////////////////////////////////////////////////////////////
 // register file access
@@ -721,8 +721,8 @@ always_ff @(posedge clk, posedge rst)
 if (rst) begin
   ifu_sts <= '0;
 end else begin
-  if (~stl)  ifu_sts.skp <= ifu_sts.skp ? (ifu_sts.ign ? 1'b0 : dec.ifu.ii) : dec.ifu.sk;
-  if (~stl)  ifu_sts.ign <= ifu_sts.skp ? (ifu_sts.ign ? 1'b0 : dec.ifu.ii) : 1'b0;
+  if (~stl)  ifu_sts.sk <= ifu_sts.sk ? (ifu_sts.im ? 1'b0 : dec.ifu.ii) : dec.ifu.sk;
+  if (~stl)  ifu_sts.im <= ifu_sts.sk ? (ifu_sts.im ? 1'b0 : dec.ifu.ii) : 1'b0;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -885,7 +885,7 @@ end
 
 // PC after a return
 // TODO, this should be extended to support 2 and 3 byte PC
-assign pcs = {lsu_buf, bd_rdt} & 24'h00ffff;
+assign pcs = {lsu_buf, bd_rdt} & 22'h00ffff;
 
 always_ff @(posedge clk)
 if (bd_ren) begin
