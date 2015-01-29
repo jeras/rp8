@@ -340,17 +340,15 @@ test_cpse:
   ldi    DH_8,0x5A
   nop
   rcall  init_const  ; test skip (or not) 32bit instruction
-  ldi    r30,0x00
-  ldi    r31,0x01 
-  ldi    r18,0xA5
-  st     Z,r18       ; load 0xA5 into location 0x0100
-  clr    r18         ; clear register
+  ldi    DH_8,0xA5
+  sts    0x0100,DH_8 ; load 0xA5 into location 0x0100
+  clr    DH_8        ; clear register
   cpse   CL_FF,CL_FF ; should skip
-  lds    r18,0x0100  ; the second instruction word is "MOVW r1:r0,r1:r0"
+  lds    DH_8,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
   nop
   clr    r18         ; clear register
   cpse   CL_80,CL_01 ; should not skip
-  lds    r18,0x0100
+  lds    DH_8,0x0100
   nop
 .endif
   ret

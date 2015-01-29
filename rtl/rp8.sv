@@ -307,9 +307,6 @@ logic          stl;
 // - arithmetic/logic/IO/move/bitmod operation conflicting with ?
 // call/ret push/pop conflicting with SP I/O operations
 
-// core state machine
-logic          writeback;
-
 // program word
 logic [16-1:0] pw; // multiplexed
 logic [16-1:0] pi; // input
@@ -517,8 +514,8 @@ unique casez (pw)
   // load store direct (32 bit instructions)
   //                                    {  gpr                                       ifu                             lsu                               }
   //                                    {  {we, ww, wd, wa, rw, rb}                  {im, sk, be, ad, we, wd}        {en, we, st, sb, ad, wd, rd}      }
-  16'b1001_000?_????_0000: begin dec = '{ GPR                      , ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C0, C1, C0, ed, BX, db}, CTL }; end // LDS
-  16'b1001_001?_????_0000: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C1, C1, C0, ed, Rd, RX}, CTL }; end // STS
+  16'b1001_000?_????_0000: begin dec = '{ GPR                      , ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C0, C0, C0, ed, BX, db}, CTL }; end // LDS
+  16'b1001_001?_????_0000: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C1, C0, C0, ed, Rd, RX}, CTL }; end // STS
   // load store indirect
   //                                    {  gpr                            alu                                         lsu                               }
   //                                    {  {we, ww, wd    , wa, rw, rb}   {m  , z , d , r , c }                       {en, we, st, sb, ad, wd, rd}      }
@@ -593,8 +590,9 @@ assign cmd = ifu_sts.sk ? NOP : dec;
 
 // GPR write access
 always_ff @ (posedge clk)
-if (writeback) begin
-  // TODO, add writeback option from load/store unit
+if (bd_ren & ~bd_rid[5]) begin
+  // writeback
+  gpr [bd_rid[4:0]] <= bd_rdt;
 end else if (~stl) begin
   if (cmd.gpr.we) begin
     // TODO recode this, so it is appropriate for a register file or at least optimized
