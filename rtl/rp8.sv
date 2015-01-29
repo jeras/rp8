@@ -844,7 +844,7 @@ always_comb
 if (cmd.lsu.sb) begin
   lsu_req = lsu_ena & (cmd.lsu.we ? 1'b1 : ~(bd_req & (bd_wid ==? 6'b1?_??00)) & ~(bd_ren & (bd_rid ==? 6'b1?_??00)));
 end else begin
-  lsu_req = lsu_ena & (cmd.lsu.we ? 1'b1 :  ~bd_req                                                                 );
+  lsu_req = lsu_ena & (cmd.lsu.we ? 1'b1 : ~(bd_req                          ) & ~(bd_ren                          ));
 end
 
 always_ff @(posedge clk, posedge rst)
