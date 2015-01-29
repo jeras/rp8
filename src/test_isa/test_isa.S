@@ -356,229 +356,183 @@ test_cpse:
 test_cp:
 .if (SUBISA & ISA_MSK_CP    )
   ; same code as for cpc, except ignore cary
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  cp     r16,r17  ; (0x00-0x00) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  cp     r18,r19  ; (0x00-0xff) should set .....C flags
-
-  ser    r20      ; 0xff
-  clr    r21      ; 0x00
-  cp     r18,r19  ; (0xff-0x00) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  cp     r22,r23  ; (0xff-0xff) should set HSV.Z. flags
+  rcall  init_const  ;
+  cp     CH_00,CH_00 ; (0x00-0x00) should set ....Z. flags
+  cp     CH_00,CH_FF ; (0x00-0xff) should set .....C flags
+  cp     CH_FF,CH_00 ; (0xff-0x00) should set .S.N.. flags
+  cp     CH_FF,CH_00 ; (0xff-0xff) should set HSV.Z. flags
 .endif
   ret
 
 test_sub:
 .if (SUBISA & ISA_MSK_SUB   )
   ; same code as for sbc, except ignore cary
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  sub    r16,r17  ; (0x00-0x00) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  sub    r18,r19  ; (0x00-0xff) should set .....C flags
-
-  ser    r20      ; 0xff
-  clr    r21      ; 0x00
-  sub    r18,r19  ; (0xff-0x00) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  sub    r22,r23  ; (0xff-0xff) should set HSV.Z. flags
+  rcall  init_const  ;
+  sub    CH_00,CH_00 ; (0x00-0x00) should set ....Z. flags
+  clr    CH_00       ; 0x00
+  sub    CH_00,CH_FF ; (0x00-0xff) should set .....C flags
+  clr    CH_00       ; 0x00
+  sub    CH_FF,CH_00 ; (0xff-0x00) should set .S.N.. flags
+  ser    CH_FF       ; 0xff
+  sub    CH_FF,CH_00 ; (0xff-0xff) should set HSV.Z. flags
+  ser    CH_FF       ; 0xff
 .endif
   ret
 
 test_adc:
 .if (SUBISA & ISA_MSK_ADC   )
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  clc             ; clear C
-  adc    r16,r17  ; (0x00+0x00+0) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  clc             ; clear C
-  adc    r18,r19  ; (0x00+0xff+0) should set .S.N.. flags
-
-  ldi    r20,0x80 ; 0x80
-  ldi    r21,0x80 ; 0x80
-  clc             ; clear C
-  adc    r18,r19  ; (0x8f+0x80+0) should set .SV.ZC flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  clc             ; clear C
-  adc    r22,r23  ; (0xff+0xff+0) should set HS.N.C flags
-
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  sec             ; clear C
-  adc    r16,r17  ; (0x00+0x00+1) should set ...... flags
-
-  clr    r18      ; 0x00
-  ser    r19      ; 0xff
-  sec             ; clear C
-  adc    r18,r19  ; (0x00+0xff+1) should set H...ZC flags
-
-  ldi    r20,0x80 ; 0x80
-  ldi    r21,0x80 ; 0x80
-  sec             ; clear C
-  adc    r18,r19  ; (0x8f+0x80+1) should set .SV..C flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  sec             ; clear C
-  adc    r22,r23  ; (0xff+0xff+1) should set HS.N.C flags
+  rcall  init_const  ;
+  clc                ; clear C
+  adc    CH_00,CH_00 ; (0x00+0x00+0) should set ....Z. flags
+  clr    CH_00       ; 0x00
+  clc                ; clear C
+  adc    CH_00,CH_FF ; (0x00+0xff+0) should set .S.N.. flags
+  clr    CH_00       ; 0x00
+  clc                ; clear C
+  adc    CH_80,CH_80 ; (0x8f+0x80+0) should set .SV.ZC flags
+  ldi    CH_80,0x80  ; 0x80
+  clc                ; clear C
+  adc    CH_FF,CH_FF ; (0xff+0xff+0) should set HS.N.C flags
+  ser    CH_FF       ; 0xff
+  sec                ; set C
+  adc    CH_00,CH_00 ; (0x00+0x00+1) should set ...... flags
+  clr    CH_00       ; 0x00
+  sec                ; set C
+  adc    CH_00,CH_FF ; (0x00+0xff+1) should set H...ZC flags
+  clr    CH_00       ; 0x00
+  sec                ; set C
+  adc    CH_80,CH_80 ; (0x8f+0x80+1) should set .SV..C flags
+  ldi    CH_80,0x80  ; 0x80
+  sec                ; set C
+  adc    CH_FF,CH_FF ; (0xff+0xff+1) should set HS.N.C flags
+  ser    CH_FF       ; 0xff
 .endif
   ret
 
 test_and:
 .if (SUBISA & ISA_MSK_AND   )
-  ser    r16      ; 0xff
-  clr    r17      ; 0x00
-  and    r16,r17  ; (0xff & 0x00) should set _...Z_ flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  and    r22,r23  ; (0xff & 0xff) should set _S.N._ flags
+  rcall  init_const  ;
+  and    CH_FF,CH_00 ; (0xff & 0x00) should set _...Z_ flags
+  ser    CH_FF       ; 0xff
+  and    CH_FF,CH_FF ; (0xff & 0xff) should set _S.N._ flags
+  ser    CH_FF       ; 0xff
 .endif
   ret
 
 test_eor:
 .if (SUBISA & ISA_MSK_EOR   )
-  ser    r16      ; 0xff
-  clr    r17      ; 0x00
-  eor    r16,r17  ; (0xff & 0x00) should set _S.N._ flags
-
-  ser    r22      ; 0xff
-  ser    r23      ; 0xff
-  eor    r22,r23  ; (0xff & 0xff) should set _...Z_ flags
+  rcall  init_const  ;
+  eor    CH_FF,CH_00 ; (0xff & 0x00) should set _S.N._ flags
+  ser    CH_FF       ; 0xff
+  eor    CH_FF,CH_FF ; (0xff & 0xff) should set _...Z_ flags
+  ser    CH_FF       ; 0xff
 .endif
   ret
 
 test_or:
 .if (SUBISA & ISA_MSK_OR    )
-  clr    r16      ; 0x00
-  clr    r17      ; 0x00
-  or     r16,r17  ; (0x00 & 0x00) should set _...Z_ flags
-
-  clr    r22      ; 0x00
-  ser    r23      ; 0xff
-  or     r22,r23  ; (0x00 & 0xff) should set _S.N._ flags
+  rcall  init_const  ;
+  or     CH_00,CH_00 ; (0x00 & 0x00) should set _...Z_ flags
+  clr    CH_00       ; 0x00
+  or     CH_00,CH_FF ; (0x00 & 0xff) should set _S.N._ flags
+  clr    CH_00       ; 0x00
 .endif
   ret
 
 test_mov:
 .if (SUBISA & ISA_MSK_MOV   )
-  ldi    r16,0xa5
-  mov    r17,r17
+  rcall  init_const ;
+  ldi    DH_8,0xa5  ;
+  mov    DL_8,DH_8  ;
 .endif
   ret
 
 test_cpi:
 .if (SUBISA & ISA_MSK_CPI   )
   ; same code as for cp, except immediate instead of second register
-  clr    r16      ; 0x00
-  cpi    r16,0x00 ; (0x00-0x00) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  cpi    r18,0xff ; (0x00-0xff) should set .....C flags
-
-  ser    r20      ; 0xff
-  cpi    r18,0x00 ; (0xff-0x00) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  cpi    r22,0xff ; (0xff-0xff) should set HSV.Z. flags
+  rcall  init_const ;
+  cpi    CH_00,0x00 ; (0x00-0x00) should set ....Z. flags
+  cpi    CH_00,0xff ; (0x00-0xff) should set .....C flags
+  cpi    CH_FF,0x00 ; (0xff-0x00) should set .S.N.. flags
+  cpi    CH_FF,0xff ; (0xff-0xff) should set HSV.Z. flags
 .endif
   ret
 
 test_sbci:
 .if (SUBISA & ISA_MSK_SBCI  )
-  clr    r16      ; 0x00
-  clc             ; clear C
-  sbci   r16,0x00 ; (0x00-0x00-0) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  clc             ; clear C
-  sbci   r18,0xff ; (0x00-0xff-0) should set .....C flags
-
-  ser    r20      ; 0xff
-  clc             ; clear C
-  sbci   r18,0x00 ; (0xff-0x00-0) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  clc             ; clear C
-  sbci   r22,0xff ; (0xff-0xff-0) should set HSV.Z. flags
-
-  clr    r16      ; 0x00
-  sec             ; set C
-  sbci   r16,0x00 ; (0x00-0x00-1) should set ..VN.C flags
-
-  clr    r18      ; 0x00
-  sec             ; set C
-  sbci   r18,0xff ; (0x00-0xff-1) should set H...ZC flag
-
-  ser    r20      ; 0xff
-  sec             ; set C
-  sbci   r18,0x00 ; (0xff-0x00-1) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  sec             ; set C
-  sbci   r22,0xff; (0xff-0xff-1) should set HS.N.C flags
+  rcall  init_const ;
+  clc               ; clear C
+  sbci   CH_00,0x00 ; (0x00-0x00-0) should set ....Z. flags
+  clr    CH_00      ; 0x00
+  clc               ; clear C
+  sbci   CH_00,0xff ; (0x00-0xff-0) should set .....C flags
+  clr    CH_00      ; 0x00
+  clc               ; clear C
+  sbci   CH_FF,0x00 ; (0xff-0x00-0) should set .S.N.. flags
+  ser    CH_FF      ; 0xff
+  clc               ; clear C
+  sbci   CH_FF,0xff ; (0xff-0xff-0) should set HSV.Z. flags
+  ser    CH_FF      ; 0xff
+  sec               ; set C
+  sbci   CH_00,0x00 ; (0x00-0x00-1) should set ..VN.C flags
+  clr    CH_00      ; 0x00
+  sec               ; set C
+  sbci   CH_00,0xff ; (0x00-0xff-1) should set H...ZC flag
+  clr    CH_00      ; 0x00
+  sec               ; set C
+  sbci   CH_FF,0x00 ; (0xff-0x00-1) should set .S.N.. flags
+  ser    CH_FF      ; 0xff
+  sec               ; set C
+  sbci   CH_FF,0xff ; (0xff-0xff-1) should set HS.N.C flags
+  ser    CH_FF      ; 0xff
 .endif
   ret
 
 test_subi:
 .if (SUBISA & ISA_MSK_SUBI  )
-  clr    r16      ; 0x00
-  subi   r16,0x00 ; (0x00-0x00-0) should set ....Z. flags
-
-  clr    r18      ; 0x00
-  subi   r18,0xff ; (0x00-0xff-0) should set .....C flags
-
-  ser    r20      ; 0xff
-  subi   r18,0x00 ; (0xff-0x00-0) should set .S.N.. flags
-
-  ser    r22      ; 0xff
-  subi   r22,0xff ; (0xff-0xff-0) should set HSV.Z. flags
+  rcall  init_const ;
+  subi   CH_00,0x00 ; (0x00-0x00-0) should set ....Z. flags
+  clr    CH_00      ; 0x00
+  subi   CH_00,0xff ; (0x00-0xff-0) should set .....C flags
+  clr    CH_00      ; 0x00
+  subi   CH_FF,0x00 ; (0xff-0x00-0) should set .S.N.. flags
+  ser    CH_FF      ; 0xff
+  subi   CH_FF,0xff ; (0xff-0xff-0) should set HSV.Z. flags
+  ser    CH_FF      ; 0xff
 .endif
   ret
 
 test_ori:
 .if (SUBISA & ISA_MSK_ORI   )
-  clr    r16      ; 0x00
-  ori    r16,0x00 ; (0x00 & 0x00) should set _...Z_ flags
-
-  clr    r22      ; 0x00
-  ori    r22,0xff ; (0x00 & 0xff) should set _S.N._ flags
+  rcall  init_const ;
+  ori    CH_00,0x00 ; (0x00 & 0x00) should set _...Z_ flags
+  clr    CH_00      ; 0x00
+  ori    CH_00,0xff ; (0x00 & 0xff) should set _S.N._ flags
+  clr    CH_00      ; 0x00
 .endif
   ret
 
 test_andi:
 .if (SUBISA & ISA_MSK_ANDI  )
-  ser    r16      ; 0xff
-  andi   r16,0x00 ; (0xff & 0x00) should set _...Z_ flags
-
-  ser    r22      ; 0xff
-  andi   r22,0xff ; (0xff & 0xff) should set _S.N._ flags
+  rcall  init_const ;
+  andi   CH_FF,0x00 ; (0xff & 0x00) should set _...Z_ flags
+  ser    CH_FF      ; 0xff
+  andi   CH_FF,0xff ; (0xff & 0xff) should set _S.N._ flags
+  ser    CH_FF      ; 0xff
 .endif
   ret
 
 test_lds_16:
 .if (SUBISA & ISA_MSK_LDS_16  )
-  ldi R16,0xa5
-  sts 0x00,R16
-  lds R17,0x00
-  ldi R18,0x5a
-  sts 0x7f,R18
-  lds R19,0x7f
+  rcall  init_const ;
+  ldi DH_8,0xa5 ;
+  sts 0x00,DH_8 ;
+  ldi DH_8,0xFF ;
+  lds DH_8,0x00 ;
+  ldi DH_8,0x5a ;
+  sts 0x7f,DH_8 ;
+  ldi DH_8,0xFF ;
+  lds DH_8,0x7f ;
 .endif
   ret
 
