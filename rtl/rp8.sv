@@ -520,23 +520,23 @@ unique casez (pw)
   //                                    {  gpr                            alu                                         lsu                               }
   //                                    {  {we, ww, wd    , wa, rw, rb}   {m  , z , d , r , c }                       {en, we, st, sb, ad, wd, rd}      }
   16'b1001_000?_????_1100: begin dec = '{ '{C0, CX, WX    , RX, DX, RX}, ALU                   , MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ex, BX, db}, CTL }; end // LD X
-  16'b1001_001?_????_1100: begin dec = '{ '{C0, CX, WX    , RX, db, RX}, ALU                   , MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ex, Rd, RX}, CTL }; end // ST X
+  16'b1001_001?_????_1100: begin dec = '{ '{C0, CX, WX    , RX, DX, db}, ALU                   , MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ex, Rr, RX}, CTL }; end // ST X
   16'b1001_000?_????_1101: begin dec = '{ '{C1, C1, alu_rw, DX, DX, RX}, '{ADW, CX, ex, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ex, BX, db}, CTL }; end // LD X+
-  16'b1001_001?_????_1101: begin dec = '{ '{C1, C1, alu_rw, DX, db, RX}, '{ADW, CX, ex, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ex, Rd, RX}, CTL }; end // ST X+
+  16'b1001_001?_????_1101: begin dec = '{ '{C1, C1, alu_rw, DX, DX, db}, '{ADW, CX, ex, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ex, Rr, RX}, CTL }; end // ST X+
   16'b1001_000?_????_1110: begin dec = '{ '{C1, C1, alu_rw, DX, DX, RX}, '{SBW, CX, ex, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, BX, db}, CTL }; end // LD -X
-  16'b1001_001?_????_1110: begin dec = '{ '{C1, C1, alu_rw, DX, db, RX}, '{SBW, CX, ex, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rd, RX}, CTL }; end // ST -X
+  16'b1001_001?_????_1110: begin dec = '{ '{C1, C1, alu_rw, DX, DX, db}, '{SBW, CX, ex, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rr, RX}, CTL }; end // ST -X
   16'b10?0_??0?_????_1???: begin dec = '{ '{C0, CX, WX    , RX, DY, RX}, '{ADW, CX, ey, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, BX, db}, CTL }; end // LDD Y+q
-  16'b10?0_??1?_????_1???: begin dec = '{ '{C0, CX, WX    , RX, db, RX}, '{ADW, CX, ey, q , C0}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rd, RX}, CTL }; end // STD Y+q
+  16'b10?0_??1?_????_1???: begin dec = '{ '{C0, CX, WX    , RX, DY, db}, '{ADW, CX, ey, q , C0}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rr, RX}, CTL }; end // STD Y+q
   16'b1001_000?_????_1001: begin dec = '{ '{C1, C1, alu_rw, DY, DY, RX}, '{ADW, CX, ey, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ey, BX, db}, CTL }; end // LD Y+
-  16'b1001_001?_????_1001: begin dec = '{ '{C1, C1, alu_rw, DY, db, RX}, '{ADW, CX, ey, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ey, Rd, RX}, CTL }; end // ST Y+
+  16'b1001_001?_????_1001: begin dec = '{ '{C1, C1, alu_rw, DY, DY, db}, '{ADW, CX, ey, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ey, Rr, RX}, CTL }; end // ST Y+
   16'b1001_000?_????_1010: begin dec = '{ '{C1, C1, alu_rw, DY, DY, RX}, '{SBW, CX, ey, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, BX, db}, CTL }; end // LD -Y
-  16'b1001_001?_????_1010: begin dec = '{ '{C1, C1, alu_rw, DY, db, RX}, '{SBW, CX, ey, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rd, RX}, CTL }; end // ST -Y
+  16'b1001_001?_????_1010: begin dec = '{ '{C1, C1, alu_rw, DY, DY, db}, '{SBW, CX, ey, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rr, RX}, CTL }; end // ST -Y
   16'b10?0_??0?_????_0???: begin dec = '{ '{C0, CX, WX    , RX, DZ, RX}, '{ADW, CX, ez, q , C0}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, BX, db}, CTL }; end // LDD Z+q
-  16'b10?0_??1?_????_0???: begin dec = '{ '{C0, CX, WX    , RX, db, RX}, '{ADW, CX, ez, q , C0}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rd, RX}, CTL }; end // STD Z+q
+  16'b10?0_??1?_????_0???: begin dec = '{ '{C0, CX, WX    , RX, DZ, db}, '{ADW, CX, ez, q , C0}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rr, RX}, CTL }; end // STD Z+q
   16'b1001_000?_????_0001: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, RX}, '{ADW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ez, BX, db}, CTL }; end // LD Z+
-  16'b1001_001?_????_0001: begin dec = '{ '{C1, C1, alu_rw, DZ, db, RX}, '{ADW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ez, Rd, RX}, CTL }; end // ST Z+
+  16'b1001_001?_????_0001: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, db}, '{ADW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ez, Rr, RX}, CTL }; end // ST Z+
   16'b1001_000?_????_0010: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, RX}, '{SBW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, BX, db}, CTL }; end // LD -Z
-  16'b1001_001?_????_0010: begin dec = '{ '{C1, C1, alu_rw, DZ, db, RX}, '{SBW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rd, RX}, CTL }; end // ST -Z
+  16'b1001_001?_????_0010: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, db}, '{SBW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rr, RX}, CTL }; end // ST -Z
   // I/O instructions
   //                                    {  gpr                                            iou                                }
   //                                    {  {we, ww, wd, wa, rw, rb}                       {we, re, ad, wd, ms    }           }

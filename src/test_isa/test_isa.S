@@ -203,11 +203,11 @@ main:
   rcall test_andi
 
 ;  rcall test_lds_16  ; rcall test_sts_16  ;
-;  rcall test_ld_z    ; rcall test_st_z    ;
-;  rcall test_ldd_z   ; rcall test_std_z   ;
-;  rcall test_ld_y    ; rcall test_st_y    ;
-;  rcall test_ldd_y   ; rcall test_std_y   ;
-;  rcall test_lds_32  ; rcall test_sts     ;
+  rcall test_lds_32  ; rcall test_sts     ;
+  rcall test_ld_z    ; rcall test_st_z    ;
+  rcall test_ldd_z   ; rcall test_std_z   ;
+  rcall test_ld_y    ; rcall test_st_y    ;
+  rcall test_ldd_y   ; rcall test_std_y   ;
 ;  rcall test_ld_zp   ; rcall test_st_zp   ;
 ;  rcall test_ld_zm   ; rcall test_st_zm   ;
 ;  rcall test_ld_yp   ; rcall test_st_yp   ;
@@ -241,19 +241,6 @@ main:
   rcall test_bclr    ;
 ; rcall test_ret     ; 
 ; rcall test_reti    ; TODO, write an ISR
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   sleep
 
@@ -582,6 +569,11 @@ test_andi:
 .endif
   ret
 
+; TODO generalize this and move it up to definitions
+.set ADR_REG, 0x000010
+.set ADR_IOS, 0x000060
+.set ADR_RAM, 0x000200
+
 test_lds_16:
 .if (SUBISA & ISA_MSK_LDS_16  )
   rcall  init_const ;
@@ -596,9 +588,16 @@ test_lds_16:
 .endif
   ret
 
-.set ADR_REG, 0x000010
-.set ADR_IOS, 0x000060
-.set ADR_RAM, 0x000200
+test_lds_32:
+.if (SUBISA & ISA_MSK_LDS_32  )
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    RAMPD,DH_8        ;
+  ser    CH_FF             ;
+  sts    ADR_RAM,CH_FF     ;
+  clr    CH_00             ;
+  lds    CH_00,ADR_RAM     ;
+.endif
+  ret
 
 test_ld_z:
 .if (SUBISA & ISA_MSK_LD_Z    )
@@ -649,17 +648,6 @@ test_ldd_y:
   std    Y+1,CH_FF         ;
   clr    CH_00             ;
   ldd    CH_00,Y+1         ;
-.endif
-  ret
-
-test_lds_32:
-.if (SUBISA & ISA_MSK_LDS_32  )
-  ldi    DH_8,hh8(ADR_RAM) ;
-  out    RAMPD,DH_8        ;
-  ser    CH_FF             ;
-  sts    ADR_RAM,CH_FF     ;
-  clr    CH_00             ;
-  lds    CH_00,ADR_RAM     ;
 .endif
   ret
 
