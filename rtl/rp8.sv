@@ -461,9 +461,9 @@ unique casez (pw)
   16'b0001_01??_????_????: begin dec = '{ '{C0, C0, WX         , RX, db, rb}, '{SUB, C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // CP
   16'b0001_10??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{SUB, C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SUB
   16'b0001_11??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{ADD, C0, feb(Rd), feb(Rr), sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // ADC
-  16'b0011_????_????_????: begin dec = '{ '{C0, CX, WX         , RX, dw, RX}, '{SUB, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // CPI
-  16'b0100_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dw, dw, RX}, '{SUB, C1, feb(Rd), feb(kb), sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SBCI
-  16'b0101_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dw, dw, RX}, '{SUB, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SUBI
+  16'b0011_????_????_????: begin dec = '{ '{C0, CX, WX         , RX, dh, RX}, '{SUB, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // CPI
+  16'b0100_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{SUB, C1, feb(Rd), feb(kb), sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SBCI
+  16'b0101_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{SUB, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SUBI
   16'b1001_010?_????_0000: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SUB, C0, feb(BF), feb(Rd), C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // COM
   // TODO check the value of carry and overflow
   16'b1001_010?_????_0001: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SUB, C0, feb(B0), feb(Rd), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // NEG
@@ -471,9 +471,9 @@ unique casez (pw)
   16'b1001_010?_????_1010: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SUB, C0, feb(Rd), feb(B0), C1    }, MUL, '{alu_s, 8'h3e}, IFU, IOU, LSU, CTL }; end // DEC
   // logic // TODO check flags
   16'b0010_00??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{AND, C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // AND
-  16'b0111_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dw, dw, RX}, '{AND, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // ANDI
+  16'b0111_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{AND, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // ANDI
   16'b0010_10??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{OR , C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // OR
-  16'b0110_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dw, dw, RX}, '{OR , C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // ORI
+  16'b0110_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{OR , C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // ORI
   16'b0010_01??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{EOR, C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // EOR
   // shift right // TODO check flags
   16'b1001_010?_????_0110: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SHR, C0, feb(Rd), feb(B0), C0    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // LSR
