@@ -96,8 +96,8 @@ function automatic string disasm (
           if (~|q)  str = $sformatf ("ld  r%0d,%s"       , Rd, index   );  // Y/Z: Unchanged
           else      str = $sformatf ("ldd r%0d,%s+0x%02x", Rd, index, q);  // Y/Z: Unchanged, q: Displacement
         1'b1:  // Store Indirect From Register to Data Space using Index Y/Z
-          if (~|q)  str = $sformatf ("st  %s,r%0d"       , Rr, index   );  // Y/Z: Unchanged
-          else      str = $sformatf ("std %s+0x%02x,r%0d", Rr, index, q);  // Y/Z: Unchanged, q: Displacement
+          if (~|q)  str = $sformatf ("st  %s,r%0d"       , index   , Rr);  // Y/Z: Unchanged
+          else      str = $sformatf ("std %s+0x%02x,r%0d", index, q, Rr);  // Y/Z: Unchanged, q: Displacement
       endcase
       // 16bit: TODO
       if (code[13]) begin
