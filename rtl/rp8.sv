@@ -464,12 +464,12 @@ unique casez (pw)
   16'b0011_????_????_????: begin dec = '{ '{C0, CX, WX         , RX, dh, RX}, '{SUB, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // CPI
   16'b0100_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{SUB, C1, feb(Rd), feb(kb), sreg.c}, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SBCI
   16'b0101_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{SUB, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // SUBI
+  // TODO: there is space for optimizing ALU input mux for COM/NEG
   16'b1001_010?_????_0000: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SUB, C0, feb(B0), feb(Rd), C1    }, MUL, '{alu_s, 8'h1f}, IFU, IOU, LSU, CTL }; end // COM
-  // TODO check the value of carry and overflow
   16'b1001_010?_????_0001: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SUB, C0, feb(B0), feb(Rd), C0    }, MUL, '{alu_s, 8'h3f}, IFU, IOU, LSU, CTL }; end // NEG
   16'b1001_010?_????_0011: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{ADD, C0, feb(Rd), feb(B0), C1    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // INC
   16'b1001_010?_????_1010: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, RX}, '{SUB, C0, feb(Rd), feb(B0), C1    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // DEC
-  // logic // TODO check flags
+  // logic
   16'b0010_00??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{AND, C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // AND
   16'b0111_????_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, dh, dh, RX}, '{AND, C0, feb(Rd), feb(kb), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // ANDI
   16'b0010_10??_????_????: begin dec = '{ '{C1, C0, {2{alu_rb}}, db, db, rb}, '{OR , C0, feb(Rd), feb(Rr), C0    }, MUL, '{alu_s, 8'h1e}, IFU, IOU, LSU, CTL }; end // OR
