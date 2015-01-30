@@ -32,3 +32,6 @@ modelsim: copy_test_isa
 	$(MODELSIM_BIN)/vlog $(RTL) $(TBN)
 	$(MODELSIM_BIN)/vsim -c -do 'run -all;quit' rp8_tb
 
+gtkwave:
+	gtkwave rp8_tb.vcd        -a rp8_tb.gtkw
+	gtkwave rp8_verilator.vcd -a rp8_verilator.gtkw
