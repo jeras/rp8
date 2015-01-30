@@ -734,17 +734,40 @@ test_inc:
 
 test_asr:
 .if (SUBISA & ISA_MSK_ASR     )
-  
+  clr    CH_00     ;
+  asr    CH_00     ;
+  ser    CH_FF     ;
+  asr    CH_FF     ;
+  ldi    DH_8,0xf0 ;
+  asr    DH_8      ;
+  ldi    DH_8,0x0f ;
+  asr    DH_8      ;
 .endif
   ret
 
 test_lsr:
 .if (SUBISA & ISA_MSK_LSR     )
+  clr    CH_00     ;
+  lsr    CH_00     ;
+  ser    CH_FF     ;
+  lsr    CH_FF     ;
+  ldi    DH_8,0xf0 ;
+  lsr    DH_8      ;
+  ldi    DH_8,0x0f ;
+  lsr    DH_8      ;
 .endif
   ret
 
 test_ror:
 .if (SUBISA & ISA_MSK_ROR     )
+  clr    CH_00     ;
+  ror    CH_00     ;
+  ser    CH_FF     ;
+  ror    CH_FF     ;
+  ldi    DH_8,0xf0 ;
+  ror    DH_8      ;
+  ldi    DH_8,0x0f ;
+  ror    DH_8      ;
 .endif
   ret
 

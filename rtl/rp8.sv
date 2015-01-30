@@ -643,7 +643,7 @@ assign alu_sb.t = 1'bx;
 assign alu_sb.h = (cmd.alu.m == SUB) ? ~cmd.alu.d[3] & cmd.alu.r[3] | cmd.alu.r[3] &  alu_rb[3] |  alu_rb[3] & ~cmd.alu.d[3]
                                      :  cmd.alu.d[3] & cmd.alu.r[3] | cmd.alu.r[3] & ~alu_rb[3] | ~alu_rb[3] &  cmd.alu.d[3];
 assign alu_sb.s = alu_sb.n ^ alu_sb.v;
-assign alu_sb.v = (cmd.alu.m [2]) ? 1'b0 :
+assign alu_sb.v = (cmd.alu.m [2]) ? ((cmd.alu.m == SHR) ? alu_sb.n ^ alu_sb.c : 1'b0 ) :
                   (cmd.alu.m == SUB) ? cmd.alu.d[7] & ~cmd.alu.r[7] & ~alu_rb[7] | ~cmd.alu.d[7] &  cmd.alu.r[7] & alu_rb[7]
                                      : cmd.alu.d[7] &  cmd.alu.r[7] & ~alu_rb[7] | ~cmd.alu.d[7] & ~cmd.alu.r[7] & alu_rb[7];
 assign alu_sb.n = alu_rb[7];
