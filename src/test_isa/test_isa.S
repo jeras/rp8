@@ -204,7 +204,7 @@ main:
 
 ;  rcall test_lds_16  ; rcall test_sts_16  ;
   rcall test_lds_32  ; rcall test_sts     ;
-;  rcall test_st_x    ; rcall test_st_x    ;
+  rcall test_ld_x    ; rcall test_st_x    ;
   rcall test_ld_y    ; rcall test_st_y    ;
   rcall test_ldd_y   ; rcall test_std_y   ;
   rcall test_ld_z    ; rcall test_st_z    ;
@@ -601,8 +601,8 @@ test_lds_32:
 
 test_ld_x:
 .if (SUBISA & ISA_MSK_LD_Y    )
-  ldi    R28,lo8(ADR_RAM)  ;
-  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    R26,lo8(ADR_RAM)  ;
+  ldi    R27,hi8(ADR_RAM)  ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPX,DH_8        ;
   ser    CH_FF             ;
