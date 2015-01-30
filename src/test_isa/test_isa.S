@@ -30,48 +30,34 @@
 .set ISA_MSK_SUBI    , 0b11111
 .set ISA_MSK_ORI     , 0b11111
 .set ISA_MSK_ANDI    , 0b11111
-.set ISA_MSK_LDS_16  , 0b10000
-.set ISA_MSK_STS_16  , 0b10000
-.set ISA_MSK_LD_Z    , 0b11111
-.set ISA_MSK_LDD_Z   , 0b00111
-.set ISA_MSK_LD_Y    , 0b10111
-.set ISA_MSK_LDD_Y   , 0b00111
-.set ISA_MSK_ST_Z    , 0b11111
-.set ISA_MSK_STD_Z   , 0b00111
-.set ISA_MSK_ST_Y    , 0b10111
-.set ISA_MSK_STD_Y   , 0b00111
-.set ISA_MSK_LDS_32  , 0b00111
-.set ISA_MSK_LD_ZP   , 0b10111
-.set ISA_MSK_LD_ZM   , 0b10111
+.set ISA_MSK_LDS_16  , 0b10000 ; .set ISA_MSK_STS_16  , 0b10000
+.set ISA_MSK_LD_Z    , 0b11111 ; .set ISA_MSK_ST_Z    , 0b11111
+.set ISA_MSK_LDD_Z   , 0b00111 ; .set ISA_MSK_STD_Z   , 0b00111
+.set ISA_MSK_LD_Y    , 0b10111 ; .set ISA_MSK_ST_Y    , 0b10111
+.set ISA_MSK_LDD_Y   , 0b00111 ; .set ISA_MSK_STD_Y   , 0b00111
+.set ISA_MSK_LDS_32  , 0b00111 ; .set ISA_MSK_STS     , 0b00111
+.set ISA_MSK_LD_ZP   , 0b10111 ; .set ISA_MSK_ST_ZP   , 0b10111
+.set ISA_MSK_LD_ZM   , 0b10111 ; .set ISA_MSK_ST_ZM   , 0b10111
 .set ISA_MSK         , 0b00000
 .set ISA_MSK_LPM_RZ  , 0b00011
 .set ISA_MSK_LPM_RZP , 0b00011
 .set ISA_MSK_ELPM_RZ , 0b00011
 .set ISA_MSK_ELPM_RZP, 0b00011
 .set ISA_MSK         , 0b00000
-.set ISA_MSK_LD_YP   , 0b10111
-.set ISA_MSK_LD_YM   , 0b10111
+.set ISA_MSK_LD_YP   , 0b10111 ; .set ISA_MSK_ST_YP   , 0b10111
+.set ISA_MSK_LD_YM   , 0b10111 ; .set ISA_MSK_ST_YM   , 0b10111
 .set ISA_MSK         , 0b00000
-.set ISA_MSK         , 0b00000
-.set ISA_MSK         , 0b00000
-.set ISA_MSK         , 0b00000
-.set ISA_MSK_POP     , 0b10111
-.set ISA_MSK_STS     , 0b00111
-.set ISA_MSK_ST_ZP   , 0b10111
-.set ISA_MSK_ST_ZM   , 0b10111
+.set ISA_MSK_LD_X    , 0b10111 ; .set ISA_MSK_ST_X    , 0b10111
+.set ISA_MSK_LD_XP   , 0b10111 ; .set ISA_MSK_ST_XP   , 0b10111
+.set ISA_MSK_LD_XM   , 0b10111 ; .set ISA_MSK_ST_XM   , 0b10111
+.set ISA_MSK_POP     , 0b10111 ; .set ISA_MSK_PUSH    , 0b10111
 .set ISA_MSK         , 0b00000
 .set ISA_MSK_XCH     , 0b00001
 .set ISA_MSK_LAS     , 0b00001
 .set ISA_MSK_LAC     , 0b00001
 .set ISA_MSK_LAT     , 0b00001
 .set ISA_MSK         , 0b00000
-.set ISA_MSK_ST_YP   , 0b10111
-.set ISA_MSK_ST_YM   , 0b10111
 .set ISA_MSK         , 0b00000
-.set ISA_MSK_ST_X    , 0b10111
-.set ISA_MSK_ST_XP   , 0b10111
-.set ISA_MSK_ST_XM   , 0b10111
-.set ISA_MSK_PUSH    , 0b10111
 .set ISA_MSK_COM     , 0b11111
 .set ISA_MSK_NEG     , 0b11111
 .set ISA_MSK_SWAP    , 0b11111
@@ -584,39 +570,65 @@ test_lds_16:
 .endif
   ret
 
+.set ADR_REG, 0x000010
+.set ADR_IOS, 0x000060
+.set ADR_RAM, 0x000200
+
 .if (SUBISA & ISA_MSK_LD_Z    )
+  ldi    R30,lo8(ADR_RAM)  ;
+  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    DH_8,RAMPZ        ;
+  ser    CH_FF             ;
+  st     Z,CH_FF           ;
+  clr    CH_00             ;
+  ld     CH_00,Z           ;
 .endif
   ret
 
 .if (SUBISA & ISA_MSK_LDD_Z   )
+  ldi    R30,lo8(ADR_RAM)  ;
+  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    DH_8,RAMPZ        ;
+  ser    CH_FF             ;
+  std    Z+1,CH_FF         ;
+  clr    CH_00             ;
+  ldd    CH_00,Z+1         ;
 .endif
   ret
 
 .if (SUBISA & ISA_MSK_LD_Y    )
+  ldi    R28,lo8(ADR_RAM)  ;
+  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    DH_8,RAMPY        ;
+  ser    CH_FF             ;
+  st     Y,CH_FF           ;
+  clr    CH_00             ;
+  ld     CH_00,Y           ;
 .endif
   ret
 
 .if (SUBISA & ISA_MSK_LDD_Y   )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK_ST_Z    )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK_STD_Z   )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK_ST_Y    )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK_STD_Y   )
+  ldi    R28,lo8(ADR_RAM)  ;
+  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    DH_8,RAMPY        ;
+  ser    CH_FF             ;
+  std    Y+1,CH_FF         ;
+  clr    CH_00             ;
+  ldd    CH_00,Y+1         ;
 .endif
   ret
 
 .if (SUBISA & ISA_MSK_LDS_32  )
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    DH_8,RAMPD        ;
+  ser    CH_FF             ;
+  sts    ADR_RAM,CH_FF     ;
+  clr    CH_00             ;
+  ldd    CH_00,ADR_RAM     ;
 .endif
   ret
 
@@ -625,10 +637,6 @@ test_lds_16:
   ret
 
 .if (SUBISA & ISA_MSK_LD_ZM   )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK         )
 .endif
   ret
 
@@ -648,31 +656,11 @@ test_lds_16:
 .endif
   ret
 
-.if (SUBISA & ISA_MSK         )
-.endif
-  ret
-
 .if (SUBISA & ISA_MSK_LD_YP   )
 .endif
   ret
 
 .if (SUBISA & ISA_MSK_LD_YM   )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK         )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK         )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK         )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK         )
 .endif
   ret
 
