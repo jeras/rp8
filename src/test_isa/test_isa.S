@@ -202,6 +202,60 @@ main:
   rcall test_subi
   rcall test_ori
   rcall test_andi
+
+;  rcall test_lds_16  ; rcall test_sts_16  ;
+;  rcall test_ld_z    ; rcall test_st_z    ;
+;  rcall test_ldd_z   ; rcall test_std_z   ;
+;  rcall test_ld_y    ; rcall test_st_y    ;
+;  rcall test_ldd_y   ; rcall test_std_y   ;
+;  rcall test_lds_32  ; rcall test_sts     ;
+;  rcall test_ld_zp   ; rcall test_st_zp   ;
+;  rcall test_ld_zm   ; rcall test_st_zm   ;
+;  rcall test_ld_yp   ; rcall test_st_yp   ;
+;  rcall test_ld_ym   ; rcall test_st_ym   ;
+;  rcall test_st_x    ; rcall test_st_x    ;
+;  rcall test_st_xp   ; rcall test_st_xp   ;
+;  rcall test_st_xm   ; rcall test_st_xm   ;
+;  rcall test_pop     ; rcall test_push    ;
+;
+;  rcall test_lpm     ;
+;  rcall test_elpm    ;
+;  rcall test_lpm_rz  ;
+;  rcall test_lpm_rzp ;
+;  rcall test_elpm_rz ;
+;  rcall test_elpm_rzp;
+
+; TODO XMEGA specific instructions
+;  rcall test_xch     ;
+;  rcall test_las     ;
+;  rcall test_lac     ;
+;  rcall test_lat     ;
+
+  rcall test_com     ;
+  rcall test_neg     ;
+  rcall test_swap    ;
+  rcall test_inc     ;
+  rcall test_asr     ;
+  rcall test_lsr     ;
+  rcall test_ror     ;
+  rcall test_bset    ;
+  rcall test_bclr    ;
+; rcall test_ret     ; 
+; rcall test_reti    ; TODO, write an ISR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   sleep
 
 ;-------------------------------------------------------------------------------
@@ -642,6 +696,7 @@ test_lds_16:
 
 
 
+test_com:
 .if (SUBISA & ISA_MSK_COM     )
   clr    CH_00 ; 0x00
   com    CH_00 ; (0xff-0x00) should set .S.N.. flags
@@ -650,6 +705,7 @@ test_lds_16:
 .endif
   ret
 
+test_neg:
 .if (SUBISA & ISA_MSK_NEG     )
   clr    CH_00 ; 0x00
   neg    CH_00 ; (0x00-0x00) should set ....Z. flags
@@ -658,49 +714,42 @@ test_lds_16:
 .endif
   ret
 
+test_swap:
 .if (SUBISA & ISA_MSK_SWAP    )
   ldi    CH_80, 0x80 ; 0x80
   swap   CH_80       ;
 .endif
   ret
 
+test_inc:
 .if (SUBISA & ISA_MSK_INC     )
 .endif
   ret
 
-.if (SUBISA & ISA_MSK         )
-.endif
-  ret
-
+test_asr:
 .if (SUBISA & ISA_MSK_ASR     )
 .endif
   ret
 
+test_lsr:
 .if (SUBISA & ISA_MSK_LSR     )
 .endif
   ret
 
+test_ror:
 .if (SUBISA & ISA_MSK_ROR     )
 .endif
   ret
 
+test_bset:
 .if (SUBISA & ISA_MSK_BSET    )
 .endif
   ret
 
+test_bclr:
 .if (SUBISA & ISA_MSK_BCLR    )
 .endif
   ret
-
-.if (SUBISA & ISA_MSK_RET     )
-.endif
-  ret
-
-.if (SUBISA & ISA_MSK_RETI    )
-.endif
-  ret
-
-
 
 
 ;-------------------------------------------------------------------------------
