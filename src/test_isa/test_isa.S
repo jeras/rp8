@@ -112,6 +112,19 @@
 .set ISA_MSK_SBRS    , 0b11111
 
 ;-------------------------------------------------------------------------------
+; I/O register addresses
+;-------------------------------------------------------------------------------
+
+.set RAMPD, 0x30 + 0x08 ;
+.set RAMPX, 0x30 + 0x09 ;
+.set RAMPY, 0x30 + 0x0a ;
+.set RAMPZ, 0x30 + 0x0b ;
+.set EIND , 0x30 + 0x0c ;
+.set SPL  , 0x30 + 0x0d ;
+.set SPH  , 0x30 + 0x0e ;
+.set SREG , 0x30 + 0x0f ;
+
+;-------------------------------------------------------------------------------
 ; register usage
 ;-------------------------------------------------------------------------------
 
@@ -587,11 +600,12 @@ test_lds_16:
 .set ADR_IOS, 0x000060
 .set ADR_RAM, 0x000200
 
+test_ld_z:
 .if (SUBISA & ISA_MSK_LD_Z    )
   ldi    R30,lo8(ADR_RAM)  ;
   ldi    R31,hi8(ADR_RAM)  ;
   ldi    DH_8,hh8(ADR_RAM) ;
-  out    DH_8,RAMPZ        ;
+  out    RAMPZ,DH_8        ;
   ser    CH_FF             ;
   st     Z,CH_FF           ;
   clr    CH_00             ;
@@ -599,11 +613,12 @@ test_lds_16:
 .endif
   ret
 
+test_ldd_z:
 .if (SUBISA & ISA_MSK_LDD_Z   )
   ldi    R30,lo8(ADR_RAM)  ;
   ldi    R31,hi8(ADR_RAM)  ;
   ldi    DH_8,hh8(ADR_RAM) ;
-  out    DH_8,RAMPZ        ;
+  out    RAMPZ,DH_8        ;
   ser    CH_FF             ;
   std    Z+1,CH_FF         ;
   clr    CH_00             ;
@@ -611,11 +626,12 @@ test_lds_16:
 .endif
   ret
 
+test_ld_y:
 .if (SUBISA & ISA_MSK_LD_Y    )
   ldi    R28,lo8(ADR_RAM)  ;
   ldi    R29,hi8(ADR_RAM)  ;
   ldi    DH_8,hh8(ADR_RAM) ;
-  out    DH_8,RAMPY        ;
+  out    RAMPY,DH_8        ;
   ser    CH_FF             ;
   st     Y,CH_FF           ;
   clr    CH_00             ;
@@ -623,11 +639,12 @@ test_lds_16:
 .endif
   ret
 
+test_ldd_y:
 .if (SUBISA & ISA_MSK_LDD_Y   )
   ldi    R28,lo8(ADR_RAM)  ;
   ldi    R29,hi8(ADR_RAM)  ;
   ldi    DH_8,hh8(ADR_RAM) ;
-  out    DH_8,RAMPY        ;
+  out    RAMPY,DH_8        ;
   ser    CH_FF             ;
   std    Y+1,CH_FF         ;
   clr    CH_00             ;
@@ -635,13 +652,14 @@ test_lds_16:
 .endif
   ret
 
+test_lds_32:
 .if (SUBISA & ISA_MSK_LDS_32  )
   ldi    DH_8,hh8(ADR_RAM) ;
-  out    DH_8,RAMPD        ;
+  out    RAMPD,DH_8        ;
   ser    CH_FF             ;
   sts    ADR_RAM,CH_FF     ;
   clr    CH_00             ;
-  ldd    CH_00,ADR_RAM     ;
+  lds    CH_00,ADR_RAM     ;
 .endif
   ret
 
