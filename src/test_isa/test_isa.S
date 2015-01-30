@@ -204,15 +204,15 @@ main:
 
 ;  rcall test_lds_16  ; rcall test_sts_16  ;
   rcall test_lds_32  ; rcall test_sts     ;
-  rcall test_ld_z    ; rcall test_st_z    ;
-  rcall test_ldd_z   ; rcall test_std_z   ;
+;  rcall test_st_x    ; rcall test_st_x    ;
   rcall test_ld_y    ; rcall test_st_y    ;
   rcall test_ldd_y   ; rcall test_std_y   ;
+  rcall test_ld_z    ; rcall test_st_z    ;
+  rcall test_ldd_z   ; rcall test_std_z   ;
 ;  rcall test_ld_zp   ; rcall test_st_zp   ;
 ;  rcall test_ld_zm   ; rcall test_st_zm   ;
 ;  rcall test_ld_yp   ; rcall test_st_yp   ;
 ;  rcall test_ld_ym   ; rcall test_st_ym   ;
-;  rcall test_st_x    ; rcall test_st_x    ;
 ;  rcall test_st_xp   ; rcall test_st_xp   ;
 ;  rcall test_st_xm   ; rcall test_st_xm   ;
 ;  rcall test_pop     ; rcall test_push    ;
@@ -599,29 +599,16 @@ test_lds_32:
 .endif
   ret
 
-test_ld_z:
-.if (SUBISA & ISA_MSK_LD_Z    )
-  ldi    R30,lo8(ADR_RAM)  ;
-  ldi    R31,hi8(ADR_RAM)  ;
+test_ld_x:
+.if (SUBISA & ISA_MSK_LD_Y    )
+  ldi    R28,lo8(ADR_RAM)  ;
+  ldi    R29,hi8(ADR_RAM)  ;
   ldi    DH_8,hh8(ADR_RAM) ;
-  out    RAMPZ,DH_8        ;
+  out    RAMPX,DH_8        ;
   ser    CH_FF             ;
-  st     Z,CH_FF           ;
+  st     X,CH_FF           ;
   clr    CH_00             ;
-  ld     CH_00,Z           ;
-.endif
-  ret
-
-test_ldd_z:
-.if (SUBISA & ISA_MSK_LDD_Z   )
-  ldi    R30,lo8(ADR_RAM)  ;
-  ldi    R31,hi8(ADR_RAM)  ;
-  ldi    DH_8,hh8(ADR_RAM) ;
-  out    RAMPZ,DH_8        ;
-  ser    CH_FF             ;
-  std    Z+1,CH_FF         ;
-  clr    CH_00             ;
-  ldd    CH_00,Z+1         ;
+  ld     CH_00,X           ;
 .endif
   ret
 
@@ -648,6 +635,32 @@ test_ldd_y:
   std    Y+1,CH_FF         ;
   clr    CH_00             ;
   ldd    CH_00,Y+1         ;
+.endif
+  ret
+
+test_ld_z:
+.if (SUBISA & ISA_MSK_LD_Z    )
+  ldi    R30,lo8(ADR_RAM)  ;
+  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    RAMPZ,DH_8        ;
+  ser    CH_FF             ;
+  st     Z,CH_FF           ;
+  clr    CH_00             ;
+  ld     CH_00,Z           ;
+.endif
+  ret
+
+test_ldd_z:
+.if (SUBISA & ISA_MSK_LDD_Z   )
+  ldi    R30,lo8(ADR_RAM)  ;
+  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    DH_8,hh8(ADR_RAM) ;
+  out    RAMPZ,DH_8        ;
+  ser    CH_FF             ;
+  std    Z+1,CH_FF         ;
+  clr    CH_00             ;
+  ldd    CH_00,Z+1         ;
 .endif
   ret
 
