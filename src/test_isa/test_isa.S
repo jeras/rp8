@@ -723,11 +723,18 @@ test_swap:
 
 test_inc:
 .if (SUBISA & ISA_MSK_INC     )
+  clr    CH_00     ;
+  inc    CH_00     ;
+  ser    CH_FF     ;
+  inc    CH_FF     ;
+  ldi    DH_8,0x7f ;
+  inc    DH_8      ;
 .endif
   ret
 
 test_asr:
 .if (SUBISA & ISA_MSK_ASR     )
+  
 .endif
   ret
 
