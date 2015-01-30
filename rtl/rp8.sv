@@ -1106,6 +1106,10 @@ logic [8-1:0] GPR_R29;
 logic [8-1:0] GPR_R30;
 logic [8-1:0] GPR_R31;
 
+logic [16-1:0] GPR_X;
+logic [16-1:0] GPR_Y;
+logic [16-1:0] GPR_Z;
+
 assign GPR_R00 = gpr[00];
 assign GPR_R01 = gpr[01];
 assign GPR_R02 = gpr[02];
@@ -1139,6 +1143,9 @@ assign GPR_R29 = gpr[29];
 assign GPR_R30 = gpr[30];
 assign GPR_R31 = gpr[31];
 
+assign GPR_X = gpr[27:26];
+assign GPR_Y = gpr[29:28];
+assign GPR_Z = gpr[31:30];
 
 /* verilator lint_on UNUSED */
 
