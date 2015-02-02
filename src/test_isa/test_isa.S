@@ -211,10 +211,12 @@ main:
   rcall test_ld_mzp  ; rcall test_st_mzp  ;
   rcall test_pop     ; rcall test_push    ;
 
-;  rcall test_lpm     ;
-;  rcall test_elpm    ;
+;  rcall test_spm_z   ;
+;  rcall test_spm_zp  ;
+;  rcall test_lpm_z   ;
 ;  rcall test_lpm_rz  ;
 ;  rcall test_lpm_rzp ;
+;  rcall test_elpm_z  ;
 ;  rcall test_elpm_rz ;
 ;  rcall test_elpm_rzp;
 
@@ -223,11 +225,13 @@ main:
 ;  rcall test_las     ;
 ;  rcall test_lac     ;
 ;  rcall test_lat     ;
+; rcall test_des     ;
 
   rcall test_com     ;
   rcall test_neg     ;
   rcall test_swap    ;
   rcall test_inc     ;
+  rcall test_dec     ;
   rcall test_asr     ;
   rcall test_lsr     ;
   rcall test_ror     ;
@@ -235,6 +239,36 @@ main:
   rcall test_bclr    ;
 ; rcall test_ret     ; 
 ; rcall test_reti    ; TODO, write an ISR
+
+; rcall test_sleep   ; TODO, an interrupt is required to exit this test
+; rcall test_break   ; TODO
+; rcall test_wdr     ; TODO
+
+;  rcall test_ijmp    ;
+;  rcall test_eijmp   ;
+;  rcall test_icall   ;
+;  rcall test_eicall  ;
+; rcall test_rjmp    ;
+; rcall test_rcall   ;
+; rcall test_jmp     ;
+; rcall test_call    ;
+
+; rcall test_adiw    ;
+; rcall test_sbiw    ;
+; rcall test_cbi     ;
+; rcall test_sbic    ;
+; rcall test_sbi     ;
+; rcall test_sbis    ;
+; rcall test_mul     ;
+; rcall test_in      ;
+; rcall test_out     ;
+; rcall test_ldi     ;
+; rcall test_brbs    ;
+; rcall test_brbc    ;
+; rcall test_bld     ;
+; rcall test_bst     ;
+; rcall test_sbrc    ;
+; rcall test_sbrs    ;
 
   sleep
 
@@ -773,6 +807,17 @@ test_inc:
 .endif
   ret
 
+test_dec:
+.if (SUBISA & ISA_MSK_DEC     )
+  clr    CH_00     ;
+  dec    CH_00     ;
+  ser    CH_FF     ;
+  dec    CH_FF     ;
+  ldi    DH_8,0x80 ;
+  dec    DH_8      ;
+.endif
+  ret
+
 test_asr:
 .if (SUBISA & ISA_MSK_ASR     )
   clr    CH_00     ;
@@ -842,6 +887,10 @@ test_bclr:
 .endif
   ret
 
+test_ijmp:
+test_eijmp:
+test_icall:
+test_eicall:
 
 ;-------------------------------------------------------------------------------
 ; initialize registers to zero
