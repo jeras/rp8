@@ -956,7 +956,7 @@ test_sbiw:
 test_cbi:
 .if (SUBISA & ISA_MSK_CBI     )
   ser    CH_FF      ;
-  out    CH_FF,OCDR ;
+  out    OCDR,CH_FF ;
   cbi    OCDR,0     ;
   cbi    OCDR,1     ;
   cbi    OCDR,2     ;
@@ -971,7 +971,7 @@ test_cbi:
 test_sbi:
 .if (SUBISA & ISA_MSK_SBI     )
   clr    CH_00      ;
-  out    CH_00,OCDR ;
+  out    OCDR,CH_00 ;
   sbi    OCDR,0     ;
   sbi    OCDR,1     ;
   sbi    OCDR,2     ;

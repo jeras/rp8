@@ -326,11 +326,13 @@ gpr_adr_t      di;     // index registers (used by ADIW/SBIW)
 // various immediate constans decoded from instruction word
 logic         [8-1:0] kb; // byte (8 bit) immediate for ALU operations
 logic         [6-1:0] kw; // word (6bit) for address adder
-logic         [6-1:0] a ; // I/O address
 logic signed [12-1:0] Kl;
 logic signed  [7-1:0] Ks;
 logic         [6-1:0] q ;
 logic         [3-1:0] b ; // bit address
+
+iou_adr_t             a5; // I/O address (entire     I/O address space)
+iou_adr_t             a6; // I/O address (lower half I/O address space)
 
 // reusable_results
 logic Rd_b;
@@ -414,7 +416,8 @@ assign kb = {pw[11:8], pw[3:0]};
 assign kw = {pw[7:6], pw[3:0]};
 
 // I/O address
-assign a = {pw[10:9], pw[3:0]};
+assign a6 = {pw[10:9], pw[3:0]};
+assign a5 = {1'b0, pw[7:4], pw[3]};
 
 assign Kl = pw[11:0];
 assign Ks = pw[ 9:3];
@@ -540,18 +543,18 @@ unique casez (pw)
   // I/O instructions
   //                                    {  gpr                                            iou                                }
   //                                    {  {we, ww, wd, wa, rw, rb}                       {we, re, ad, wd, ms    }           }
-  16'b1011_0???_????_????: begin dec = '{ '{C1, C0, id, db, RX, RX}, ALU, MUL, SRG, IFU, '{C0, C1, a , BX, BX    }, LSU, CTL }; end // IN
-  16'b1011_1???_????_????: begin dec = '{ '{C0, C0, WX, RX, db, RX}, ALU, MUL, SRG, IFU, '{C1, C0, a , Rd, BF    }, LSU, CTL }; end // OUT
-  16'b1001_1000_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a , B0, b2o(b)}, LSU, CTL }; end // CBI
-  16'b1001_1010_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a , BF, b2o(b)}, LSU, CTL }; end // SBI
+  16'b1011_0???_????_????: begin dec = '{ '{C1, C0, id, db, RX, RX}, ALU, MUL, SRG, IFU, '{C0, C1, a6, BX, BX    }, LSU, CTL }; end // IN
+  16'b1011_1???_????_????: begin dec = '{ '{C0, C0, WX, RX, db, RX}, ALU, MUL, SRG, IFU, '{C1, C0, a6, Rd, BF    }, LSU, CTL }; end // OUT
+  16'b1001_1000_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a5, B0, b2o(b)}, LSU, CTL }; end // CBI
+  16'b1001_1010_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a5, BF, b2o(b)}, LSU, CTL }; end // SBI
   // skips
-  //                                    {  gpr                        alu                                     ifu                                iou                            }
+  //                                    {  gpr                        alu                                         ifu                                iou                            }
   //                                    {  {we, ww, wd, wa, rw, rb}   {m  , z , d      , r      , c }             {im, sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
   16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{EOR, C0, feb(Rd), feb(Rr), C0}, MUL, SRG, '{C0,  alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
-  16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0, ~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBIC
-  16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0,  io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBIS
-  16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBRC
-  16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0,  Rd_b     , C0, 'x, C0, WX}, '{C0, C1, a , BX, BX}, LSU, CTL }; end // SBRS
+  16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0, ~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a5, BX, BX}, LSU, CTL }; end // SBIC
+  16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0,  io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a5, BX, BX}, LSU, CTL }; end // SBIS
+  16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // SBRC
+  16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0,  Rd_b     , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // SBRS
   // flow control
   //                                    {   alu {m  , z , d        , r , c }                                                                                               }
   //                                    {  gpr                                           ifu                                             lsu                               }
