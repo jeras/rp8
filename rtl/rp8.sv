@@ -588,18 +588,39 @@ assign cmd = ifu_sts.sk ? NOP : dec;
 // register file access
 ////////////////////////////////////////////////////////////////////////////////
 
-// GPR write access
+// function detecting a pointer address
+function logic fpa (gpr_adr_t a);
+  fpa = (gpr_adr_t'(26) <= a) || (a <= gpr_adr_t'(31));
+endfunction: fpa
+
+// GPR[25:0] write access
 always_ff @ (posedge clk)
-if (bd_ren & ~bd_rid[5]) begin
+if (bd_ren & ~bd_rid[5] & fpa(bd_rid[4:0])) begin
   // writeback
   gpr [bd_rid[4:0]] <= bd_rdt;
 end else if (~stl) begin
-  if (cmd.gpr.we) begin
+  if (cmd.gpr.we & fpa(cmd.gpr.wa)) begin
     // TODO recode this, so it is appropriate for a register file or at least optimized
     if (cmd.gpr.ww) gpr [{cmd.gpr.wa[5-1:1], 1'b0}+:2] <= cmd.gpr.wd;
     else            gpr [ cmd.gpr.wa                 ] <= cmd.gpr.wd[8-1:0];
   end
 end
+
+// GPR[31:26] write access
+generate
+for (genvar a=26; a<32; a++) begin: gpr_ptr
+  always_ff @ (posedge clk)
+  if (bd_ren & ~bd_rid[5] & (bd_rid[4:0]==a[4:0])) begin
+    // writeback
+    gpr [a[4:0]] <= bd_rdt;
+  end else if (~stl) begin
+    if (cmd.gpr.we) begin
+      if (cmd.gpr.ww) begin if (cmd.gpr.wa[5-1:1]==a[5-1:1]) gpr [a[4:0]] <= cmd.gpr.wd[a[0]*8+:8]; end
+      else            begin if (cmd.gpr.wa[5-1:0]==a[5-1:0]) gpr [a[4:0]] <= cmd.gpr.wd[a[0]*8+:8]; end
+    end
+  end
+end: gpr_ptr
+endgenerate
 
 // read word access
 assign Rw = gpr [{cmd.gpr.rw[5-1:1], 1'b0}+:2];
