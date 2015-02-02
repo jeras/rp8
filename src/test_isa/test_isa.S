@@ -179,6 +179,7 @@ main:
   rcall test_movw
   rcall test_muls
   rcall test_mulsu
+  rcall test_mul
   rcall test_fmul
   rcall test_fmuls
   rcall test_fmulsu
@@ -211,10 +212,12 @@ main:
   rcall test_ld_mzp  ; rcall test_st_mzp  ;
   rcall test_pop     ; rcall test_push    ;
 
-;  rcall test_lpm     ;
-;  rcall test_elpm    ;
+;  rcall test_spm_z   ;
+;  rcall test_spm_zp  ;
+;  rcall test_lpm_z   ;
 ;  rcall test_lpm_rz  ;
 ;  rcall test_lpm_rzp ;
+;  rcall test_elpm_z  ;
 ;  rcall test_elpm_rz ;
 ;  rcall test_elpm_rzp;
 
@@ -223,11 +226,13 @@ main:
 ;  rcall test_las     ;
 ;  rcall test_lac     ;
 ;  rcall test_lat     ;
+; rcall test_des     ;
 
   rcall test_com     ;
   rcall test_neg     ;
   rcall test_swap    ;
   rcall test_inc     ;
+  rcall test_dec     ;
   rcall test_asr     ;
   rcall test_lsr     ;
   rcall test_ror     ;
@@ -235,6 +240,35 @@ main:
   rcall test_bclr    ;
 ; rcall test_ret     ; 
 ; rcall test_reti    ; TODO, write an ISR
+
+; rcall test_sleep   ; TODO, an interrupt is required to exit this test
+; rcall test_break   ; TODO
+; rcall test_wdr     ; TODO
+
+; rcall test_ijmp    ;
+; rcall test_eijmp   ;
+; rcall test_icall   ;
+; rcall test_eicall  ;
+; rcall test_rjmp    ;
+; rcall test_rcall   ;
+; rcall test_jmp     ;
+; rcall test_call    ;
+
+  rcall test_adiw    ;
+  rcall test_sbiw    ;
+  rcall test_cbi     ;
+  rcall test_sbi     ;
+; rcall test_bld     ;
+; rcall test_bst     ;
+; rcall test_sbic    ;
+; rcall test_sbis    ;
+; rcall test_in      ;
+; rcall test_out     ;
+; rcall test_ldi     ;
+; rcall test_brbs    ;
+; rcall test_brbc    ;
+; rcall test_sbrc    ;
+; rcall test_sbrs    ;
 
   sleep
 
@@ -258,6 +292,15 @@ test_movw:
   rcall  init_const
   movw   DL_16,CL_16
   movw   DH_16,CH_16
+.endif
+  ret
+
+test_mul:
+.if (SUBISA & ISA_MSK_MUL     )
+  ser    CH_FF       ; 0xff
+  clr    CH_00       ; 0x00
+  muls   CH_00,CH_00 ; should set Z flag
+  muls   CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
@@ -773,6 +816,17 @@ test_inc:
 .endif
   ret
 
+test_dec:
+.if (SUBISA & ISA_MSK_DEC     )
+  clr    CH_00     ;
+  dec    CH_00     ;
+  ser    CH_FF     ;
+  dec    CH_FF     ;
+  ldi    DH_8,0x80 ;
+  dec    DH_8      ;
+.endif
+  ret
+
 test_asr:
 .if (SUBISA & ISA_MSK_ASR     )
   clr    CH_00     ;
@@ -842,6 +896,147 @@ test_bclr:
 .endif
   ret
 
+test_ijmp:
+test_eijmp:
+test_icall:
+test_eicall:
+test_rjmp:
+test_rcall:
+test_jmp:
+test_call:
+
+test_adiw:
+.if (SUBISA & ISA_MSK_ADIW    )
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  adiw   DH_16,0  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  adiw   DH_16,1  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  adiw   DH_16,63 ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  adiw   DH_16,0  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  adiw   DH_16,1  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  adiw   DH_16,63 ;
+.endif
+  ret
+
+test_sbiw:
+.if (SUBISA & ISA_MSK_SBIW    )
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  sbiw   DH_16,0  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  sbiw   DH_16,1  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  sbiw   DH_16,63 ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  sbiw   DH_16,0  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  sbiw   DH_16,1  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  sbiw   DH_16,63 ;
+.endif
+  ret
+
+.set OCDR, 0
+
+test_cbi:
+.if (SUBISA & ISA_MSK_CBI     )
+  ser    CH_FF      ;
+  out    OCDR,CH_FF ;
+  cbi    OCDR,0     ;
+  cbi    OCDR,1     ;
+  cbi    OCDR,2     ;
+  cbi    OCDR,3     ;
+  cbi    OCDR,4     ;
+  cbi    OCDR,5     ;
+  cbi    OCDR,6     ;
+  cbi    OCDR,7     ;
+.endif
+  ret
+
+test_sbi:
+.if (SUBISA & ISA_MSK_SBI     )
+  clr    CH_00      ;
+  out    OCDR,CH_00 ;
+  sbi    OCDR,0     ;
+  sbi    OCDR,1     ;
+  sbi    OCDR,2     ;
+  sbi    OCDR,3     ;
+  sbi    OCDR,4     ;
+  sbi    OCDR,5     ;
+  sbi    OCDR,6     ;
+  sbi    OCDR,7     ;
+.endif
+  ret
+
+test_sbic:
+.if (SUBISA & ISA_MSK_SBIC    )
+.endif
+  ret
+
+test_sbis:
+.if (SUBISA & ISA_MSK_SBIS    )
+.endif
+  ret
+
+test_in:
+.if (SUBISA & ISA_MSK_IN      )
+.endif
+  ret
+
+test_out:
+.if (SUBISA & ISA_MSK_OUT     )
+.endif
+  ret
+
+test_ldi:
+.if (SUBISA & ISA_MSK_LDI     )
+.endif
+  ret
+
+test_brbs:
+.if (SUBISA & ISA_MSK_BRBS    )
+.endif
+  ret
+
+test_brbc:
+.if (SUBISA & ISA_MSK_BRBC    )
+.endif
+  ret
+
+test_bld:
+.if (SUBISA & ISA_MSK_BLD     )
+.endif
+  ret
+
+test_bst:
+.if (SUBISA & ISA_MSK_BST     )
+.endif
+  ret
+
+test_sbrc:
+.if (SUBISA & ISA_MSK_SBRC    )
+.endif
+  ret
+
+test_sbrs:
+.if (SUBISA & ISA_MSK_SBRS    )
+.endif
+  ret
 
 ;-------------------------------------------------------------------------------
 ; initialize registers to zero

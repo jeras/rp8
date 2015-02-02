@@ -114,6 +114,11 @@ int compare_state (
       error++;
     }
   }
+  // compare IO register 0 named OCDR
+  if (dump->io.byte[0] != avr->data[32+0]) {
+    printf ("ERROR: I/O[0x%02x] mismatch\n", 0);
+    error++;
+  }
   // compare IO
 //  for (unsigned int i=0; i<64; i++) {
 //    if (dump->io.byte[i] != avr->data[32+i]) {
