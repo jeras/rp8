@@ -608,7 +608,7 @@ assign Rd = gpr [ cmd.gpr.rw                 ];
 // read byte access
 assign Rr = gpr [ cmd.gpr.rb];
 
-// swap of Rd
+// nibble swap of Rd
 assign Rs = {Rd[3:0], Rd[7:4]};
 
 ////////////////////////////////////////////////////////////////////////////////
