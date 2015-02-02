@@ -209,8 +209,8 @@ main:
   rcall test_ld_mxp  ; rcall test_st_mxp  ;
   rcall test_ld_myp  ; rcall test_st_myp  ;
   rcall test_ld_mzp  ; rcall test_st_mzp  ;
-;  rcall test_pop     ; rcall test_push    ;
-;
+  rcall test_pop     ; rcall test_push    ;
+
 ;  rcall test_lpm     ;
 ;  rcall test_elpm    ;
 ;  rcall test_lpm_rz  ;
@@ -709,7 +709,12 @@ test_ld_mzp:
 .endif
   ret
 
+test_pop:
 .if (SUBISA & ISA_MSK_POP     )
+  clr    CH_00 ;
+  push   CH_00 ;
+  ser    CH_FF ;
+  pop    CH_FF ;
 .endif
   ret
 
@@ -809,11 +814,31 @@ test_ror:
 
 test_bset:
 .if (SUBISA & ISA_MSK_BSET    )
+  clr    CH_00     ;
+  out    SREG,CH_00;
+  bset   0         ;
+  bset   1         ;
+  bset   2         ;
+  bset   3         ;
+  bset   4         ;
+  bset   5         ;
+  bset   6         ;
+  bset   7         ;
 .endif
   ret
 
 test_bclr:
 .if (SUBISA & ISA_MSK_BCLR    )
+  ser    CH_FF     ;
+  out    SREG,CH_FF;
+  bclr   0         ;
+  bclr   1         ;
+  bclr   2         ;
+  bclr   3         ;
+  bclr   4         ;
+  bclr   5         ;
+  bclr   6         ;
+  bclr   7         ;
 .endif
   ret
 
