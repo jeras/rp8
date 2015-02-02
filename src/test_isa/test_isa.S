@@ -209,8 +209,8 @@ main:
   rcall test_ld_mxp  ; rcall test_st_mxp  ;
   rcall test_ld_myp  ; rcall test_st_myp  ;
   rcall test_ld_mzp  ; rcall test_st_mzp  ;
-;  rcall test_pop     ; rcall test_push    ;
-;
+  rcall test_pop     ; rcall test_push    ;
+
 ;  rcall test_lpm     ;
 ;  rcall test_elpm    ;
 ;  rcall test_lpm_rz  ;
@@ -709,7 +709,12 @@ test_ld_mzp:
 .endif
   ret
 
+test_pop:
 .if (SUBISA & ISA_MSK_POP     )
+  clr    CH_00 ;
+  push   CH_00 ;
+  ser    CH_FF ;
+  pop    CH_FF ;
 .endif
   ret
 
