@@ -256,9 +256,9 @@ main:
 
   rcall test_adiw    ;
   rcall test_sbiw    ;
-; rcall test_cbi     ;
+  rcall test_cbi     ;
+  rcall test_sbi     ;
 ; rcall test_sbic    ;
-; rcall test_sbi     ;
 ; rcall test_sbis    ;
 ; rcall test_in      ;
 ; rcall test_out     ;
@@ -951,18 +951,40 @@ test_sbiw:
 .endif
   ret
 
+.set OCDR, 0
+
 test_cbi:
 .if (SUBISA & ISA_MSK_CBI     )
-.endif
-  ret
-
-test_sbic:
-.if (SUBISA & ISA_MSK_SBIC    )
+  ser    CH_FF      ;
+  out    CH_FF,OCDR ;
+  cbi    OCDR,0     ;
+  cbi    OCDR,1     ;
+  cbi    OCDR,2     ;
+  cbi    OCDR,3     ;
+  cbi    OCDR,4     ;
+  cbi    OCDR,5     ;
+  cbi    OCDR,6     ;
+  cbi    OCDR,7     ;
 .endif
   ret
 
 test_sbi:
 .if (SUBISA & ISA_MSK_SBI     )
+  clr    CH_00      ;
+  out    CH_00,OCDR ;
+  sbi    OCDR,0     ;
+  sbi    OCDR,1     ;
+  sbi    OCDR,2     ;
+  sbi    OCDR,3     ;
+  sbi    OCDR,4     ;
+  sbi    OCDR,5     ;
+  sbi    OCDR,6     ;
+  sbi    OCDR,7     ;
+.endif
+  ret
+
+test_sbic:
+.if (SUBISA & ISA_MSK_SBIC    )
 .endif
   ret
 
