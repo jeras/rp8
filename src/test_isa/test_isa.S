@@ -258,6 +258,8 @@ main:
   rcall test_sbiw    ;
   rcall test_cbi     ;
   rcall test_sbi     ;
+; rcall test_bld     ;
+; rcall test_bst     ;
 ; rcall test_sbic    ;
 ; rcall test_sbis    ;
 ; rcall test_in      ;
@@ -265,8 +267,6 @@ main:
 ; rcall test_ldi     ;
 ; rcall test_brbs    ;
 ; rcall test_brbc    ;
-; rcall test_bld     ;
-; rcall test_bst     ;
 ; rcall test_sbrc    ;
 ; rcall test_sbrs    ;
 
