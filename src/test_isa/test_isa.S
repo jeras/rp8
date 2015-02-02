@@ -179,6 +179,7 @@ main:
   rcall test_movw
   rcall test_muls
   rcall test_mulsu
+  rcall test_mul
   rcall test_fmul
   rcall test_fmuls
   rcall test_fmulsu
@@ -244,22 +245,21 @@ main:
 ; rcall test_break   ; TODO
 ; rcall test_wdr     ; TODO
 
-;  rcall test_ijmp    ;
-;  rcall test_eijmp   ;
-;  rcall test_icall   ;
-;  rcall test_eicall  ;
+; rcall test_ijmp    ;
+; rcall test_eijmp   ;
+; rcall test_icall   ;
+; rcall test_eicall  ;
 ; rcall test_rjmp    ;
 ; rcall test_rcall   ;
 ; rcall test_jmp     ;
 ; rcall test_call    ;
 
-; rcall test_adiw    ;
-; rcall test_sbiw    ;
+  rcall test_adiw    ;
+  rcall test_sbiw    ;
 ; rcall test_cbi     ;
 ; rcall test_sbic    ;
 ; rcall test_sbi     ;
 ; rcall test_sbis    ;
-; rcall test_mul     ;
 ; rcall test_in      ;
 ; rcall test_out     ;
 ; rcall test_ldi     ;
@@ -292,6 +292,15 @@ test_movw:
   rcall  init_const
   movw   DL_16,CL_16
   movw   DH_16,CH_16
+.endif
+  ret
+
+test_mul:
+.if (SUBISA & ISA_MSK_MUL     )
+  ser    CH_FF       ; 0xff
+  clr    CH_00       ; 0x00
+  muls   CH_00,CH_00 ; should set Z flag
+  muls   CH_FF,CH_FF ; should set C flag
 .endif
   ret
 
@@ -891,6 +900,121 @@ test_ijmp:
 test_eijmp:
 test_icall:
 test_eicall:
+test_rjmp:
+test_rcall:
+test_jmp:
+test_call:
+
+test_adiw:
+.if (SUBISA & ISA_MSK_ADIW    )
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  adiw   DH_16,0  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  adiw   DH_16,1  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  adiw   DH_16,63 ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  adiw   DH_16,0  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  adiw   DH_16,1  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  adiw   DH_16,63 ;
+.endif
+  ret
+
+test_sbiw:
+.if (SUBISA & ISA_MSK_SBIW    )
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  sbiw   DH_16,0  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  sbiw   DH_16,1  ;
+  clr    DH_16L   ;
+  clr    DH_16H   ;
+  sbiw   DH_16,63 ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  sbiw   DH_16,0  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  sbiw   DH_16,1  ;
+  ser    DH_16L   ;
+  ser    DH_16H   ;
+  sbiw   DH_16,63 ;
+.endif
+  ret
+
+test_cbi:
+.if (SUBISA & ISA_MSK_CBI     )
+.endif
+  ret
+
+test_sbic:
+.if (SUBISA & ISA_MSK_SBIC    )
+.endif
+  ret
+
+test_sbi:
+.if (SUBISA & ISA_MSK_SBI     )
+.endif
+  ret
+
+test_sbis:
+.if (SUBISA & ISA_MSK_SBIS    )
+.endif
+  ret
+
+test_in:
+.if (SUBISA & ISA_MSK_IN      )
+.endif
+  ret
+
+test_out:
+.if (SUBISA & ISA_MSK_OUT     )
+.endif
+  ret
+
+test_ldi:
+.if (SUBISA & ISA_MSK_LDI     )
+.endif
+  ret
+
+test_brbs:
+.if (SUBISA & ISA_MSK_BRBS    )
+.endif
+  ret
+
+test_brbc:
+.if (SUBISA & ISA_MSK_BRBC    )
+.endif
+  ret
+
+test_bld:
+.if (SUBISA & ISA_MSK_BLD     )
+.endif
+  ret
+
+test_bst:
+.if (SUBISA & ISA_MSK_BST     )
+.endif
+  ret
+
+test_sbrc:
+.if (SUBISA & ISA_MSK_SBRC    )
+.endif
+  ret
+
+test_sbrs:
+.if (SUBISA & ISA_MSK_SBRS    )
+.endif
+  ret
 
 ;-------------------------------------------------------------------------------
 ; initialize registers to zero
