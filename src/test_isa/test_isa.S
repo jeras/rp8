@@ -258,8 +258,8 @@ main:
   rcall test_sbiw    ;
   rcall test_cbi     ;
   rcall test_sbi     ;
-; rcall test_bld     ;
-; rcall test_bst     ;
+  rcall test_bld     ;
+  rcall test_bst     ;
 ; rcall test_sbic    ;
 ; rcall test_sbis    ;
 ; rcall test_in      ;
@@ -983,6 +983,45 @@ test_sbi:
 .endif
   ret
 
+test_bld:
+.if (SUBISA & ISA_MSK_BLD     )
+  clr    CH_00     ;
+  set              ; set T flag
+  bld    DH_8,0    ;
+  bld    DH_8,1    ;
+  bld    DH_8,2    ;
+  bld    DH_8,3    ;
+  bld    DH_8,4    ;
+  bld    DH_8,5    ;
+  bld    DH_8,6    ;
+  bld    DH_8,7    ;
+  ser    CH_FF     ;
+  clt              ; clear T flag
+  bld    DH_8,0    ;
+  bld    DH_8,1    ;
+  bld    DH_8,2    ;
+  bld    DH_8,3    ;
+  bld    DH_8,4    ;
+  bld    DH_8,5    ;
+  bld    DH_8,6    ;
+  bld    DH_8,7    ;
+.endif
+  ret
+
+test_bst:
+.if (SUBISA & ISA_MSK_BST     )
+  ldi    DH_8,0xa5 ;
+  bst    DH_8,0    ;
+  bst    DH_8,1    ;
+  bst    DH_8,2    ;
+  bst    DH_8,3    ;
+  bst    DH_8,4    ;
+  bst    DH_8,5    ;
+  bst    DH_8,6    ;
+  bst    DH_8,7    ;
+.endif
+  ret
+
 test_sbic:
 .if (SUBISA & ISA_MSK_SBIC    )
 .endif
@@ -1015,16 +1054,6 @@ test_brbs:
 
 test_brbc:
 .if (SUBISA & ISA_MSK_BRBC    )
-.endif
-  ret
-
-test_bld:
-.if (SUBISA & ISA_MSK_BLD     )
-.endif
-  ret
-
-test_bst:
-.if (SUBISA & ISA_MSK_BST     )
 .endif
   ret
 
