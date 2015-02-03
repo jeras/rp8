@@ -951,7 +951,7 @@ test_sbiw:
 .endif
   ret
 
-.set OCDR, 0
+.set OCDR, 22
 
 test_cbi:
 .if (SUBISA & ISA_MSK_CBI     )
