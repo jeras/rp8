@@ -260,8 +260,8 @@ main:
   rcall test_sbi     ;
   rcall test_bld     ;
   rcall test_bst     ;
-; rcall test_sbic    ;
-; rcall test_sbis    ;
+  rcall test_sbic    ;
+  rcall test_sbis    ;
 ; rcall test_in      ;
 ; rcall test_out     ;
 ; rcall test_ldi     ;
@@ -427,7 +427,7 @@ test_cpse:
   nop
   rcall  init_const  ; test skip (or not) 32bit instruction
   ldi    DH_8,0xA5
-  sts    0x0100,DH_8 ; load 0xA5 into location 0x0100
+  sts    0x0100,DH_8 ; store 0xA5 into location 0x0100
   clr    DH_8        ; clear register
   cpse   CL_FF,CL_FF ; should skip
   lds    DH_8,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
@@ -951,7 +951,8 @@ test_sbiw:
 .endif
   ret
 
-.set OCDR, 22
+;.set OCDR, 0x00
+.set OCDR, 0x03 ; PORTE on ATmega128
 
 test_cbi:
 .if (SUBISA & ISA_MSK_CBI     )
@@ -1024,11 +1025,67 @@ test_bst:
 
 test_sbic:
 .if (SUBISA & ISA_MSK_SBIC    )
+  ldi    DH_8,0xa5 ;
+  out    OCDR,DH_8 ;
+  in     DH_8,OCDR ;
+  sbic   OCDR,0    ;
+  ldi    DH_8,0    ;
+  sbic   OCDR,1    ;
+  ldi    DH_8,1    ;
+  sbic   OCDR,2    ;
+  ldi    DH_8,2    ;
+  sbic   OCDR,3    ;
+  ldi    DH_8,3    ;
+  sbic   OCDR,4    ;
+  ldi    DH_8,4    ;
+  sbic   OCDR,5    ;
+  ldi    DH_8,5    ;
+  sbic   OCDR,6    ;
+  ldi    DH_8,6    ;
+  sbic   OCDR,7    ;
+  ldi    DH_8,7    ;
+
+  ldi    DH_8,0x5a   ;
+  sts    0x0100,DH_8 ; store 0xA5 into location 0x0100
+  clr    DH_8        ; clear register
+  clr    CH_00       ;
+  out    OCDR,CH_00  ;
+  sbic   OCDR,0      ;
+  lds    DH_8,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
+  nop
 .endif
   ret
 
 test_sbis:
 .if (SUBISA & ISA_MSK_SBIS    )
+  ldi    DH_8,0xa5 ;
+  out    OCDR,DH_8 ;
+  in     DH_8,OCDR ;
+  sbis   OCDR,0    ;
+  ldi    DH_8,0    ;
+  sbis   OCDR,1    ;
+  ldi    DH_8,1    ;
+  sbis   OCDR,2    ;
+  ldi    DH_8,2    ;
+  sbis   OCDR,3    ;
+  ldi    DH_8,3    ;
+  sbis   OCDR,4    ;
+  ldi    DH_8,4    ;
+  sbis   OCDR,5    ;
+  ldi    DH_8,5    ;
+  sbis   OCDR,6    ;
+  ldi    DH_8,6    ;
+  sbis   OCDR,7    ;
+  ldi    DH_8,7    ;
+
+  ldi    DH_8,0x5a   ;
+  sts    0x0100,DH_8 ; store 0xA5 into location 0x0100
+  clr    DH_8        ; clear register
+  ser    CH_FF       ;
+  out    OCDR,CH_FF  ;
+  sbis   OCDR,0      ;
+  lds    DH_8,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
+  nop
 .endif
   ret
 
