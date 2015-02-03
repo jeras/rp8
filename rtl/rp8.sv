@@ -541,12 +541,12 @@ unique casez (pw)
   16'b1001_000?_????_0010: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, RX}, '{SBW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C0, C0, C0, ea, BX, db}, CTL }; end // LD -Z
   16'b1001_001?_????_0010: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, db}, '{SBW, CX, ez, E0, C1}, MUL, SRG, IFU, IOU, '{C1, C1, C0, C0, ea, Rr, RX}, CTL }; end // ST -Z
   // I/O instructions
-  //                                    {  gpr                                            iou                                }
-  //                                    {  {we, ww, wd, wa, rw, rb}                       {we, re, ad, wd, ms    }           }
-  16'b1011_0???_????_????: begin dec = '{ '{C1, C0, id, db, RX, RX}, ALU, MUL, SRG, IFU, '{C0, C1, a6, BX, BX    }, LSU, CTL }; end // IN
-  16'b1011_1???_????_????: begin dec = '{ '{C0, C0, WX, RX, db, RX}, ALU, MUL, SRG, IFU, '{C1, C0, a6, Rd, BF    }, LSU, CTL }; end // OUT
-  16'b1001_1000_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a5, B0, b2o(b)}, LSU, CTL }; end // CBI
-  16'b1001_1010_????_????: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, '{C1, C0, a5, BF, b2o(b)}, LSU, CTL }; end // SBI
+  //                                    {  gpr                                                 iou                                }
+  //                                    {  {we, ww, wd     , wa, rw, rb}                       {we, re, ad, wd, ms    }           }
+  16'b1011_0???_????_????: begin dec = '{ '{C1, C0, {2{id}}, db, RX, RX}, ALU, MUL, SRG, IFU, '{C0, C1, a6, BX, BX    }, LSU, CTL }; end // IN
+  16'b1011_1???_????_????: begin dec = '{ '{C0, C0, WX     , RX, db, RX}, ALU, MUL, SRG, IFU, '{C1, C0, a6, Rd, BF    }, LSU, CTL }; end // OUT
+  16'b1001_1000_????_????: begin dec = '{ GPR                           , ALU, MUL, SRG, IFU, '{C1, C0, a5, B0, b2o(b)}, LSU, CTL }; end // CBI
+  16'b1001_1010_????_????: begin dec = '{ GPR                           , ALU, MUL, SRG, IFU, '{C1, C0, a5, BF, b2o(b)}, LSU, CTL }; end // SBI
   // skips
   //                                    {  gpr                        alu                                         ifu                                iou                            }
   //                                    {  {we, ww, wd, wa, rw, rb}   {m  , z , d      , r      , c }             {im, sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
@@ -832,7 +832,7 @@ assign io_msk = cmd.iou.ms;
 
 // I/O read access
 always_comb
-if (cmd.iou.we) begin
+if (cmd.iou.re) begin
   unique case (cmd.iou.ad)
     IOA_RAMPD: id = rampd;
     IOA_RAMPX: id = rampx;
@@ -844,6 +844,8 @@ if (cmd.iou.we) begin
     IOA_SREG : id = sreg;
     default  : id = io_rdt;
   endcase
+end else begin
+  id = 8'hxx;
 end
 
 // extended data memory addresses
@@ -876,7 +878,7 @@ if (rst)           lsu_cnt <= 2'd0;
 else if (lsu_req)  lsu_cnt <= lsu_end ? 2'd0 : lsu_cnt + 2'd1;
 
 // end of load store sequence, only soubroutine calls returns are longer then one byte transfer
-assign lsu_end = lsu_cnt == PCN - 2'd1;
+assign lsu_end = (lsu_cnt == PCN - 2'd1) | ~cmd.lsu.st;
 
 always_ff @(posedge clk, posedge rst)
 if (rst)  bd_req <= 1'b0;
