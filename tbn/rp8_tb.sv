@@ -224,14 +224,17 @@ else      bd_ren <= bd_req & ~bd_wen;
 
 logic [8-1:0] io_mem [0:64-1];
 
+// I/O write (synchronous)
 always @(posedge clk, posedge rst)
 if (rst) begin
   for (int unsigned i=0; i<64; i++)
     io_mem[io_adr] <= 8'h00;
 end else begin
   if (io_wen) io_mem[io_adr] <= io_wdt & io_msk | io_mem[io_adr] & ~io_msk;
-  if (io_ren) io_rdt <= io_mem[io_adr];
 end
+
+// I/O read (asynchronous)
+assign io_rdt = io_ren ? io_mem[io_adr] : 8'hxx;
 
 ////////////////////////////////////////////////////////////////////////////////
 // interrupts
