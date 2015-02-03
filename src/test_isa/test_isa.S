@@ -267,8 +267,8 @@ main:
 ; rcall test_ldi     ;
 ; rcall test_brbs    ;
 ; rcall test_brbc    ;
-; rcall test_sbrc    ;
-; rcall test_sbrs    ;
+  rcall test_sbrc    ;
+  rcall test_sbrs    ;
 
   sleep
 
@@ -1092,16 +1092,19 @@ test_sbis:
 test_in:
 test_out:
 .if ((SUBISA & ISA_MSK_IN) | (SUBISA & ISA_MSK_OUT))
+  ; TODO, there are tests using both instructions, but the test environment lacks proper I/O peripherals
 .endif
   ret
 
 test_ldi:
 .if (SUBISA & ISA_MSK_LDI     )
+  ; this is tested all over the place
 .endif
   ret
 
 test_brbs:
 .if (SUBISA & ISA_MSK_BRBS    )
+  
 .endif
   ret
 
@@ -1112,11 +1115,61 @@ test_brbc:
 
 test_sbrc:
 .if (SUBISA & ISA_MSK_SBRC    )
+  ldi    CH_80,0xa5 ;
+  sbrc   CH_80,0    ;
+  ldi    DH_8,0     ;
+  sbrc   CH_80,1    ;
+  ldi    DH_8,1     ;
+  sbrc   CH_80,2    ;
+  ldi    DH_8,2     ;
+  sbrc   CH_80,3    ;
+  ldi    DH_8,3     ;
+  sbrc   CH_80,4    ;
+  ldi    DH_8,4     ;
+  sbrc   CH_80,5    ;
+  ldi    DH_8,5     ;
+  sbrc   CH_80,6    ;
+  ldi    DH_8,6     ;
+  sbrc   CH_80,7    ;
+  ldi    DH_8,7     ;
+
+  ldi    DH_8,0x5a   ;
+  sts    0x0100,DH_8 ; store 0xA5 into location 0x0100
+  clr    DH_8        ; clear register
+  clr    CH_00       ;
+  sbrc   CH_00,0     ;
+  lds    DH_8,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
+  nop
 .endif
   ret
 
 test_sbrs:
 .if (SUBISA & ISA_MSK_SBRS    )
+  ldi    CH_80,0xa5 ;
+  sbrs   CH_80,0    ;
+  ldi    DH_8,0     ;
+  sbrs   CH_80,1    ;
+  ldi    DH_8,1     ;
+  sbrs   CH_80,2    ;
+  ldi    DH_8,2     ;
+  sbrs   CH_80,3    ;
+  ldi    DH_8,3     ;
+  sbrs   CH_80,4    ;
+  ldi    DH_8,4     ;
+  sbrs   CH_80,5    ;
+  ldi    DH_8,5     ;
+  sbrs   CH_80,6    ;
+  ldi    DH_8,6     ;
+  sbrs   CH_80,7    ;
+  ldi    DH_8,7     ;
+
+  ldi    DH_8,0x5a   ;
+  sts    0x0100,DH_8 ; store 0xA5 into location 0x0100
+  clr    DH_8        ; clear register
+  ser    CH_FF       ;
+  sbrs   CH_FF,0     ;
+  lds    DH_8,0x0100 ; the second instruction word is "MOVW r1:r0,r1:r0"
+  nop
 .endif
   ret
 
