@@ -1090,12 +1090,8 @@ test_sbis:
   ret
 
 test_in:
-.if (SUBISA & ISA_MSK_IN      )
-.endif
-  ret
-
 test_out:
-.if (SUBISA & ISA_MSK_OUT     )
+.if ((SUBISA & ISA_MSK_IN) | (SUBISA & ISA_MSK_OUT))
 .endif
   ret
 
