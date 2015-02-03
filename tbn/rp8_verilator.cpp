@@ -182,7 +182,7 @@ int main(int argc, char **argv, char **env) {
   // compare_state (avr, &dump);
   printf("RESET\n");
   // run simulation for 100 clock periods
-  for (int unsigned cyc=0; cyc<1024; cyc++) {
+  for (int unsigned cyc=0; cyc<2000; cyc++) {
     if (cyc>=2) {
       // set reset
       top->rst = 0;
@@ -202,7 +202,7 @@ int main(int argc, char **argv, char **env) {
         // simavr should process another instruction
         avr_state = avr_run (avr);
       }
-      prev_pc = dump_bp_adr ;
+      prev_pc = dump_bp_adr;
       prev_ce = dump_bp_vld;
     }
 

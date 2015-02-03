@@ -144,7 +144,7 @@ initial begin
   rst = 1'b1;
   repeat (2) @ (posedge clk);
   rst = 1'b0;
-  repeat (1024) begin
+  repeat (2000) begin
 //    test_instance.randomize();
 //    $display ("%016b", test_instance.code);
     @ (posedge clk);
