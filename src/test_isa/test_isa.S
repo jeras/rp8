@@ -265,8 +265,8 @@ main:
 ; rcall test_in      ;
 ; rcall test_out     ;
 ; rcall test_ldi     ;
-; rcall test_brbs    ;
-; rcall test_brbc    ;
+  rcall test_brbs    ;
+  rcall test_brbc    ;
   rcall test_sbrc    ;
   rcall test_sbrs    ;
 
@@ -1103,13 +1103,50 @@ test_ldi:
   ret
 
 test_brbs:
-.if (SUBISA & ISA_MSK_BRBS    )
-  
-.endif
-  ret
-
 test_brbc:
-.if (SUBISA & ISA_MSK_BRBC    )
+.if ((SUBISA & ISA_MSK_BRBS) | (SUBISA & ISA_MSK_BRBC))
+  ldi    DH_8,0xa5 ;
+  out    SREG,DH_8 ;
+
+  brbs 0,test_brbs_0 ;
+test_brbc_0:
+  brbs 1,test_brbs_1 ;
+test_brbc_1:
+  brbs 2,test_brbs_2 ;
+test_brbc_2:
+  brbs 3,test_brbs_3 ;
+test_brbc_3:
+  brbs 4,test_brbs_4 ;
+test_brbc_4:
+  brbs 5,test_brbs_5 ;
+test_brbc_5:
+  brbs 6,test_brbs_6 ;
+test_brbc_6:
+  brbs 7,test_brbs_7 ;
+test_brbc_7:
+
+  clt
+  brbc 6,test_brbs_end ;
+
+test_brbs_0:
+  brbc 0,test_brbc_0 ;
+test_brbs_1:
+  brbc 1,test_brbc_1 ;
+test_brbs_2:
+  brbc 2,test_brbc_2 ;
+test_brbs_3:
+  brbc 3,test_brbc_3 ;
+test_brbs_4:
+  brbc 4,test_brbc_4 ;
+test_brbs_5:
+  brbc 5,test_brbc_5 ;
+test_brbs_6:
+  brbc 6,test_brbc_6 ;
+test_brbs_7:
+  brbc 7,test_brbc_7 ;
+  
+test_brbs_end:
+test_brbc_end:
 .endif
   ret
 
