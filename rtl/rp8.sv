@@ -572,10 +572,10 @@ unique casez (pw)
   16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C0, C0, C1, pcs               , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, BX, RX}, CTL }; end // RETI
   // TODO, add interrupt status to ifu_cfg_t
   // branches
-  //                                    {       alu                                      ifu                                                }
-  //                                    {       {m  , z , d        , r , c }             {im. sk, be, ad           , we, wd}                }
-  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
-  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
+  //                                    {       alu                                      ifu                                                      }
+  //                                    {       {m  , z , d        , r , c }             {im, sk, be      , ad           , we, wd}                }
+  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0,  sreg[b], alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
+  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, ~sreg[b], alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
 
 //  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
   // TODO: it might make sense to assign X
