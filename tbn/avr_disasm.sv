@@ -284,14 +284,14 @@ function automatic string disasm (
       k = code[9:3];
       b = code[2:0];
       case (code[10])
-        1'b0: str = $sformatf ("brbs %0d,0x%02d", b, 2*k);  // Branch if Bit in SREG is Set
-        1'b1: str = $sformatf ("brbc %0d,0x%02d", b, 2*k);  // Branch if Bit in SREG is Cleared
+        1'b0: str = $sformatf ("brbs %0d,%02d", b, k);  // Branch if Bit in SREG is Set
+        1'b1: str = $sformatf ("brbc %0d,%02d", b, k);  // Branch if Bit in SREG is Cleared
       endcase
       // Flafs: Global Interrupt/T/Half Carry/Signed/Overflow/Negative/Zero/Carry
       if (deep) begin
         case (code[10])
-          1'b0: str = $sformatf ("br%ss 0x%02d", sreg[b], 2*k);  // Branch if * Set
-          1'b1: str = $sformatf ("br%sc 0x%02d", sreg[b], 2*k);  // Branch if * Cleared
+          1'b0: str = $sformatf ("br%ss %02d", sreg[b], k);  // Branch if * Set
+          1'b1: str = $sformatf ("br%sc %02d", sreg[b], k);  // Branch if * Cleared
         endcase
       end
     end
