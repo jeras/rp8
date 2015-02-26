@@ -245,14 +245,14 @@ main:
 ; rcall test_break   ; TODO
 ; rcall test_wdr     ; TODO
 
-; rcall test_ijmp    ;
-; rcall test_eijmp   ;
-; rcall test_icall   ;
-; rcall test_eicall  ;
-; rcall test_rjmp    ;
-; rcall test_rcall   ;
-; rcall test_jmp     ;
-; rcall test_call    ;
+  rcall test_ijmp    ;
+; rcall test_eijmp   ; TODO, simavr should use a custom CPU for this to work
+  rcall test_icall   ;
+; rcall test_eicall  ; TODO, simavr should use a custom CPU for this to work
+  rcall test_rjmp    ;
+  rcall test_rcall   ;
+  rcall test_jmp     ;
+  rcall test_call    ;
 
   rcall test_adiw    ;
   rcall test_sbiw    ;
@@ -638,8 +638,8 @@ test_lds_32:
 
 test_ld_x:
 .if (SUBISA & ISA_MSK_LD_Y    )
-  ldi    R26,lo8(ADR_RAM)  ;
-  ldi    R27,hi8(ADR_RAM)  ;
+  ldi    R26 ,lo8(ADR_RAM) ;
+  ldi    R27 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPX,DH_8        ;
   ser    CH_FF             ;
@@ -651,8 +651,8 @@ test_ld_x:
 
 test_ld_y:
 .if (SUBISA & ISA_MSK_LD_Y    )
-  ldi    R28,lo8(ADR_RAM)  ;
-  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    R28 ,lo8(ADR_RAM) ;
+  ldi    R29 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPY,DH_8        ;
   ser    CH_FF             ;
@@ -664,8 +664,8 @@ test_ld_y:
 
 test_ldd_y:
 .if (SUBISA & ISA_MSK_LDD_Y   )
-  ldi    R28,lo8(ADR_RAM)  ;
-  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    R28 ,lo8(ADR_RAM) ;
+  ldi    R29 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPY,DH_8        ;
   ser    CH_FF             ;
@@ -677,8 +677,8 @@ test_ldd_y:
 
 test_ld_z:
 .if (SUBISA & ISA_MSK_LD_Z    )
-  ldi    R30,lo8(ADR_RAM)  ;
-  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    R30 ,lo8(ADR_RAM) ;
+  ldi    R31 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPZ,DH_8        ;
   ser    CH_FF             ;
@@ -690,8 +690,8 @@ test_ld_z:
 
 test_ldd_z:
 .if (SUBISA & ISA_MSK_LDD_Z   )
-  ldi    R30,lo8(ADR_RAM)  ;
-  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    R30 ,lo8(ADR_RAM) ;
+  ldi    R31 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPZ,DH_8        ;
   ser    CH_FF             ;
@@ -703,8 +703,8 @@ test_ldd_z:
 
 test_ld_mxp:
 .if (SUBISA & ISA_MSK_LD_MXP  )
-  ldi    R28,lo8(ADR_RAM)  ;
-  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    R28 ,lo8(ADR_RAM) ;
+  ldi    R29 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPY,DH_8        ;
   ser    CH_FF             ;
@@ -720,8 +720,8 @@ test_ld_mxp:
 
 test_ld_myp:
 .if (SUBISA & ISA_MSK_LD_MYP  )
-  ldi    R28,lo8(ADR_RAM)  ;
-  ldi    R29,hi8(ADR_RAM)  ;
+  ldi    R28 ,lo8(ADR_RAM) ;
+  ldi    R29 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPY,DH_8        ;
   ser    CH_FF             ;
@@ -737,8 +737,8 @@ test_ld_myp:
 
 test_ld_mzp:
 .if (SUBISA & ISA_MSK_LD_MZP  )
-  ldi    R30,lo8(ADR_RAM)  ;
-  ldi    R31,hi8(ADR_RAM)  ;
+  ldi    R30 ,lo8(ADR_RAM) ;
+  ldi    R31 ,hi8(ADR_RAM) ;
   ldi    DH_8,hh8(ADR_RAM) ;
   out    RAMPY,DH_8        ;
   ser    CH_FF             ;
@@ -897,13 +897,105 @@ test_bclr:
   ret
 
 test_ijmp:
+.if (SUBISA & ISA_MSK_IJMP    )
+  ldi    R30 ,pm_lo8(test_ijmp_dst) ;
+  ldi    R31 ,pm_hi8(test_ijmp_dst) ;
+  ijmp                              ;
+  nop                               ;
+  nop                               ;
+test_ijmp_dst:
+  nop                               ;
+.endif
+  ret
+
 test_eijmp:
+.if (SUBISA & ISA_MSK_EIJMP   )
+  ldi    R30 ,pm_lo8(test_eijmp_dst) ;
+  ldi    R31 ,pm_hi8(test_eijmp_dst) ;
+  ldi    DH_8,pm_hh8(test_eijmp_dst) ;
+  out    EIND,DH_8                   ; TODO: a proper test would require a larger memory
+  eijmp                              ;
+  nop                                ;
+  nop                                ;
+test_eijmp_dst:
+  nop                                ;
+.endif
+  ret
+
 test_icall:
+.if (SUBISA & ISA_MSK_ICALL   )
+  ldi    R30 ,pm_lo8(test_icall_dst) ;
+  ldi    R31 ,pm_hi8(test_icall_dst) ;
+  icall                              ;
+  nop                                ;
+  ret                                ;
+  nop                                ;
+test_icall_dst:
+  nop                                ;
+.endif
+  ret
+
 test_eicall:
+.if (SUBISA & ISA_MSK_EICALL  )
+  ldi    R30 ,pm_lo8(test_eicall_dst) ;
+  ldi    R31 ,pm_hi8(test_eicall_dst) ;
+  ldi    DH_8,pm_hh8(test_eicall_dst) ;
+  out    EIND,DH_8                    ; TODO: a proper test would require a larger memory
+  eicall                              ;
+  nop                                 ;
+  ret                                 ;
+  nop                                 ;
+test_eicall_dst:
+  nop                                 ;
+.endif
+  ret
+
 test_rjmp:
+.if (SUBISA & ISA_MSK_RJMP    )
+  nop                ;
+  rjmp test_rjmp_dst ;
+  nop                ;
+  nop                ;
+test_rjmp_dst:
+  nop                ;
+.endif
+  ret
+
 test_rcall:
+.if (SUBISA & ISA_MSK_RCALL   )
+  nop                  ;
+  rcall test_rcall_dst ;
+  nop                  ;
+  ret                  ;
+  nop                  ;
+test_rcall_dst:
+  nop                  ;
+.endif
+  ret
+
 test_jmp:
+.if (SUBISA & ISA_MSK_JMP     )
+  nop               ;
+  rjmp test_jmp_dst ;
+  nop               ;
+  nop               ;
+test_jmp_dst:
+  nop               ;
+.endif
+  ret
+
 test_call:
+.if (SUBISA & ISA_MSK_CALL    )
+  nop                 ;
+  rcall test_call_dst ;
+  nop                 ;
+  ret                 ;
+  nop                 ;
+test_call_dst:
+  nop                 ;
+.endif
+  ret
+
 
 test_adiw:
 .if (SUBISA & ISA_MSK_ADIW    )
