@@ -212,12 +212,12 @@ main:
   rcall test_ld_mzp  ; rcall test_st_mzp  ;
   rcall test_pop     ; rcall test_push    ;
 
-;  rcall test_spm_z   ;
+;  rcall test_spm     ;
 ;  rcall test_spm_zp  ;
-;  rcall test_lpm_z   ;
+;  rcall test_lpm     ;
 ;  rcall test_lpm_rz  ;
 ;  rcall test_lpm_rzp ;
-;  rcall test_elpm_z  ;
+;  rcall test_elpm    ;
 ;  rcall test_elpm_rz ;
 ;  rcall test_elpm_rzp;
 
@@ -762,19 +762,113 @@ test_pop:
   ret
 
 
+prg_tbl: ; program memory table 16+16=32 bytes
+.byte 0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f
+.byte 0xf0,0xe0,0xd0,0xc0,0xb0,0xa0,0x90,0x80,0x70,0x60,0x50,0x40,0x30,0x20,0x10,0x00
+
+test_spm:
+.if (SUBISA & ISA_MSK_SPM     )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,16+8            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  ldi    DH_8,lo8(0xcafe)     ;
+  mov    R0,DH_8              ;
+  ldi    DH_8,hi8(0xcafe)     ;
+  mov    R1,DH_8              ; load "CAFE" into R1:R0
+  spm                         ; store R1:R0 to @Z
+  clr    R0                   ; clear R0 before performing a readback check
+  lpm                         ; perform read from memory
+.endif
+  ret
+
+test_spm_zp:
+.if (SUBISA & ISA_MSK_SPM_ZP  )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,16+8            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  ldi    DH_8,lo8(0xcafe)     ;
+  mov    R0,DH_8              ;
+  ldi    DH_8,hi8(0xcafe)     ;
+  mov    R1,DH_8              ; load "CAFE" into R1:R0
+  spm    Z+                   ; store R1:R0 to @Z
+  clr    R0                   ; clear R0 before performing a readback check
+  lpm                         ; perform read from memory
+.endif
+  ret
+
+test_lpm:
+.if (SUBISA & ISA_MSK_LPM     )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,16+2            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  lpm                         ; perform read from memory
+.endif
+  ret
+
+test_lpm_rz:
 .if (SUBISA & ISA_MSK_LPM_RZ  )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,16+2            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  lpm    DH_8,Z               ; perform read from memory
 .endif
   ret
 
+test_lpm_rzp:
 .if (SUBISA & ISA_MSK_LPM_RZP )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,16+2            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  lpm    DH_8,Z+              ; perform read from memory
 .endif
   ret
 
+test_elpm:
+.if (SUBISA & ISA_MSK_ELPM    )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,pm_hh8(prg_tbl) ;
+  out    RAMPZ,DH_8           ; TODO: a proper test would require a larger memory
+  ldi    DH_8,16+2            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  elpm                        ; perform read from memory
+.endif
+  ret
+
+test_elpm_rz:
 .if (SUBISA & ISA_MSK_ELPM_RZ )
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,pm_hh8(prg_tbl) ;
+  out    RAMPZ,DH_8           ; TODO: a proper test would require a larger memory
+  ldi    DH_8,16+2            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  elpm    DH_8,Z              ; perform read from memory
 .endif
   ret
 
+test_elpm_rzp:
 .if (SUBISA & ISA_MSK_ELPM_RZP)
+  ldi    r30, pm_lo8(prg_tbl) ;
+  ldi    r31, pm_hi8(prg_tbl) ; set table pointer
+  ldi    DH_8,pm_hh8(prg_tbl) ;
+  out    RAMPZ,DH_8           ; TODO: a proper test would require a larger memory
+  ldi    DH_8,16+2            ; offset points to 0xd0 inside the table
+  add    r30,DH_8
+  adc    r31,0x00             ; add the table pointer and offset
+  elpm    DH_8,Z+             ; perform read from memory
 .endif
   ret
 
