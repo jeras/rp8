@@ -202,6 +202,7 @@ typedef struct packed {
   logic          sk; // skip
   logic          be; // branch enable
   pc_t           ad; // address
+  logic          ls; // load/store enable (for LPM/SPM instructions)
   logic          we; // write enable (for SPM instruction)
   logic [16-1:0] wd; // write data   (for SPM instruction)
 } ifu_dec_t;
@@ -340,6 +341,7 @@ logic Rd_b;
 // read register values
 logic  [8-1:0] Rd; // destination
 logic  [8-1:0] Rr; // source
+logic [16-1:0] Rp; // program word
 logic [16-1:0] Rw; // word
 logic  [8-1:0] Rs; // nibble swap of Rd
 
@@ -438,7 +440,7 @@ localparam gpr_dec_t GPR = '{we: C0, ww: C0, wd: WX, wa: RX, rb: RX, rw: RX};
 localparam alu_dec_t ALU = '{m: 3'bxxx, z: CX, d: EX, r: EX, c: CX};
 localparam mul_dec_t MUL = '{m: 3'bxxx, d: BX, r: BX};
 localparam srg_dec_t SRG = '{s: BX, m: B0};
-localparam ifu_dec_t IFU = '{im: C0, sk: C0, be: C0, ad: 22'hx, we: C0, wd: WX};
+localparam ifu_dec_t IFU = '{im: C0, sk: C0, be: C0, ad: 22'hx, ls: C0, we: C0, wd: WX};
 localparam iou_dec_t IOU = '{we: C0, re: C0, ad: 6'hxx, wd: BX, ms: BX};
 localparam lsu_dec_t LSU = '{en: C0, we: CX, st: CX, sb: CX, ad: EX, wd: BX, dr: RX};
 localparam ctl_dec_t CTL = '{slp: C0, brk: C0, wdr: C0};
@@ -515,10 +517,10 @@ unique casez (pw)
   16'b1001_000?_????_1111: begin dec = '{ GPR                      , ALU, MUL, SRG, IFU, IOU, '{C1, C0, C1, C0, 'x, BX, db}, CTL }; end // POP
   16'b1001_001?_????_1111: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, IFU, IOU, '{C1, C1, C1, C0, 'x, Rd, RX}, CTL }; end // PUSH
   // load store direct (32 bit instructions)
-  //                                    {  gpr                                       ifu                             lsu                               }
-  //                                    {  {we, ww, wd, wa, rw, rb}                  {im, sk, be, ad, we, wd}        {en, we, st, sb, ad, wd, rd}      }
-  16'b1001_000?_????_0000: begin dec = '{ GPR                      , ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C0, C0, C0, ed, BX, db}, CTL }; end // LDS
-  16'b1001_001?_????_0000: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, WX}, IOU, '{C1, C1, C0, C0, ed, Rd, RX}, CTL }; end // STS
+  //                                    {  gpr                                       ifu                                 lsu                               }
+  //                                    {  {we, ww, wd, wa, rw, rb}                  {im, sk, be, ad, ls, we, wd}        {en, we, st, sb, ad, wd, rd}      }
+  16'b1001_000?_????_0000: begin dec = '{ GPR                      , ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, C0, WX}, IOU, '{C1, C0, C0, C0, ed, BX, db}, CTL }; end // LDS
+  16'b1001_001?_????_0000: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU, MUL, SRG, '{C1, C0, C0, 'x, C0, C0, WX}, IOU, '{C1, C1, C0, C0, ed, Rd, RX}, CTL }; end // STS
   // load store indirect
   //                                    {  gpr                            alu                                         lsu                               }
   //                                    {  {we, ww, wd    , wa, rw, rb}   {m  , z , d , r , c }                       {en, we, st, sb, ad, wd, rd}      }
@@ -548,36 +550,46 @@ unique casez (pw)
   16'b1001_1000_????_????: begin dec = '{ GPR                           , ALU, MUL, SRG, IFU, '{C1, C0, a5, B0, b2o(b)}, LSU, CTL }; end // CBI
   16'b1001_1010_????_????: begin dec = '{ GPR                           , ALU, MUL, SRG, IFU, '{C1, C0, a5, BF, b2o(b)}, LSU, CTL }; end // SBI
   // skips
-  //                                    {  gpr                        alu                                         ifu                                iou                            }
-  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , z , d      , r      , c }             {im, sk        , be, ad, we, wd}   {we, re, ad, wd, ms}           }
-  16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{EOR, C0, feb(Rd), feb(Rr), C0}, MUL, SRG, '{C0,  alu_s.z  , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
-  16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0, ~io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a5, BX, BX}, LSU, CTL }; end // SBIC
-  16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0,  io_rdt[b], C0, 'x, C0, WX}, '{C0, C1, a5, BX, BX}, LSU, CTL }; end // SBIS
-  16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // SBRC
-  16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0,  Rd_b     , C0, 'x, C0, WX}, IOU                  , LSU, CTL }; end // SBRS
+  //                                    {  gpr                        alu                                         ifu                                    iou                            }
+  //                                    {  {we, ww, wd, wa, rw, rb}   {m  , z , d      , r      , c }             {im, sk        , be, ad, ls, we, wd}   {we, re, ad, wd, ms}           }
+  16'b0001_00??_????_????: begin dec = '{ '{C0, CX, WX, RX, db, rb}, '{EOR, C0, feb(Rd), feb(Rr), C0}, MUL, SRG, '{C0,  alu_s.z  , C0, 'x, C0, C0, WX}, IOU                  , LSU, CTL }; end // CPSE
+  16'b1001_1001_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0, ~io_rdt[b], C0, 'x, C0, C0, WX}, '{C0, C1, a5, BX, BX}, LSU, CTL }; end // SBIC
+  16'b1001_1011_????_????: begin dec = '{ GPR                      , ALU                             , MUL, SRG, '{C0,  io_rdt[b], C0, 'x, C0, C0, WX}, '{C0, C1, a5, BX, BX}, LSU, CTL }; end // SBIS
+  16'b1111_110?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0, ~Rd_b     , C0, 'x, C0, C0, WX}, IOU                  , LSU, CTL }; end // SBRC
+  16'b1111_111?_????_0???: begin dec = '{ '{C0, CX, WX, RX, db, RX}, ALU                             , MUL, SRG, '{C0,  Rd_b     , C0, 'x, C0, C0, WX}, IOU                  , LSU, CTL }; end // SBRS
   // flow control
   //                                    {   alu {m  , z , d        , r , c }                                                                                               }
-  //                                    {  gpr                                           ifu                                             lsu                               }
-  //                                    {  {we, ww, wd, wa, rw, rb}                      {im, sk, be, ad                , we, wd}        {en, we, st, sb, ad, wd, rd}      }
-  16'b1100_????_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, WX}, IOU, LSU                          , CTL }; end // RJMP
-  16'b1101_????_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // RCALL
-  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, {6'h00,Rw}        , C0, WX}, IOU, LSU                          , CTL }; end // IJMP
-  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, {6'h00,Rw}        , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // ICALL
-  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, ei                , C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
-  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, ei                , C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // EICALL
-  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, LSU                          , CTL }; end // JMP
-  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // CALL
+  //                                    {  gpr                                           ifu                                                 lsu                               }
+  //                                    {  {we, ww, wd, wa, rw, rb}                      {im, sk, be, ad                , ls, we, wd}        {en, we, st, sb, ad, wd, rd}      }
+  16'b1100_????_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, C0, WX}, IOU, LSU                          , CTL }; end // RJMP
+  16'b1101_????_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Kl, C1}, MUL, SRG, '{C0, C0, C1, alu_t[22-1:0]     , C0, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // RCALL
+  16'b1001_0100_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, {6'h00,Rw}        , C0, C0, WX}, IOU, LSU                          , CTL }; end // IJMP
+  16'b1001_0101_0000_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, {6'h00,Rw}        , C0, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // ICALL
+  16'b1001_0100_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, ei                , C0, C0, WX}, IOU, LSU                          , CTL }; end // EIJMP
+  16'b1001_0101_0001_1001: begin dec = '{ '{C0, CX, WX, RX, DZ, RX}, ALU    , MUL, SRG, '{C0, C0, C1, ei                , C0, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // EICALL
+  16'b1001_010?_????_110?: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, C0, WX}, IOU, LSU                          , CTL }; end // JMP
+  16'b1001_010?_????_111?: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C1, C0, C1, {pr[8:4],pr[0],pi}, C0, C0, WX}, IOU, '{C1, C1, C1, C1, 'x, BX, RX}, CTL }; end // CALL
   // TODO pw (program word) and pr (program register) are not the same
-  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C0, C0, C1, pcs               , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, BX, RX}, CTL }; end // RET
-  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C0, C0, C1, pcs               , C0, WX}, IOU, '{C1, C0, C1, C1, 'x, BX, RX}, CTL }; end // RETI
+  16'b1001_0101_0000_1000: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C0, C0, C1, pcs               , C0, C0, WX}, IOU, '{C1, C0, C1, C1, 'x, BX, RX}, CTL }; end // RET
+  16'b1001_0101_0001_1000: begin dec = '{ GPR                      , ALU    , MUL, SRG, '{C0, C0, C1, pcs               , C0, C0, WX}, IOU, '{C1, C0, C1, C1, 'x, BX, RX}, CTL }; end // RETI
   // TODO, add interrupt status to ifu_cfg_t
   // branches
-  //                                    {       alu                                      ifu                                                      }
-  //                                    {       {m  , z , d        , r , c }             {im, sk, be      , ad           , we, wd}                }
-  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0,  sreg[b], alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBS
-  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, ~sreg[b], alu_t[22-1:0], C0, WX}, IOU, LSU, CTL }; end // BRBC
-
-//  16'b1001_0101_1100_1000: begin	/* LPM */	pmem_selz = 1'b1;	pmem_ce = 1'b1;	next_state = LPM; end
+  //                                    {       alu                                      ifu                                                          }
+  //                                    {       {m  , z , d        , r , c }             {im, sk, be      , ad           , ls, we, wd}                }
+  16'b1111_00??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0,  sreg[b], alu_t[22-1:0], C0, C0, WX}, IOU, LSU, CTL }; end // BRBS
+  16'b1111_01??_????_????: begin dec = '{ GPR, '{ADW, CX, ls_t'(pc), Ks, C1}, MUL, SRG, '{C0, C0, ~sreg[b], alu_t[22-1:0], C0, C0, WX}, IOU, LSU, CTL }; end // BRBC
+  // program memory load/store
+  // TODO LPM writing into registers should be handled the same as LSU, gpr structure should handle pointers, there are no conflicts, since data is not available in the same period as address
+  //                                    {  gpr                            alu                               ifu                                                 }
+  //                                    {  {we, ww, wd    , wa, rw, rb}   {m  , z , d , r , c }             {im, sk, be, ad        , ls, we, wd}                }
+  16'b1001_0101_1100_1000: begin dec = '{ '{C0, CX, WX    , RX, DZ, RX}, ALU                   , MUL, SRG, '{C0, C0, C0, {6'h00,Rw}, C1, C0, WX}, IOU, LSU, CTL }; end // LPM
+  16'b1001_0101_1101_1000: begin dec = '{ '{C0, CX, WX    , RX, DZ, RX}, ALU                   , MUL, SRG, '{C0, C0, C0, ez[22-1:0], C1, C0, WX}, IOU, LSU, CTL }; end // ELPM
+  16'b1001_0101_1110_1000: begin dec = '{ '{C0, CX, WX    , RX, DZ, RX}, ALU                   , MUL, SRG, '{C0, C0, C0, ez[22-1:0], C1, C1, Rp}, IOU, LSU, CTL }; end // SPM
+  16'b1001_0101_1111_1000: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, RX}, '{ADW, CX, ez, E0, C1}, MUL, SRG, '{C0, C0, C0, ez[22-1:0], C1, C1, Rp}, IOU, LSU, CTL }; end // SPM Z+
+  16'b1001_000?_????_0100: begin dec = '{ '{C0, CX, WX    , RX, DZ, RX}, ALU                   , MUL, SRG, '{C0, C0, C0, {6'h00,Rw}, C1, C0, WX}, IOU, LSU, CTL }; end // LPM  R,Z
+  16'b1001_000?_????_0101: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, RX}, '{ADW, CX, ez, E0, C1}, MUL, SRG, '{C0, C0, C0, {6'h00,Rw}, C1, C0, WX}, IOU, LSU, CTL }; end // LPM  R,Z+
+  16'b1001_000?_????_0110: begin dec = '{ '{C0, CX, WX    , RX, DZ, RX}, ALU                   , MUL, SRG, '{C0, C0, C0, ez[22-1:0], C1, C0, WX}, IOU, LSU, CTL }; end // ELPM R,Z
+  16'b1001_000?_????_0111: begin dec = '{ '{C1, C1, alu_rw, DZ, DZ, RX}, '{ADW, CX, ez, E0, C1}, MUL, SRG, '{C0, C0, C0, ez[22-1:0], C1, C0, WX}, IOU, LSU, CTL }; end // ELPM R,Z+
   // TODO: it might make sense to assign X
   //default:                 begin dec = 'x; end
   // no operation, same as NOP
@@ -625,11 +637,12 @@ for (genvar a=26; a<32; a++) begin: gpr_ptr
 end: gpr_ptr
 endgenerate
 
-// read word access
-assign Rw = gpr [{cmd.gpr.rw[5-1:1], 1'b0}+:2];
-assign Rd = gpr [ cmd.gpr.rw                 ];
+// read word access (destination register address)
+assign Rp = gpr [                    5'd0 +:2]; // program word (for SPM instruction)
+assign Rw = gpr [{cmd.gpr.rw[5-1:1], 1'b0}+:2]; // word
+assign Rd = gpr [ cmd.gpr.rw                 ]; // byte
 
-// read byte access
+// read byte access (source register address)
 assign Rr = gpr [ cmd.gpr.rb];
 
 // nibble swap of Rd
@@ -1038,6 +1051,7 @@ logic          dec_ifu_im; // instruction immediate
 logic          dec_ifu_sk; // skip
 logic          dec_ifu_be; // branch enable
 pc_t           dec_ifu_ad; // address
+logic          dec_ifu_ls; // load/store enable (for LPM/SPM instructions)
 logic          dec_ifu_we; // write enable (for SPM instruction)
 logic [16-1:0] dec_ifu_wd; // write data   (for SPM instruction)
 // input/output unit decode structure
@@ -1081,6 +1095,7 @@ assign {dec_gpr_we,
         dec_ifu_sk,
         dec_ifu_be,
         dec_ifu_ad,
+        dec_ifu_ls,
         dec_ifu_we,
         dec_ifu_wd,
         dec_iou_we,

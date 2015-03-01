@@ -214,7 +214,7 @@ main:
 
 ;  rcall test_spm     ;
 ;  rcall test_spm_zp  ;
-;  rcall test_lpm     ;
+  rcall test_lpm     ;
 ;  rcall test_lpm_rz  ;
 ;  rcall test_lpm_rzp ;
 ;  rcall test_elpm    ;
